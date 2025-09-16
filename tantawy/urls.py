@@ -8,6 +8,7 @@ admin.site.site_header = 'Tantawy'
 admin.site.index_title = 'Admin Panel'
 
 urlpatterns = [
+    path('', include('authentication.urls')),  # Authentication app as index
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(), name='swagger-ui'),

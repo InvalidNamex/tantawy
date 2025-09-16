@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'debug_toolbar',
     'core',
+    'authentication',  # Add authentication app
     'smart_selects'
 ]
 
@@ -173,3 +174,13 @@ SPECTACULAR_SETTINGS = {
 USE_DJANGO_JQUERY = True
 
 # AUTH_USER_MODEL = 'store.Customer'
+
+# Authentication settings
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'
+
+# Session settings
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False

@@ -29,4 +29,29 @@ urlpatterns = [
     # Store URLs
     path('stores/', views.store_list, name='store_list'),
     path('stores/<int:id>/', views.store_detail, name='store_detail'),
+    
+    # CustomerVendor URLs
+    path('customers-vendors/', views.customervendor_list, name='customervendor_list'),
+    path('customers-vendors/<int:id>/', views.customervendor_detail, name='customervendor_detail'),
+    
+    # InvoiceMaster URLs
+    path('invoices/', views.invoicemaster_list, name='invoicemaster_list'),
+    path('invoices/<int:id>/', views.invoicemaster_detail, name='invoicemaster_detail'),
+    
+    # InvoiceDetail URLs
+    path('invoice-details/', views.invoicedetail_list, name='invoicedetail_list'),
+    path('invoice-details/<int:id>/', views.invoicedetail_detail, name='invoicedetail_detail'),
+    
+    # Stock URLs
+    path('stock/', views.item_stock, name='item_stock'),
+    
+    # Account URLs
+    path('accounts/', views.account_list, name='account_list'),
+    path('accounts/<int:id>/', views.account_detail, name='account_detail'),
+    path('accounts/create/', views.account_create, name='account_create'),
+    
+    # Transaction URLs
+    path('transactions/', views.transaction_list, name='transaction_list'),
+    path('transactions/<int:id>/', views.transaction_detail, name='transaction_detail'),
+    path('transactions/create/', views.transaction_create, name='transaction_create'),
 ]
