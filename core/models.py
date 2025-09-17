@@ -14,7 +14,7 @@ class BaseModel(models.Model):
     Provides tracking of creation, updates, and deletion with user information.
     """
     createdAt = models.DateTimeField(auto_now_add=True, help_text="Timestamp when record was created")
-    updatedAt = models.DateTimeField(auto_now=True, help_text="Timestamp when record was last updated")
+    updatedAt = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="Timestamp when record was last updated")
     deletedAt = models.DateTimeField(null=True, blank=True, help_text="Timestamp when record was soft deleted")
     createdBy = models.ForeignKey(User, on_delete=models.PROTECT, related_name='%(class)s_created', 
                                  null=True, blank=True, help_text="User who created this record")
@@ -40,18 +40,18 @@ class ItemsGroup(BaseModel):
 class Item(BaseModel):
     itemGroupId = models.ForeignKey(ItemsGroup, on_delete=models.PROTECT)
     itemName = models.CharField(max_length=255)
-    itemImage = models.CharField(max_length=255, blank=True)
-    barcode = models.CharField(max_length=255, blank=True)
-    sign = models.CharField(max_length=255, blank=True)
+    itemImage = models.CharField(max_length=255, blank=True, null=True)  # Allow NULL for optional image
+    barcode = models.CharField(max_length=255, blank=True, null=True)    # Allow NULL for optional barcode
+    sign = models.CharField(max_length=255, blank=True, null=True)       # Allow NULL for optional sign
     isUsed = models.BooleanField(default=False)
     isTax = models.BooleanField(default=False)
-    mainUnitName = models.CharField(max_length=255, blank=True)
-    subUnitName = models.CharField(max_length=255, blank=True)
-    smallUnitName = models.CharField(max_length=255, blank=True)  # Fixed duplicate field name
+    mainUnitName = models.CharField(max_length=255, blank=True, null=True)      # Allow NULL for optional unit names
+    subUnitName = models.CharField(max_length=255, blank=True, null=True)       # Allow NULL for optional unit names
+    smallUnitName = models.CharField(max_length=255, blank=True, null=True)     # Allow NULL for optional unit names
     mainUnitPack = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     subUnitPack = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    subUnitBarCode = models.CharField(max_length=255, blank=True)
-    smallUnitBarCode = models.CharField(max_length=255, blank=True)
+    subUnitBarCode = models.CharField(max_length=255, blank=True, null=True)    # Allow NULL for optional barcode
+    smallUnitBarCode = models.CharField(max_length=255, blank=True, null=True)  # Allow NULL for optional barcode
     
     def get_stock_by_store(self, store_id=None):
         """Calculate stock for this item in a specific store or all stores"""
@@ -128,7 +128,7 @@ class StoreGroup(BaseModel):
 
 class Store(BaseModel):
     storeName = models.CharField(max_length=255)
-    storeGroup = models.CharField(max_length=255, blank=True)  # As per schema, this is a string field
+    storeGroup = models.CharField(max_length=255, blank=True, null=True)  # Allow NULL for optional store group
     
     def __str__(self):
         return self.storeName
@@ -144,11 +144,11 @@ class CustomerVendor(BaseModel):
     """
     
     customerVendorName = models.TextField(help_text="Name of the customer or vendor")
-    phone_one = models.CharField(max_length=255, blank=True, help_text="Primary phone number")
-    phone_two = models.CharField(max_length=255, blank=True, help_text="Secondary phone number")
+    phone_one = models.CharField(max_length=255, blank=True, null=True, help_text="Primary phone number")
+    phone_two = models.CharField(max_length=255, blank=True, null=True, help_text="Secondary phone number")
     type = models.SmallIntegerField(choices=CUSTOMER_VENDOR_TYPE_CHOICES, default=1, 
                                    help_text="Type: 1=Customer, 2=Vendor, 3=Both")
-    notes = models.TextField(blank=True, help_text="Additional notes or comments")
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes or comments")
     
     def __str__(self):
         return f"{self.customerVendorName} ({self.get_type_display()})"
@@ -171,7 +171,7 @@ class InvoiceMaster(BaseModel):
                                help_text="Store where invoice was processed")
     invoiceType = models.IntegerField(choices=INVOICE_TYPE_CHOICES, 
                                      help_text="Type: 1=Purchases, 2=Sales, 3=Return Purchases, 4=Return Sales")
-    notes = models.TextField(blank=True, help_text="Invoice notes or comments")
+    notes = models.TextField(blank=True, null=True, help_text="Invoice notes or comments")
     discountAmount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True,
                                         help_text="Fixed discount amount")
     discountPercentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
@@ -213,7 +213,7 @@ class InvoiceDetail(BaseModel):
                                   help_text="Quantity of items")
     price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True,
                                help_text="Unit price per item")
-    notes = models.TextField(blank=True, help_text="Line item notes")
+    notes = models.TextField(blank=True, null=True, help_text="Line item notes")
     invoiceMasterID = models.ForeignKey(InvoiceMaster, on_delete=models.CASCADE, 
                                        help_text="Associated invoice master record")
     storeID = models.ForeignKey('Store', on_delete=models.PROTECT, null=True, blank=True,
@@ -269,7 +269,7 @@ class Transaction(BaseModel):
                                  help_text="Associated account")
     amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True,
                                 help_text="Transaction amount")
-    notes = models.TextField(blank=True, help_text="Transaction notes")
+    notes = models.TextField(blank=True, null=True, help_text="Transaction notes")
     type = models.SmallIntegerField(choices=TRANSACTION_TYPE_CHOICES, null=True, blank=True,
                                    help_text="Transaction type: 1=Purchase, 2=Sales, 3=Return Purchase, 4=Return Sales")
     customerVendorID = models.ForeignKey(CustomerVendor, on_delete=models.CASCADE, null=True, blank=True,
