@@ -1,0 +1,143 @@
+{% extends 'authentication/base.html' %}
+
+{% block title %}Login - Tantawy Management System{% endblock %}
+
+{% block content %}
+<div class="login-card">
+    <div class="row g-0">
+        <!-- Left side - Brand section -->
+        <div class="col-md-6 brand-section d-flex align-items-center justify-content-center">
+            <div class="text-center p-5">
+                <div class="mb-4">
+                    <i class="bi bi-shop display-1"></i>
+                </div>
+                <h2 class="fw-bold mb-3">Tantawy Management</h2>
+                <p class="lead mb-4">Your comprehensive business management solution</p>
+                <div class="d-flex justify-content-center">
+                    <div class="me-3 text-center">
+                        <i class="bi bi-box display-6"></i>
+                        <div class="small mt-1">Inventory</div>
+                    </div>
+                    <div class="me-3 text-center">
+                        <i class="bi bi-currency-dollar display-6"></i>
+                        <div class="small mt-1">Pricing</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-graph-up display-6"></i>
+                        <div class="small mt-1">Analytics</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right side - Login form -->
+        <div class="col-md-6">
+            <div class="p-5">
+                <div class="text-center mb-4">
+                    <h3 class="fw-bold text-dark">Welcome Back!</h3>
+                    <p class="text-muted">Please sign in to your account</p>
+                </div>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Login failed:</strong>
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label fw-semibold">
+                            <i class="bi bi-person"></i> Username
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="id_username" 
+                               name="username" 
+                               value="{{ form.username.value|default:'' }}"
+                               placeholder="Enter your username"
+                               required>
+                        <div class="invalid-feedback">
+                            Please provide a valid username.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label fw-semibold">
+                            <i class="bi bi-lock"></i> Password
+                        </label>
+                        <input type="password" 
+                               class="form-control form-control-lg" 
+                               id="id_password" 
+                               name="password"
+                               placeholder="Enter your password"
+                               required>
+                        <div class="invalid-feedback">
+                            Please provide your password.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        For account access, please contact your administrator
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Demo info card -->
+<div class="position-absolute bottom-0 start-0 m-3">
+    <div class="card" style="width: 300px; background: rgba(255, 255, 255, 0.9);">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="bi bi-lightbulb text-warning"></i> Demo Access
+            </h6>
+            <p class="card-text small mb-2">
+                <strong>Create superuser:</strong><br>
+                <code>python manage.py createsuperuser</code>
+            </p>
+            <p class="card-text small mb-0">
+                <strong>Admin Panel:</strong> 
+                <a href="/admin/" target="_blank" class="text-decoration-none">/admin/</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Bootstrap form validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+{% endblock %}
