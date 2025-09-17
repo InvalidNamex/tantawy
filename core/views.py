@@ -4,7 +4,13 @@ Provides comprehensive CRUD operations with filtering, search, and Swagger docum
 All views include proper error handling and performance optimization.
 """
 
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q, Count
+from django.http import JsonResponse
+from decimal import Decimal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -603,3 +609,683 @@ def transaction_create(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Template-based views for frontend
+
+@login_required
+def pricelists_view(request):
+    """
+    Display list of pricelists with search functionality
+    """
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'priceListName')  # Default sort by name
+    sort_order = request.GET.get('order', 'asc')
+    
+    # Base queryset
+    queryset = PriceList.objects.filter(isDeleted=False).select_related('createdBy', 'updatedBy')
+    
+    # Apply search filter
+    if search_query:
+        queryset = queryset.filter(
+            Q(priceListName__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Apply sorting
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    queryset = queryset.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(queryset, 10)  # 10 items per page
+    page_number = request.GET.get('page')
+    pricelists = paginator.get_page(page_number)
+    
+    context = {
+        'pricelists': pricelists,
+        'search_query': search_query,
+        'sort_by': request.GET.get('sort', 'priceListName'),
+        'sort_order': sort_order,
+    }
+    
+    return render(request, 'core/pricelists/list.html', context)
+
+@login_required
+def pricelist_add_view(request):
+    """
+    Add new pricelist
+    """
+    if request.method == 'POST':
+        name = request.POST.get('priceListName', '').strip()
+        
+        if not name:
+            messages.error(request, 'اسم قائمة السعر مطلوب')
+        else:
+            try:
+                # Check if name already exists
+                if PriceList.objects.filter(priceListName=name, isDeleted=False).exists():
+                    messages.error(request, 'اسم قائمة السعر موجود بالفعل')
+                else:
+                    pricelist = PriceList.objects.create(
+                        priceListName=name,
+                        createdBy=request.user
+                    )
+                    messages.success(request, f'تم إضافة قائمة السعر "{name}" بنجاح')
+                    return redirect('core:pricelists')
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء إضافة قائمة السعر: {str(e)}')
+    
+    return render(request, 'core/pricelists/add.html')
+
+@login_required
+def pricelist_edit_view(request, id):
+    """
+    Edit existing pricelist
+    """
+    pricelist = get_object_or_404(PriceList, id=id, isDeleted=False)
+    
+    if request.method == 'POST':
+        name = request.POST.get('priceListName', '').strip()
+        
+        if not name:
+            messages.error(request, 'اسم قائمة السعر مطلوب')
+        else:
+            try:
+                # Check if name already exists (excluding current pricelist)
+                if PriceList.objects.filter(priceListName=name, isDeleted=False).exclude(id=id).exists():
+                    messages.error(request, 'اسم قائمة السعر موجود بالفعل')
+                else:
+                    pricelist.priceListName = name
+                    pricelist.updatedBy = request.user
+                    pricelist.save()
+                    messages.success(request, f'تم تحديث قائمة السعر "{name}" بنجاح')
+                    return redirect('core:pricelists')
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء تحديث قائمة السعر: {str(e)}')
+    
+    context = {
+        'pricelist': pricelist,
+    }
+    
+    return render(request, 'core/pricelists/edit.html', context)
+
+@login_required
+def pricelist_delete_view(request, id):
+    """
+    Delete pricelist (soft delete)
+    """
+    pricelist = get_object_or_404(PriceList, id=id, isDeleted=False)
+    
+    # Check if pricelist is referenced in PriceListDetail table
+    if PriceListDetail.objects.filter(priceList=pricelist, isDeleted=False).exists():
+        messages.error(request, 'لا يمكن حذف قائمة السعر لأنها مرتبطة بأسعار أصناف')
+        return redirect('core:pricelists')
+    
+    if request.method == 'POST':
+        try:
+            pricelist.isDeleted = True
+            pricelist.deletedBy = request.user
+            pricelist.save()
+            messages.success(request, f'تم حذف قائمة السعر "{pricelist.priceListName}" بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف قائمة السعر: {str(e)}')
+        
+        return redirect('core:pricelists')
+    
+    context = {
+        'pricelist': pricelist,
+    }
+    
+    return render(request, 'core/pricelists/delete.html', context)
+
+
+# StoreGroups template-based views for frontend
+
+@login_required
+def storegroups_view(request):
+    """
+    Display list of store groups with search functionality
+    """
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'storeGroupName')  # Default sort by name
+    sort_order = request.GET.get('order', 'asc')
+    
+    # Base queryset
+    queryset = StoreGroup.objects.filter(isDeleted=False).select_related('createdBy', 'updatedBy')
+    
+    # Apply search filter
+    if search_query:
+        queryset = queryset.filter(
+            Q(storeGroupName__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Apply sorting
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    queryset = queryset.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(queryset, 10)  # 10 items per page
+    page_number = request.GET.get('page')
+    storegroups = paginator.get_page(page_number)
+    
+    context = {
+        'storegroups': storegroups,
+        'search_query': search_query,
+        'sort_by': request.GET.get('sort', 'storeGroupName'),
+        'sort_order': sort_order,
+    }
+    
+    return render(request, 'core/storegroups/list.html', context)
+
+@login_required
+def storegroup_add_view(request):
+    """
+    Add new store group
+    """
+    if request.method == 'POST':
+        name = request.POST.get('storeGroupName', '').strip()
+        
+        if not name:
+            messages.error(request, 'اسم مجموعة المخازن مطلوب')
+        else:
+            try:
+                # Check if name already exists
+                if StoreGroup.objects.filter(storeGroupName=name, isDeleted=False).exists():
+                    messages.error(request, 'اسم مجموعة المخازن موجود بالفعل')
+                else:
+                    storegroup = StoreGroup.objects.create(
+                        storeGroupName=name,
+                        createdBy=request.user
+                    )
+                    messages.success(request, f'تم إضافة مجموعة المخازن "{name}" بنجاح')
+                    return redirect('core:storegroups')
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء إضافة مجموعة المخازن: {str(e)}')
+    
+    return render(request, 'core/storegroups/add.html')
+
+@login_required
+def storegroup_edit_view(request, id):
+    """
+    Edit existing store group
+    """
+    storegroup = get_object_or_404(StoreGroup, id=id, isDeleted=False)
+    
+    if request.method == 'POST':
+        name = request.POST.get('storeGroupName', '').strip()
+        
+        if not name:
+            messages.error(request, 'اسم مجموعة المخازن مطلوب')
+        else:
+            try:
+                # Check if name already exists (excluding current store group)
+                if StoreGroup.objects.filter(storeGroupName=name, isDeleted=False).exclude(id=id).exists():
+                    messages.error(request, 'اسم مجموعة المخازن موجود بالفعل')
+                else:
+                    storegroup.storeGroupName = name
+                    storegroup.updatedBy = request.user
+                    storegroup.save()
+                    messages.success(request, f'تم تحديث مجموعة المخازن "{name}" بنجاح')
+                    return redirect('core:storegroups')
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء تحديث مجموعة المخازن: {str(e)}')
+    
+    context = {
+        'storegroup': storegroup,
+    }
+    
+    return render(request, 'core/storegroups/edit.html', context)
+
+@login_required
+def storegroup_delete_view(request, id):
+    """
+    Delete store group (soft delete)
+    """
+    storegroup = get_object_or_404(StoreGroup, id=id, isDeleted=False)
+    
+    # Check if store group is referenced in Store table
+    if Store.objects.filter(storeGroupId=storegroup, isDeleted=False).exists():
+        messages.error(request, 'لا يمكن حذف مجموعة المخازن لأنها مرتبطة بمخازن')
+        return redirect('core:storegroups')
+    
+    if request.method == 'POST':
+        try:
+            storegroup.isDeleted = True
+            storegroup.deletedBy = request.user
+            storegroup.save()
+            messages.success(request, f'تم حذف مجموعة المخازن "{storegroup.storeGroupName}" بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف مجموعة المخازن: {str(e)}')
+        
+        return redirect('core:storegroups')
+    
+    context = {
+        'storegroup': storegroup,
+    }
+    
+    return render(request, 'core/storegroups/delete.html', context)
+
+
+# =============================================
+# STORES TEMPLATE-BASED VIEWS
+# =============================================
+
+@login_required
+def stores_view(request):
+    """
+    Display list of stores with search functionality
+    """
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'storeName')
+    sort_direction = request.GET.get('direction', 'asc')
+    
+    # Validate sort fields
+    valid_sort_fields = ['id', 'storeName', 'storeGroup', 'createdAt', 'updatedAt']
+    if sort_by not in valid_sort_fields:
+        sort_by = 'storeName'
+    
+    # Build sort field with direction
+    if sort_direction == 'desc':
+        sort_field = f'-{sort_by}'
+    else:
+        sort_field = sort_by
+    
+    # Base queryset
+    stores = Store.objects.filter(isDeleted=False)
+    
+    # Apply search filter
+    if search_query:
+        stores = stores.filter(
+            Q(storeName__icontains=search_query) |
+            Q(storeGroup__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Apply sorting
+    stores = stores.order_by(sort_field)
+    
+    # Pagination
+    paginator = Paginator(stores, 15)  # Show 15 stores per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'stores': page_obj,
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'sort_direction': sort_direction,
+        'total_count': stores.count(),
+    }
+    
+    return render(request, 'core/stores/list.html', context)
+
+
+@login_required
+def stores_add_view(request):
+    """
+    Add new store
+    """
+    if request.method == 'POST':
+        store_name = request.POST.get('storeName', '').strip()
+        store_group = request.POST.get('storeGroup', '').strip()
+        
+        # Validation
+        if not store_name:
+            messages.error(request, 'اسم المخزن مطلوب')
+        elif len(store_name) > 255:
+            messages.error(request, 'اسم المخزن لا يمكن أن يزيد عن 255 حرف')
+        elif Store.objects.filter(storeName=store_name, isDeleted=False).exists():
+            messages.error(request, 'يوجد مخزن بنفس الاسم بالفعل')
+        else:
+            try:
+                # Create new store
+                store = Store.objects.create(
+                    storeName=store_name,
+                    storeGroup=store_group if store_group else None,
+                    createdBy=request.user,
+                    updatedBy=request.user
+                )
+                
+                messages.success(request, f'تم إضافة المخزن "{store_name}" بنجاح')
+                return redirect('core:stores')
+                
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء إضافة المخزن: {str(e)}')
+    
+    # Get store groups for dropdown
+    store_groups = StoreGroup.objects.filter(isDeleted=False).order_by('storeGroupName')
+    
+    context = {
+        'store_groups': store_groups,
+    }
+    
+    return render(request, 'core/stores/add.html', context)
+
+
+@login_required
+def stores_edit_view(request, store_id):
+    """
+    Edit existing store
+    """
+    store = get_object_or_404(Store, id=store_id, isDeleted=False)
+    
+    if request.method == 'POST':
+        store_name = request.POST.get('storeName', '').strip()
+        store_group = request.POST.get('storeGroup', '').strip()
+        
+        # Validation
+        if not store_name:
+            messages.error(request, 'اسم المخزن مطلوب')
+        elif len(store_name) > 255:
+            messages.error(request, 'اسم المخزن لا يمكن أن يزيد عن 255 حرف')
+        elif Store.objects.filter(storeName=store_name, isDeleted=False).exclude(id=store.id).exists():
+            messages.error(request, 'يوجد مخزن بنفس الاسم بالفعل')
+        else:
+            try:
+                # Update store
+                store.storeName = store_name
+                store.storeGroup = store_group if store_group else None
+                store.updatedBy = request.user
+                store.save()
+                
+                messages.success(request, f'تم تحديث المخزن "{store_name}" بنجاح')
+                return redirect('core:stores')
+                
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء تحديث المخزن: {str(e)}')
+    
+    # Get store groups for dropdown
+    store_groups = StoreGroup.objects.filter(isDeleted=False).order_by('storeGroupName')
+    
+    context = {
+        'store': store,
+        'store_groups': store_groups,
+    }
+    
+    return render(request, 'core/stores/edit.html', context)
+
+
+@login_required
+def stores_delete_view(request, store_id):
+    """
+    Delete store (soft delete)
+    """
+    store = get_object_or_404(Store, id=store_id, isDeleted=False)
+    
+    if request.method == 'POST':
+        try:
+            # Check if store is referenced in invoiceMaster
+            # Note: This would need to be implemented when invoiceMaster model exists
+            # For now, we'll proceed with the deletion
+            
+            # Soft delete
+            store.isDeleted = True
+            store.updatedBy = request.user
+            store.save()
+            
+            messages.success(request, f'تم حذف المخزن "{store.storeName}" بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف المخزن: {str(e)}')
+        
+        return redirect('core:stores')
+    
+    context = {
+        'store': store,
+    }
+    
+    return render(request, 'core/stores/delete.html', context)
+
+
+# =============================================
+# ITEMS TEMPLATE-BASED VIEWS
+# =============================================
+
+@login_required
+def items_view(request):
+    """
+    Display list of items with search functionality
+    """
+    search_query = request.GET.get('search', '')
+    sort_by = request.GET.get('sort', 'itemName')
+    sort_direction = request.GET.get('direction', 'asc')
+    
+    # Validate sort fields
+    valid_sort_fields = ['id', 'itemName', 'itemGroupId__itemsGroupName', 'sign', 'createdAt', 'updatedAt']
+    if sort_by not in valid_sort_fields:
+        sort_by = 'itemName'
+    
+    # Build sort field with direction
+    if sort_direction == 'desc':
+        sort_field = f'-{sort_by}'
+    else:
+        sort_field = sort_by
+    
+    # Base queryset
+    items = Item.objects.select_related('itemGroupId').filter(isDeleted=False)
+    
+    # Apply search filter
+    if search_query:
+        items = items.filter(
+            Q(itemName__icontains=search_query) |
+            Q(itemGroupId__itemsGroupName__icontains=search_query) |
+            Q(sign__icontains=search_query) |
+            Q(id__icontains=search_query)
+        )
+    
+    # Apply sorting
+    items = items.order_by(sort_field)
+    
+    # Pagination
+    paginator = Paginator(items, 15)  # Show 15 items per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'items': page_obj,
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'sort_direction': sort_direction,
+        'total_count': items.count(),
+        'item_groups': ItemsGroup.objects.filter(isDeleted=False).order_by('itemsGroupName'),
+        'pricelists': PriceList.objects.filter(isDeleted=False).order_by('priceListName'),
+    }
+    
+    return render(request, 'core/items/list.html', context)
+
+
+@login_required
+def items_add_view(request):
+    """
+    Add new item with pricelist detail (AJAX endpoint)
+    """
+    if request.method == 'POST':
+        item_name = request.POST.get('itemName', '').strip()
+        item_sign = request.POST.get('sign', '').strip()
+        pricelist_id = request.POST.get('pricelistId')
+        price = request.POST.get('price', '').strip()
+        item_group_id = request.POST.get('itemGroupId')
+        
+        # Validation
+        errors = []
+        
+        if not item_name:
+            errors.append('اسم الصنف مطلوب')
+        elif len(item_name) > 255:
+            errors.append('اسم الصنف لا يمكن أن يزيد عن 255 حرف')
+        elif Item.objects.filter(itemName=item_name, isDeleted=False).exists():
+            errors.append('يوجد صنف بنفس الاسم بالفعل')
+        
+        # Optional item group validation
+        item_group = None
+        if item_group_id:
+            try:
+                item_group = ItemsGroup.objects.get(id=item_group_id, isDeleted=False)
+            except ItemsGroup.DoesNotExist:
+                errors.append('مجموعة الصنف غير موجودة')
+        
+        # Optional pricelist and price validation
+        pricelist = None
+        price_decimal = None
+        
+        if pricelist_id:
+            try:
+                pricelist = PriceList.objects.get(id=pricelist_id, isDeleted=False)
+            except PriceList.DoesNotExist:
+                errors.append('قائمة الأسعار غير موجودة')
+        
+        if price:
+            try:
+                price_decimal = Decimal(price)
+                if price_decimal < 0:
+                    errors.append('السعر لا يمكن أن يكون سالباً')
+            except (ValueError, TypeError):
+                errors.append('السعر يجب أن يكون رقماً صحيحاً')
+        
+        # If pricelist is provided, price must also be provided and vice versa
+        if pricelist_id and not price:
+            errors.append('إذا تم اختيار قائمة أسعار، يجب إدخال السعر')
+        elif price and not pricelist_id:
+            errors.append('إذا تم إدخال سعر، يجب اختيار قائمة أسعار')
+        
+        if errors:
+            return JsonResponse({
+                'success': False,
+                'errors': errors
+            })
+        
+        try:
+            # Create new item
+            item = Item.objects.create(
+                itemGroupId=item_group,
+                itemName=item_name,
+                sign=item_sign if item_sign else None,
+                createdBy=request.user,
+                updatedBy=request.user
+            )
+            
+            # Create pricelist detail entry only if both pricelist and price are provided
+            if pricelist and price_decimal is not None:
+                PriceListDetail.objects.create(
+                    priceList=pricelist,
+                    item=item,
+                    price=price_decimal,
+                    createdBy=request.user,
+                    updatedBy=request.user
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'تم إضافة الصنف "{item_name}" بنجاح'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errors': [f'حدث خطأ أثناء إضافة الصنف: {str(e)}']
+            })
+    
+    # For GET request, return form data
+    item_groups = ItemsGroup.objects.filter(isDeleted=False).order_by('itemsGroupName')
+    pricelists = PriceList.objects.filter(isDeleted=False).order_by('priceListName')
+    
+    return JsonResponse({
+        'item_groups': [{'id': ig.id, 'name': ig.itemsGroupName} for ig in item_groups],
+        'pricelists': [{'id': pl.id, 'name': pl.priceListName} for pl in pricelists]
+    })
+
+
+@login_required
+def items_edit_view(request, item_id):
+    """
+    Edit existing item
+    """
+    item = get_object_or_404(Item, id=item_id, isDeleted=False)
+    
+    if request.method == 'POST':
+        item_name = request.POST.get('itemName', '').strip()
+        item_sign = request.POST.get('sign', '').strip()
+        item_group_id = request.POST.get('itemGroupId')
+        
+        # Validation
+        if not item_name:
+            messages.error(request, 'اسم الصنف مطلوب')
+        elif len(item_name) > 255:
+            messages.error(request, 'اسم الصنف لا يمكن أن يزيد عن 255 حرف')
+        elif Item.objects.filter(itemName=item_name, isDeleted=False).exclude(id=item.id).exists():
+            messages.error(request, 'يوجد صنف بنفس الاسم بالفعل')
+        else:
+            try:
+                # Get item group (optional)
+                item_group = None
+                if item_group_id:
+                    item_group = get_object_or_404(ItemsGroup, id=item_group_id, isDeleted=False)
+                
+                # Update item
+                item.itemName = item_name
+                item.sign = item_sign if item_sign else None
+                item.itemGroupId = item_group
+                item.updatedBy = request.user
+                item.save()
+                
+                messages.success(request, f'تم تحديث الصنف "{item_name}" بنجاح')
+                return redirect('core:items')
+                
+            except Exception as e:
+                messages.error(request, f'حدث خطأ أثناء تحديث الصنف: {str(e)}')
+    
+    # Get item groups for dropdown
+    item_groups = ItemsGroup.objects.filter(isDeleted=False).order_by('itemsGroupName')
+    
+    context = {
+        'item': item,
+        'item_groups': item_groups,
+    }
+    
+    return render(request, 'core/items/edit.html', context)
+
+
+@login_required
+def items_delete_view(request, item_id):
+    """
+    Delete item (soft delete) - check if used in invoiceDetails or priceListsDetails
+    """
+    item = get_object_or_404(Item, id=item_id, isDeleted=False)
+    
+    if request.method == 'POST':
+        try:
+            # Check if item is used in InvoiceDetail
+            if hasattr(item, 'invoicedetail_set') and item.invoicedetail_set.filter(isDeleted=False).exists():
+                messages.error(request, f'لا يمكن حذف الصنف "{item.itemName}" لأنه مستخدم في فواتير')
+                return redirect('core:items')
+            
+            # Check if item is used in PriceListDetail
+            if hasattr(item, 'pricelistdetail_set') and item.pricelistdetail_set.filter(isDeleted=False).exists():
+                messages.error(request, f'لا يمكن حذف الصنف "{item.itemName}" لأنه مستخدم في قوائم أسعار')
+                return redirect('core:items')
+            
+            # Soft delete
+            item.isDeleted = True
+            item.updatedBy = request.user
+            item.save()
+            
+            messages.success(request, f'تم حذف الصنف "{item.itemName}" بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف الصنف: {str(e)}')
+        
+        return redirect('core:items')
+    
+    # Check usage for display
+    invoice_usage = hasattr(item, 'invoicedetail_set') and item.invoicedetail_set.filter(isDeleted=False).exists()
+    pricelist_usage = hasattr(item, 'pricelistdetail_set') and item.pricelistdetail_set.filter(isDeleted=False).exists()
+    
+    context = {
+        'item': item,
+        'invoice_usage': invoice_usage,
+        'pricelist_usage': pricelist_usage,
+        'can_delete': not (invoice_usage or pricelist_usage)
+    }
+    
+    return render(request, 'core/items/delete.html', context)

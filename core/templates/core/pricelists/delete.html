@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف قائمة الأسعار - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:pricelists' %}">
+                <i class="bi bi-currency-dollar"></i> قوائم الأسعار
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-trash"></i> حذف "{{ pricelist.priceListName }}"
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    تأكيد حذف قائمة الأسعار
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه!
+                </div>
+                
+                <p class="lead">
+                    هل أنت متأكد من رغبتك في حذف قائمة الأسعار التالية؟
+                </p>
+                
+                <!-- Pricelist Info -->
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">رقم القائمة</small>
+                                <strong class="text-primary">#{{ pricelist.id }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">اسم القائمة</small>
+                                <strong class="text-primary">{{ pricelist.priceListName }}</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">تاريخ الإنشاء</small>
+                                <strong>{{ pricelist.createdAt|date:"j F Y - H:i" }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">من قام بالإنشاء</small>
+                                <strong>
+                                    {% if pricelist.createdBy %}
+                                        {{ pricelist.createdBy.get_full_name|default:pricelist.createdBy.username }}
+                                    {% else %}
+                                        غير محدد
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        {% if pricelist.updatedAt %}
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">آخر تحديث</small>
+                                <strong>{{ pricelist.updatedAt|date:"j F Y - H:i" }}</strong>
+                            </div>
+                            {% if pricelist.updatedBy %}
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">من قام بالتحديث</small>
+                                <strong>{{ pricelist.updatedBy.get_full_name|default:pricelist.updatedBy.username }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>ملاحظة:</strong> سيتم حذف قائمة الأسعار نهائياً من النظام. 
+                    إذا كانت مرتبطة بأسعار أصناف، فلن يتم السماح بالحذف.
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="bi bi-trash me-2"></i>
+                            نعم، احذف القائمة نهائياً
+                        </button>
+                        
+                        <a href="{% url 'core:pricelists' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            لا، إلغاء العملية
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Safety Information Card -->
+        <div class="card mt-4 border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-shield-check me-2"></i>
+                    معلومات الحماية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-check-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>الحذف الآمن</strong>
+                                <small class="d-block text-muted">لن يتم حذف القائمة إذا كانت مرتبطة بأسعار</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-clock-history text-info me-2 mt-1"></i>
+                            <div>
+                                <strong>سجل العمليات</strong>
+                                <small class="d-block text-muted">يتم حفظ معلومات من قام بالحذف ومتى</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>بديل آمن:</strong> يمكنك تعديل اسم القائمة بدلاً من حذفها إذا كنت تريد إعادة تسميتها فقط.
+                    <a href="{% url 'core:pricelists_edit' pricelist.id %}" class="btn btn-outline-warning btn-sm ms-2">
+                        <i class="bi bi-pencil me-1"></i>تعديل الاسم
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-danger {
+    border-color: #dc3545;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.text-primary {
+    color: var(--primary-green) !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const deleteBtn = form.querySelector('button[type="submit"]');
+    let clickCount = 0;
+    
+    deleteBtn.addEventListener('click', function(e) {
+        clickCount++;
+        
+        if (clickCount === 1) {
+            e.preventDefault();
+            this.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>انقر مرة أخرى للتأكيد';
+            this.classList.remove('btn-danger');
+            this.classList.add('btn-warning');
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                clickCount = 0;
+                this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف القائمة نهائياً';
+                this.classList.remove('btn-warning');
+                this.classList.add('btn-danger');
+            }, 3000);
+            
+            return false;
+        } else {
+            // Second click - proceed with deletion
+            this.disabled = true;
+            this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحذف...';
+            
+            // Show final confirmation
+            if (!confirm('هل أنت متأكد تماماً من رغبتك في حذف قائمة الأسعار؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+                e.preventDefault();
+                clickCount = 0;
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف القائمة نهائياً';
+                return false;
+            }
+        }
+    });
+    
+    // Warning animation
+    const warningAlert = document.querySelector('.alert-danger');
+    if (warningAlert) {
+        setInterval(() => {
+            warningAlert.style.backgroundColor = '#f8d7da';
+            setTimeout(() => {
+                warningAlert.style.backgroundColor = '#721c24';
+            }, 500);
+        }, 2000);
+    }
+});
+</script>
+{% endblock %}

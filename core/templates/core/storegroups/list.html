@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}مجموعات المخازن - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-building"></i> مجموعات المخازن
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-building me-2"></i>
+                    مجموعات المخازن
+                </h5>
+                {% if user.is_authenticated %}
+                <a href="{% url 'core:storegroups_add' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    إضافة مجموعة مخازن جديدة
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="card-body">
+                <!-- Search and Filter Section -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form method="get" class="d-flex">
+                            <input type="text" 
+                                   class="form-control me-2" 
+                                   name="search" 
+                                   value="{{ search_query }}" 
+                                   placeholder="البحث بالاسم أو الرقم..."
+                                   style="min-width: 250px;">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            {% if search_query %}
+                            <a href="{% url 'core:storegroups' %}" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                            {% endif %}
+                        </form>
+                    </div>
+                    
+                    <div class="col-md-6 text-end">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-sort-alpha-down me-1"></i>
+                                ترتيب
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item {% if sort_by == 'storeGroupName' and sort_order == 'asc' %}active{% endif %}" 
+                                       href="?search={{ search_query }}&sort=storeGroupName&order=asc">
+                                        <i class="bi bi-sort-alpha-down me-2"></i>الاسم (أ-ي)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if sort_by == 'storeGroupName' and sort_order == 'desc' %}active{% endif %}" 
+                                       href="?search={{ search_query }}&sort=storeGroupName&order=desc">
+                                        <i class="bi bi-sort-alpha-down-alt me-2"></i>الاسم (ي-أ)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if sort_by == 'id' and sort_order == 'asc' %}active{% endif %}" 
+                                       href="?search={{ search_query }}&sort=id&order=asc">
+                                        <i class="bi bi-sort-numeric-down me-2"></i>الرقم (تصاعدي)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if sort_by == 'id' and sort_order == 'desc' %}active{% endif %}" 
+                                       href="?search={{ search_query }}&sort=id&order=desc">
+                                        <i class="bi bi-sort-numeric-down-alt me-2"></i>الرقم (تنازلي)
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Info -->
+                {% if search_query %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    نتائج البحث عن "{{ search_query }}": {{ storegroups.paginator.count }} نتيجة
+                </div>
+                {% endif %}
+
+                <!-- StoreGroups Table -->
+                {% if storegroups %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>اسم المجموعة</th>
+                                <th>من قام بالإنشاء</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>آخر تحديث</th>
+                                <th class="text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for storegroup in storegroups %}
+                            <tr>
+                                <td class="fw-bold">#{{ storegroup.id }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-building text-primary me-2"></i>
+                                        {{ storegroup.storeGroupName }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if storegroup.createdBy %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle text-muted me-2"></i>
+                                            {{ storegroup.createdBy.get_full_name|default:storegroup.createdBy.username }}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">غير محدد</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        {{ storegroup.createdAt|date:"j F Y" }}
+                                        <br>
+                                        <i class="bi bi-clock me-1"></i>
+                                        {{ storegroup.createdAt|date:"H:i" }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if storegroup.updatedAt %}
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            {{ storegroup.updatedAt|date:"j F Y" }}
+                                            <br>
+                                            <i class="bi bi-clock me-1"></i>
+                                            {{ storegroup.updatedAt|date:"H:i" }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">لم يتم التحديث</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        {% if user.is_authenticated %}
+                                        <a href="{% url 'core:storegroups_edit' storegroup.id %}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'core:storegroups_delete' storegroup.id %}" 
+                                           class="btn btn-sm btn-outline-danger" 
+                                           title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted small">غير مصرح</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if storegroups.has_other_pages %}
+                <nav aria-label="Pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if storegroups.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1&search={{ search_query }}&sort={{ sort_by }}&order={{ sort_order }}">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ storegroups.previous_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ sort_order }}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in storegroups.paginator.page_range %}
+                            {% if storegroups.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > storegroups.number|add:'-3' and num < storegroups.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&sort={{ sort_by }}&order={{ sort_order }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if storegroups.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ storegroups.next_page_number }}&search={{ search_query }}&sort={{ sort_by }}&order={{ sort_order }}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ storegroups.paginator.num_pages }}&search={{ search_query }}&sort={{ sort_by }}&order={{ sort_order }}">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <i class="bi bi-building display-1 text-muted"></i>
+                    <h4 class="mt-3 text-muted">لا توجد مجموعات مخازن</h4>
+                    {% if search_query %}
+                        <p class="text-muted">لم يتم العثور على نتائج للبحث "{{ search_query }}"</p>
+                        <a href="{% url 'core:storegroups' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-right me-2"></i>عرض كل مجموعات المخازن
+                        </a>
+                    {% else %}
+                        <p class="text-muted">ابدأ بإنشاء مجموعة مخازن جديدة</p>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'core:storegroups_add' %}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>إضافة مجموعة مخازن
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: var(--light-gray);
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin: 0 2px;
+}
+
+.pagination .page-link {
+    color: var(--primary-green);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.pagination .page-link:hover {
+    color: var(--dark-green);
+    background-color: var(--light-gray);
+    border-color: var(--medium-gray);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit search form on Enter
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                this.form.submit();
+            }
+        });
+    }
+    
+    // Confirm delete actions
+    const deleteLinks = document.querySelectorAll('a[href*="delete"]');
+    deleteLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف مجموعة المخازن هذه؟')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

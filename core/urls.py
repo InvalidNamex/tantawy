@@ -9,14 +9,33 @@ urlpatterns = [
     path('items-groups/', views.itemsgroup_list, name='itemsgroup_list'),
     path('items-groups/<int:id>/', views.itemsgroup_detail, name='itemsgroup_detail'),
     
-    # Item URLs
-    path('items/', views.item_list, name='item_list'),
-    path('items/<int:id>/', views.item_detail, name='item_detail'),
-    path('items/group/<int:group_id>/', views.item_by_group, name='item_by_group'),
+    # Items URLs (Template-based for frontend)
+    path('items/', views.items_view, name='items'),
+    path('items/add/', views.items_add_view, name='items_add'),
+    path('items/edit/<int:item_id>/', views.items_edit_view, name='items_edit'),
+    path('items/delete/<int:item_id>/', views.items_delete_view, name='items_delete'),
     
-    # PriceList URLs
+    # PriceList URLs (API)
     path('price-lists/', views.pricelist_list, name='pricelist_list'),
     path('price-lists/<int:id>/', views.pricelist_detail, name='pricelist_detail'),
+    
+    # PriceList URLs (Template-based for frontend)
+    path('pricelists/', views.pricelists_view, name='pricelists'),
+    path('pricelists/add/', views.pricelist_add_view, name='pricelists_add'),
+    path('pricelists/edit/<int:id>/', views.pricelist_edit_view, name='pricelists_edit'),
+    path('pricelists/delete/<int:id>/', views.pricelist_delete_view, name='pricelists_delete'),
+    
+    # StoreGroups URLs (Template-based for frontend)
+    path('storegroups/', views.storegroups_view, name='storegroups'),
+    path('storegroups/add/', views.storegroup_add_view, name='storegroups_add'),
+    path('storegroups/edit/<int:id>/', views.storegroup_edit_view, name='storegroups_edit'),
+    path('storegroups/delete/<int:id>/', views.storegroup_delete_view, name='storegroups_delete'),
+    
+    # Stores URLs (Template-based for frontend)
+    path('stores/', views.stores_view, name='stores'),
+    path('stores/add/', views.stores_add_view, name='stores_add'),
+    path('stores/edit/<int:store_id>/', views.stores_edit_view, name='stores_edit'),
+    path('stores/delete/<int:store_id>/', views.stores_delete_view, name='stores_delete'),
     
     # PriceListDetail URLs
     path('price-list-details/', views.pricelistdetail_list, name='pricelistdetail_list'),
@@ -54,4 +73,9 @@ urlpatterns = [
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/<int:id>/', views.transaction_detail, name='transaction_detail'),
     path('transactions/create/', views.transaction_create, name='transaction_create'),
+    
+    # Item URLs (API)
+    path('api/items/', views.item_list, name='item_list'),
+    path('api/items/<int:id>/', views.item_detail, name='item_detail'),
+    path('api/items/group/<int:group_id>/', views.item_by_group, name='item_by_group'),
 ]

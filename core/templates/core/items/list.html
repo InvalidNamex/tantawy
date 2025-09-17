@@ -1,0 +1,588 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إدارة الأصناف - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-box"></i> الأصناف
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">إدارة الأصناف</h2>
+        <p class="text-muted mb-0">عرض وإدارة جميع الأصناف في النظام</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+            <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
+        </button>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           name="search" 
+                           value="{{ search_query }}" 
+                           placeholder="البحث في الأصناف (الاسم، المجموعة، الرمز، الرقم)"
+                           list="searchSuggestions">
+                    <datalist id="searchSuggestions">
+                        <!-- Will be populated via JavaScript -->
+                    </datalist>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="sort">
+                    <option value="itemName" {% if sort_by == 'itemName' %}selected{% endif %}>ترتيب حسب الاسم</option>
+                    <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ترتيب حسب الرقم</option>
+                    <option value="itemGroupId__itemsGroupName" {% if sort_by == 'itemGroupId__itemsGroupName' %}selected{% endif %}>ترتيب حسب المجموعة</option>
+                    <option value="sign" {% if sort_by == 'sign' %}selected{% endif %}>ترتيب حسب الرمز</option>
+                    <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>ترتيب حسب تاريخ الإنشاء</option>
+                    <option value="updatedAt" {% if sort_by == 'updatedAt' %}selected{% endif %}>ترتيب حسب تاريخ التحديث</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="direction">
+                    <option value="asc" {% if sort_direction == 'asc' %}selected{% endif %}>تصاعدي</option>
+                    <option value="desc" {% if sort_direction == 'desc' %}selected{% endif %}>تنازلي</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results Summary -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="text-muted">إجمالي النتائج: </span>
+        <span class="badge bg-primary">{{ total_count }}</span>
+        {% if search_query %}
+        <span class="text-muted ms-3">البحث عن: </span>
+        <span class="badge bg-info">"{{ search_query }}"</span>
+        <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-sm ms-2">
+            <i class="bi bi-x-circle me-1"></i>إلغاء البحث
+        </a>
+        {% endif %}
+    </div>
+    <div class="text-muted">
+        صفحة {{ items.number }} من {{ items.paginator.num_pages }}
+    </div>
+</div>
+
+<!-- Items Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الرقم</th>
+                        <th>اسم الصنف</th>
+                        <th>المجموعة</th>
+                        <th>الرمز</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>من قام بالإنشاء</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-light text-dark">#{{ item.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-box text-primary me-2"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ item.itemName }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if item.itemGroupId %}
+                                <span class="badge bg-info">{{ item.itemGroupId.itemsGroupName }}</span>
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.sign %}
+                                <span class="badge bg-secondary">{{ item.sign }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ item.createdAt|date:"j M Y" }}</small><br>
+                            <small class="text-muted">{{ item.createdAt|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            {% if item.createdBy %}
+                                <span class="badge bg-success">{{ item.createdBy.get_full_name|default:item.createdBy.username }}</span>
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'core:items_edit' item.id %}" 
+                                   class="btn btn-outline-warning btn-sm" 
+                                   title="تعديل">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'core:items_delete' item.id %}" 
+                                   class="btn btn-outline-danger btn-sm" 
+                                   title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-box display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">لا توجد أصناف</h4>
+            {% if search_query %}
+            <p class="text-muted">لم يتم العثور على أي أصناف تطابق معايير البحث</p>
+            <a href="{% url 'core:items' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-right me-2"></i>عرض جميع الأصناف
+            </a>
+            {% else %}
+            <p class="text-muted">ابدأ بإضافة أول صنف في النظام</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if items.has_other_pages %}
+<nav aria-label="pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if items.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ items.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for num in items.paginator.page_range %}
+        {% if num == items.number %}
+        <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+        </li>
+        {% elif num > items.number|add:'-3' and num < items.number|add:'3' %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if items.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ items.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ items.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addItemModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Item Name -->
+                            <div class="mb-3">
+                                <label for="itemName" class="form-label">
+                                    <i class="bi bi-box me-1"></i>
+                                    اسم الصنف <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="itemName" 
+                                       name="itemName" 
+                                       placeholder="أدخل اسم الصنف"
+                                       required 
+                                       maxlength="255">
+                                <div class="form-text">
+                                    <span id="nameCount">0</span>/255 حرف
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Item Sign -->
+                            <div class="mb-3">
+                                <label for="sign" class="form-label">
+                                    <i class="bi bi-tag me-1"></i>
+                                    الرمز <span class="text-muted">(اختياري)</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="sign" 
+                                       name="sign" 
+                                       placeholder="رمز الصنف"
+                                       maxlength="255">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Item Group -->
+                            <div class="mb-3">
+                                <label for="itemGroupId" class="form-label">
+                                    <i class="bi bi-collection me-1"></i>
+                                    مجموعة الصنف <span class="text-muted">(اختياري)</span>
+                                </label>
+                                <select class="form-select" id="itemGroupId" name="itemGroupId">
+                                    <option value="">اختر مجموعة الصنف</option>
+                                    {% for group in item_groups %}
+                                        <option value="{{ group.id }}">{{ group.itemsGroupName }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Price List -->
+                            <div class="mb-3">
+                                <label for="pricelistId" class="form-label">
+                                    <i class="bi bi-currency-dollar me-1"></i>
+                                    قائمة الأسعار <span class="text-muted">(اختياري)</span>
+                                </label>
+                                <select class="form-select" id="pricelistId" name="pricelistId">
+                                    <option value="">اختر قائمة الأسعار</option>
+                                    {% for pricelist in pricelists %}
+                                        <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Price -->
+                    <div class="mb-3">
+                        <label for="price" class="form-label">
+                            <i class="bi bi-cash me-1"></i>
+                            السعر <span class="text-muted">(اختياري)</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="price" 
+                                   name="price" 
+                                   placeholder="0.00"
+                                   step="0.01"
+                                   min="0">
+                            <span class="input-group-text">جنيه</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Display -->
+                    <div class="alert alert-danger d-none" id="errorAlert"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-primary" id="saveItemBtn">
+                    <i class="bi bi-check-circle me-2"></i>حفظ الصنف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table th {
+    background-color: var(--light-green);
+    color: var(--dark-green);
+    font-weight: 600;
+    border: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(39, 174, 96, 0.1);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-group .btn {
+    margin: 0 1px;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.modal-content {
+    border: none;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    border-bottom: none;
+}
+
+.modal-footer {
+    border-top: none;
+}
+
+.form-control:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+    transform: translateY(-1px);
+}
+
+#nameCount {
+    font-weight: 500;
+}
+
+.pagination .page-link {
+    color: var(--primary-green);
+    border-color: var(--light-green);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.pagination .page-link:hover {
+    background-color: var(--light-green);
+    border-color: var(--primary-green);
+    color: var(--dark-green);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    const sortSelect = document.querySelector('select[name="sort"]');
+    const directionSelect = document.querySelector('select[name="direction"]');
+    const addItemModal = new bootstrap.Modal(document.getElementById('addItemModal'));
+    const addItemForm = document.getElementById('addItemForm');
+    const saveItemBtn = document.getElementById('saveItemBtn');
+    const itemNameInput = document.getElementById('itemName');
+    const nameCount = document.getElementById('nameCount');
+    const errorAlert = document.getElementById('errorAlert');
+    
+    // Auto-submit search form on sort/direction change
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    if (directionSelect) {
+        directionSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    // Search input auto-complete functionality
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (this.value.length >= 3 || this.value.length === 0) {
+                    this.form.submit();
+                }
+            }, 500);
+        });
+    }
+    
+    // Character count for item name
+    function updateNameCount() {
+        const count = itemNameInput.value.length;
+        nameCount.textContent = count;
+        nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
+    }
+    
+    itemNameInput.addEventListener('input', updateNameCount);
+    
+    // Load form data when modal opens
+    document.getElementById('addItemModal').addEventListener('show.bs.modal', function() {
+        loadFormData();
+    });
+    
+    function loadFormData() {
+        fetch('{% url "core:items_add" %}', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Populate item groups
+            const itemGroupSelect = document.getElementById('itemGroupId');
+            itemGroupSelect.innerHTML = '<option value="">اختر مجموعة الصنف</option>';
+            data.item_groups.forEach(group => {
+                itemGroupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
+            });
+            
+            // Populate price lists
+            const pricelistSelect = document.getElementById('pricelistId');
+            pricelistSelect.innerHTML = '<option value="">اختر قائمة الأسعار</option>';
+            data.pricelists.forEach(pricelist => {
+                pricelistSelect.innerHTML += `<option value="${pricelist.id}">${pricelist.name}</option>`;
+            });
+        })
+        .catch(error => {
+            console.error('Error loading form data:', error);
+            showError(['حدث خطأ أثناء تحميل البيانات']);
+        });
+    }
+    
+    // Save item
+    saveItemBtn.addEventListener('click', function() {
+        const formData = new FormData(addItemForm);
+        
+        // Show loading state
+        this.disabled = true;
+        this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+        
+        fetch('{% url "core:items_add" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = `
+                    <i class="bi bi-check-circle me-2"></i>${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.d-flex'));
+                
+                // Close modal and reload page
+                addItemModal.hide();
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showError(data.errors);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving item:', error);
+            showError(['حدث خطأ أثناء حفظ الصنف']);
+        })
+        .finally(() => {
+            // Reset button state
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-check-circle me-2"></i>حفظ الصنف';
+        });
+    });
+    
+    function showError(errors) {
+        errorAlert.innerHTML = '<ul class="mb-0">' + errors.map(error => `<li>${error}</li>`).join('') + '</ul>';
+        errorAlert.classList.remove('d-none');
+    }
+    
+    function hideError() {
+        errorAlert.classList.add('d-none');
+    }
+    
+    // Reset form when modal is hidden
+    document.getElementById('addItemModal').addEventListener('hidden.bs.modal', function() {
+        addItemForm.reset();
+        hideError();
+        updateNameCount();
+    });
+    
+    // Confirm delete actions
+    document.querySelectorAll('a[href*="delete"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الصنف؟')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

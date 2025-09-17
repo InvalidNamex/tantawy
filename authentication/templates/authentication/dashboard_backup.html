@@ -73,7 +73,7 @@
                 </div>
                 <h5 class="card-title">الأصناف</h5>
                 <h2 class="text-success mb-3">{{ items_count }}</h2>
-                <a href="{% url 'core:items' %}" class="btn btn-outline-success btn-sm">
+                <a href="#" class="btn btn-outline-success btn-sm">
                     <i class="bi bi-eye me-1"></i> عرض الكل
                 </a>
             </div>
@@ -99,26 +99,11 @@
         <div class="card h-100 text-center">
             <div class="card-body">
                 <div class="mb-3">
-                    <i class="bi bi-building display-4" style="color: var(--primary-green);"></i>
-                </div>
-                <h5 class="card-title">مجموعات المخازن</h5>
-                <h2 class="text-success mb-3">{{ store_groups_count }}</h2>
-                <a href="{% url 'core:storegroups' %}" class="btn btn-outline-success btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
                     <i class="bi bi-shop display-4" style="color: var(--dark-green);"></i>
                 </div>
                 <h5 class="card-title">المخازن</h5>
                 <h2 class="text-warning mb-3">{{ stores_count }}</h2>
-                <a href="{% url 'core:stores' %}" class="btn btn-outline-warning btn-sm">
+                <a href="#" class="btn btn-outline-warning btn-sm">
                     <i class="bi bi-eye me-1"></i> عرض الكل
                 </a>
             </div>
@@ -144,13 +129,13 @@
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:storegroups_add' %}" class="btn btn-success w-100 py-3">
-                            <i class="bi bi-building-add me-2"></i>
-                            <div>إضافة مجموعة مخازن</div>
+                        <a href="#" class="btn btn-success w-100 py-3">
+                            <i class="bi bi-box-seam me-2"></i>
+                            <div>إضافة صنف جديد</div>
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:stores_add' %}" class="btn btn-info w-100 py-3">
+                        <a href="#" class="btn btn-info w-100 py-3">
                             <i class="bi bi-shop me-2"></i>
                             <div>إضافة مخزن</div>
                         </a>
@@ -202,7 +187,7 @@
                         </div>
                     </div>
                     
-                    <a href="{% url 'core:items' %}" class="d-flex align-items-center text-decoration-none">
+                    <div class="d-flex align-items-center">
                         <div class="me-3">
                             <div class="rounded-circle bg-info d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                 <i class="bi bi-box text-white"></i>
@@ -212,7 +197,7 @@
                             <div class="fw-semibold">إدارة الأصناف</div>
                             <small class="text-muted">{{ items_count }} صنف مسجل</small>
                         </div>
-                    </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -257,6 +242,171 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+                    <i class="bi bi-eye"></i> View All
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-dollar display-4 text-warning"></i>
+                <h5 class="card-title mt-2">Price Lists</h5>
+                <p class="card-text display-6 text-warning">{{ price_lists_count }}</p>
+                <a href="/core/price-lists/" class="btn btn-outline-warning btn-sm">
+                    <i class="bi bi-eye"></i> View All
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-shop display-4 text-info"></i>
+                <h5 class="card-title mt-2">Stores</h5>
+                <p class="card-text display-6 text-info">{{ stores_count }}</p>
+                <a href="/core/stores/" class="btn btn-outline-info btn-sm">
+                    <i class="bi bi-eye"></i> View All
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-plus-circle"></i> Create New</h6>
+                        <div class="btn-group-vertical d-grid gap-2" role="group">
+                            <a href="/admin/core/itemsgroup/add/" class="btn btn-outline-primary">
+                                <i class="bi bi-plus"></i> Add Items Group
+                            </a>
+                            <a href="/admin/core/item/add/" class="btn btn-outline-success">
+                                <i class="bi bi-plus"></i> Add Item
+                            </a>
+                            <a href="/admin/core/pricelist/add/" class="btn btn-outline-warning">
+                                <i class="bi bi-plus"></i> Add Price List
+                            </a>
+                            <a href="/admin/core/store/add/" class="btn btn-outline-info">
+                                <i class="bi bi-plus"></i> Add Store
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <h6><i class="bi bi-gear"></i> Management</h6>
+                        <div class="btn-group-vertical d-grid gap-2" role="group">
+                            <a href="/admin/" class="btn btn-outline-dark">
+                                <i class="bi bi-gear"></i> Admin Panel
+                            </a>
+                            <a href="/api/schema/swagger-ui/" class="btn btn-outline-secondary" target="_blank">
+                                <i class="bi bi-file-code"></i> API Documentation
+                            </a>
+                            <a href="/api/schema/redoc/" class="btn btn-outline-secondary" target="_blank">
+                                <i class="bi bi-file-text"></i> API Reference
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Information -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-badge"></i> User Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Username:</strong></td>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Email:</strong></td>
+                        <td>{{ user.email|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Full Name:</strong></td>
+                        <td>{{ user.get_full_name|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Staff Status:</strong></td>
+                        <td>
+                            {% if user.is_staff %}
+                                <span class="badge bg-success">Staff Member</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Regular User</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Superuser:</strong></td>
+                        <td>
+                            {% if user.is_superuser %}
+                                <span class="badge bg-danger">Yes</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i> System Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="text-success">
+                            <i class="bi bi-check-circle display-6"></i>
+                            <h6 class="mt-2">Database</h6>
+                            <small>Online</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-success">
+                            <i class="bi bi-wifi display-6"></i>
+                            <h6 class="mt-2">API</h6>
+                            <small>Available</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <p class="text-center mb-0">
+                    <small class="text-muted">
+                        <i class="bi bi-server"></i> Server Time: {% now "F j, Y g:i A T" %}
+                    </small>
+                </p>
             </div>
         </div>
     </div>

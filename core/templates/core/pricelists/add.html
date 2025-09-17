@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إضافة قائمة أسعار - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:pricelists' %}">
+                <i class="bi bi-currency-dollar"></i> قوائم الأسعار
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-plus-circle"></i> إضافة جديدة
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    إضافة قائمة أسعار جديدة
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="priceListName" class="form-label required">
+                            <i class="bi bi-tag me-2"></i>
+                            اسم قائمة الأسعار
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="priceListName" 
+                               name="priceListName"
+                               placeholder="أدخل اسم قائمة الأسعار"
+                               required
+                               autofocus
+                               maxlength="255">
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            يجب أن يكون الاسم وصفياً ومميزاً لقائمة الأسعار
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        <strong>نصيحة:</strong> اختر اسماً واضحاً لقائمة الأسعار مثل "أسعار التجزئة" أو "أسعار الجملة"
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            حفظ قائمة الأسعار
+                        </button>
+                        
+                        <a href="{% url 'core:pricelists' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Additional Info Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    معلومات إضافية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-check-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>سهولة الإدارة</strong>
+                                <small class="d-block text-muted">يمكنك تعديل أو حذف قائمة الأسعار لاحقاً</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-shield-check text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>الحماية</strong>
+                                <small class="d-block text-muted">لا يمكن حذف القائمة إذا كانت مرتبطة بأسعار</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.form-control:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const nameInput = document.getElementById('priceListName');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Real-time validation
+    nameInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        
+        if (value.length === 0) {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            submitBtn.disabled = true;
+        } else if (value.length < 2) {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            submitBtn.disabled = true;
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+            submitBtn.disabled = false;
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        const name = nameInput.value.trim();
+        
+        if (!name || name.length < 2) {
+            e.preventDefault();
+            nameInput.focus();
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+        
+        // Re-enable after 5 seconds in case of issues
+        setTimeout(function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>حفظ قائمة الأسعار';
+        }, 5000);
+    });
+    
+    // Character counter
+    nameInput.addEventListener('input', function() {
+        const current = this.value.length;
+        const max = this.getAttribute('maxlength');
+        
+        let counter = document.getElementById('char-counter');
+        if (!counter) {
+            counter = document.createElement('small');
+            counter.id = 'char-counter';
+            counter.className = 'form-text text-muted';
+            this.parentNode.appendChild(counter);
+        }
+        
+        counter.textContent = `${current}/${max} حرف`;
+        
+        if (current > max * 0.9) {
+            counter.className = 'form-text text-warning';
+        } else {
+            counter.className = 'form-text text-muted';
+        }
+    });
+});
+</script>
+{% endblock %}

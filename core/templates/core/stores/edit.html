@@ -1,0 +1,433 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل مخزن - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:stores' %}">
+                <i class="bi bi-shop"></i> المخازن
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل "{{ store.storeName }}"
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل مخزن
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <!-- Current Store Info -->
+                <div class="alert alert-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">رقم المخزن</small>
+                            <strong>#{{ store.id }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">تاريخ الإنشاء</small>
+                            <strong>{{ store.createdAt|date:"j F Y" }}</strong>
+                        </div>
+                    </div>
+                    {% if store.createdBy %}
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">من قام بالإنشاء</small>
+                            <strong>{{ store.createdBy.get_full_name|default:store.createdBy.username }}</strong>
+                        </div>
+                        {% if store.updatedAt %}
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">آخر تحديث</small>
+                            <strong>{{ store.updatedAt|date:"j F Y - H:i" }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <form method="post" id="storeForm">
+                    {% csrf_token %}
+                    
+                    <!-- Store Name -->
+                    <div class="mb-4">
+                        <label for="storeName" class="form-label">
+                            <i class="bi bi-shop me-1"></i>
+                            اسم المخزن <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="storeName" 
+                               name="storeName" 
+                               value="{{ request.POST.storeName|default:store.storeName }}"
+                               placeholder="أدخل اسم المخزن"
+                               required 
+                               maxlength="255">
+                        <div class="form-text">
+                            <span id="nameCount">0</span>/255 حرف
+                        </div>
+                    </div>
+                    
+                    <!-- Store Group -->
+                    <div class="mb-4">
+                        <label for="storeGroup" class="form-label">
+                            <i class="bi bi-building me-1"></i>
+                            مجموعة المخازن <span class="text-muted">(اختياري)</span>
+                        </label>
+                        <div class="position-relative">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="storeGroupInput" 
+                                   placeholder="ابحث عن مجموعة مخازن أو اتركه فارغاً"
+                                   value="{{ request.POST.storeGroup|default:store.storeGroup }}"
+                                   autocomplete="off">
+                            <input type="hidden" 
+                                   id="storeGroup" 
+                                   name="storeGroup" 
+                                   value="{{ request.POST.storeGroup|default:store.storeGroup }}">
+                            
+                            <!-- Dropdown for search results -->
+                            <div class="dropdown-menu w-100" 
+                                 id="storeGroupDropdown" 
+                                 style="max-height: 200px; overflow-y: auto;">
+                                <div class="dropdown-item text-muted">
+                                    <i class="bi bi-search me-2"></i>ابدأ بالكتابة للبحث...
+                                </div>
+                            </div>
+                            
+                            <!-- Clear selection button -->
+                            <button type="button" 
+                                    class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" 
+                                    id="clearStoreGroup" 
+                                    style="display: none;">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Current Store Group Display -->
+                        {% if store.storeGroup %}
+                        <div class="mt-2">
+                            <small class="text-muted">المجموعة الحالية:</small>
+                            <span class="badge bg-success ms-1">{{ store.storeGroup }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Available Store Groups -->
+                        <div class="mt-2">
+                            <small class="text-muted">مجموعات المخازن المتاحة:</small>
+                            <div class="mt-1" id="availableGroups">
+                                {% for group in store_groups %}
+                                <span class="badge bg-light text-dark me-1 mb-1 store-group-badge" 
+                                      data-group-name="{{ group.storeGroupName }}"
+                                      style="cursor: pointer;">
+                                    {{ group.storeGroupName }}
+                                </span>
+                                {% empty %}
+                                <small class="text-muted">لا توجد مجموعات مخازن متاحة</small>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            حفظ التغييرات
+                        </button>
+                        
+                        <a href="{% url 'core:stores' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Change History Card -->
+        <div class="card mt-4 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    سجل التغييرات
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-plus-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>تاريخ الإنشاء</strong>
+                                <small class="d-block text-muted">{{ store.createdAt|date:"j F Y - H:i" }}</small>
+                                {% if store.createdBy %}
+                                <small class="text-muted">بواسطة: {{ store.createdBy.get_full_name|default:store.createdBy.username }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% if store.updatedAt %}
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-pencil text-warning me-2 mt-1"></i>
+                            <div>
+                                <strong>آخر تحديث</strong>
+                                <small class="d-block text-muted">{{ store.updatedAt|date:"j F Y - H:i" }}</small>
+                                {% if store.updatedBy %}
+                                <small class="text-muted">بواسطة: {{ store.updatedBy.get_full_name|default:store.updatedBy.username }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-light mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>ملاحظة:</strong> سيتم تسجيل التحديث الحالي باسمك وتاريخ اليوم
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-control:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+    border: none;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #ffb302 0%, #ffc107 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+    color: #000;
+}
+
+.store-group-badge:hover {
+    background-color: var(--light-green) !important;
+    color: var(--dark-green) !important;
+}
+
+.dropdown-menu {
+    border: 1px solid var(--light-green);
+}
+
+.dropdown-item:hover {
+    background-color: var(--light-green);
+    color: var(--dark-green);
+}
+
+.selected-group {
+    background-color: var(--primary-green) !important;
+    color: white !important;
+}
+
+#nameCount {
+    font-weight: 500;
+}
+
+.position-relative .btn {
+    z-index: 10;
+}
+
+.alert-info {
+    background-color: rgba(39, 174, 96, 0.1);
+    border-color: var(--light-green);
+    color: var(--dark-green);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const storeNameInput = document.getElementById('storeName');
+    const storeGroupInput = document.getElementById('storeGroupInput');
+    const storeGroupHidden = document.getElementById('storeGroup');
+    const storeGroupDropdown = document.getElementById('storeGroupDropdown');
+    const clearBtn = document.getElementById('clearStoreGroup');
+    const nameCount = document.getElementById('nameCount');
+    const storeGroupBadges = document.querySelectorAll('.store-group-badge');
+    const form = document.getElementById('storeForm');
+    
+    // Store groups data
+    const storeGroups = [
+        {% for group in store_groups %}
+        { id: {{ group.id }}, name: "{{ group.storeGroupName }}" },
+        {% endfor %}
+    ];
+    
+    // Character count for store name
+    function updateNameCount() {
+        const count = storeNameInput.value.length;
+        nameCount.textContent = count;
+        nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
+    }
+    
+    storeNameInput.addEventListener('input', updateNameCount);
+    updateNameCount(); // Initialize count
+    
+    // Store Group Search Functionality
+    function showDropdown() {
+        storeGroupDropdown.style.display = 'block';
+        storeGroupDropdown.classList.add('show');
+    }
+    
+    function hideDropdown() {
+        setTimeout(() => {
+            storeGroupDropdown.style.display = 'none';
+            storeGroupDropdown.classList.remove('show');
+        }, 200);
+    }
+    
+    function updateDropdown(searchTerm = '') {
+        const filteredGroups = storeGroups.filter(group => 
+            group.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        let html = '';
+        
+        if (searchTerm === '') {
+            html = '<div class="dropdown-item text-muted"><i class="bi bi-search me-2"></i>ابدأ بالكتابة للبحث...</div>';
+        } else if (filteredGroups.length === 0) {
+            html = '<div class="dropdown-item text-muted"><i class="bi bi-exclamation-circle me-2"></i>لم يتم العثور على نتائج</div>';
+        } else {
+            filteredGroups.forEach(group => {
+                html += `<div class="dropdown-item store-group-option" data-group-name="${group.name}" style="cursor: pointer;">
+                    <i class="bi bi-building me-2"></i>${group.name}
+                </div>`;
+            });
+        }
+        
+        storeGroupDropdown.innerHTML = html;
+        
+        // Add click event listeners to new options
+        document.querySelectorAll('.store-group-option').forEach(option => {
+            option.addEventListener('click', function() {
+                selectStoreGroup(this.dataset.groupName);
+            });
+        });
+    }
+    
+    function selectStoreGroup(groupName) {
+        storeGroupInput.value = groupName;
+        storeGroupHidden.value = groupName;
+        clearBtn.style.display = 'block';
+        hideDropdown();
+        
+        // Update badge selection
+        updateBadgeSelection(groupName);
+    }
+    
+    function clearStoreGroup() {
+        storeGroupInput.value = '';
+        storeGroupHidden.value = '';
+        clearBtn.style.display = 'none';
+        updateBadgeSelection('');
+    }
+    
+    function updateBadgeSelection(selectedGroup) {
+        storeGroupBadges.forEach(badge => {
+            if (badge.dataset.groupName === selectedGroup) {
+                badge.classList.add('selected-group');
+            } else {
+                badge.classList.remove('selected-group');
+            }
+        });
+    }
+    
+    // Event listeners
+    storeGroupInput.addEventListener('focus', function() {
+        showDropdown();
+        updateDropdown(this.value);
+    });
+    
+    storeGroupInput.addEventListener('blur', hideDropdown);
+    
+    storeGroupInput.addEventListener('input', function() {
+        updateDropdown(this.value);
+        storeGroupHidden.value = this.value;
+        
+        if (this.value) {
+            clearBtn.style.display = 'block';
+        } else {
+            clearBtn.style.display = 'none';
+        }
+        
+        updateBadgeSelection(this.value);
+    });
+    
+    clearBtn.addEventListener('click', clearStoreGroup);
+    
+    // Badge click handlers
+    storeGroupBadges.forEach(badge => {
+        badge.addEventListener('click', function() {
+            selectStoreGroup(this.dataset.groupName);
+        });
+    });
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const storeName = storeNameInput.value.trim();
+        
+        if (!storeName) {
+            e.preventDefault();
+            alert('يرجى إدخال اسم المخزن');
+            storeNameInput.focus();
+            return;
+        }
+        
+        if (storeName.length > 255) {
+            e.preventDefault();
+            alert('اسم المخزن لا يمكن أن يزيد عن 255 حرف');
+            storeNameInput.focus();
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+    });
+    
+    // Initialize if there's a pre-selected value
+    if (storeGroupHidden.value) {
+        storeGroupInput.value = storeGroupHidden.value;
+        clearBtn.style.display = 'block';
+        updateBadgeSelection(storeGroupHidden.value);
+    }
+});
+</script>
+{% endblock %}

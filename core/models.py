@@ -38,7 +38,7 @@ class ItemsGroup(BaseModel):
         db_table = 'itemsGroups'
 
 class Item(BaseModel):
-    itemGroupId = models.ForeignKey(ItemsGroup, on_delete=models.PROTECT)
+    itemGroupId = models.ForeignKey(ItemsGroup, on_delete=models.PROTECT, blank=True, null=True)
     itemName = models.CharField(max_length=255)
     itemImage = models.CharField(max_length=255, blank=True, null=True)  # Allow NULL for optional image
     barcode = models.CharField(max_length=255, blank=True, null=True)    # Allow NULL for optional barcode

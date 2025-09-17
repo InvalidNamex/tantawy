@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل صنف - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:items' %}">
+                <i class="bi bi-box"></i> الأصناف
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل "{{ item.itemName }}"
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل صنف
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <!-- Current Item Info -->
+                <div class="alert alert-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">رقم الصنف</small>
+                            <strong>#{{ item.id }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">تاريخ الإنشاء</small>
+                            <strong>{{ item.createdAt|date:"j F Y" }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">المجموعة الحالية</small>
+                            <strong>{{ item.itemGroupId.itemsGroupName|default:"غير محدد" }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">الرمز الحالي</small>
+                            <strong>{{ item.sign|default:"غير محدد" }}</strong>
+                        </div>
+                    </div>
+                    {% if item.createdBy %}
+                    <div class="row mt-2">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">من قام بالإنشاء</small>
+                            <strong>{{ item.createdBy.get_full_name|default:item.createdBy.username }}</strong>
+                        </div>
+                        {% if item.updatedAt %}
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">آخر تحديث</small>
+                            <strong>{{ item.updatedAt|date:"j F Y - H:i" }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <form method="post" id="itemForm">
+                    {% csrf_token %}
+                    
+                    <!-- Item Name -->
+                    <div class="mb-4">
+                        <label for="itemName" class="form-label">
+                            <i class="bi bi-box me-1"></i>
+                            اسم الصنف <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="itemName" 
+                               name="itemName" 
+                               value="{{ request.POST.itemName|default:item.itemName }}"
+                               placeholder="أدخل اسم الصنف"
+                               required 
+                               maxlength="255">
+                        <div class="form-text">
+                            <span id="nameCount">0</span>/255 حرف
+                        </div>
+                    </div>
+                    
+                    <!-- Item Sign -->
+                    <div class="mb-4">
+                        <label for="sign" class="form-label">
+                            <i class="bi bi-tag me-1"></i>
+                            الرمز <span class="text-muted">(اختياري)</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="sign" 
+                               name="sign" 
+                               value="{{ request.POST.sign|default:item.sign }}"
+                               placeholder="رمز الصنف"
+                               maxlength="255">
+                    </div>
+                    
+                    <!-- Item Group -->
+                    <div class="mb-4">
+                        <label for="itemGroupId" class="form-label">
+                            <i class="bi bi-collection me-1"></i>
+                            مجموعة الصنف <span class="text-muted">(اختياري)</span>
+                        </label>
+                        <select class="form-select" id="itemGroupId" name="itemGroupId">
+                            <option value="">اختر مجموعة الصنف</option>
+                            {% for group in item_groups %}
+                            <option value="{{ group.id }}" 
+                                    {% if item.itemGroupId and group.id == item.itemGroupId.id %}selected{% endif %}>
+                                {{ group.itemsGroupName }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            حفظ التغييرات
+                        </button>
+                        
+                        <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Price Lists Information -->
+        <div class="card mt-4 border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-currency-dollar me-2"></i>
+                    أسعار الصنف
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">الأسعار المسجلة لهذا الصنف في قوائم الأسعار المختلفة:</p>
+                
+                <!-- Note: This would require additional logic to fetch price list details -->
+                <div class="alert alert-light">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>ملاحظة:</strong> لتعديل أسعار الصنف، استخدم إدارة قوائم الأسعار.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Change History Card -->
+        <div class="card mt-4 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    سجل التغييرات
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-plus-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>تاريخ الإنشاء</strong>
+                                <small class="d-block text-muted">{{ item.createdAt|date:"j F Y - H:i" }}</small>
+                                {% if item.createdBy %}
+                                <small class="text-muted">بواسطة: {{ item.createdBy.get_full_name|default:item.createdBy.username }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% if item.updatedAt %}
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-pencil text-warning me-2 mt-1"></i>
+                            <div>
+                                <strong>آخر تحديث</strong>
+                                <small class="d-block text-muted">{{ item.updatedAt|date:"j F Y - H:i" }}</small>
+                                {% if item.updatedBy %}
+                                <small class="text-muted">بواسطة: {{ item.updatedBy.get_full_name|default:item.updatedBy.username }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-light mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>ملاحظة:</strong> سيتم تسجيل التحديث الحالي باسمك وتاريخ اليوم
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+    border: none;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #ffb302 0%, #ffc107 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.3);
+    color: #000;
+}
+
+#nameCount {
+    font-weight: 500;
+}
+
+.alert-info {
+    background-color: rgba(39, 174, 96, 0.1);
+    border-color: var(--light-green);
+    color: var(--dark-green);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemNameInput = document.getElementById('itemName');
+    const nameCount = document.getElementById('nameCount');
+    const form = document.getElementById('itemForm');
+    
+    // Character count for item name
+    function updateNameCount() {
+        const count = itemNameInput.value.length;
+        nameCount.textContent = count;
+        nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
+    }
+    
+    itemNameInput.addEventListener('input', updateNameCount);
+    updateNameCount(); // Initialize count
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const itemName = itemNameInput.value.trim();
+        const itemGroupId = document.getElementById('itemGroupId').value;
+        
+        if (!itemName) {
+            e.preventDefault();
+            alert('يرجى إدخال اسم الصنف');
+            itemNameInput.focus();
+            return;
+        }
+        
+        if (itemName.length > 255) {
+            e.preventDefault();
+            alert('اسم الصنف لا يمكن أن يزيد عن 255 حرف');
+            itemNameInput.focus();
+            return;
+        }
+        
+        if (!itemGroupId) {
+            e.preventDefault();
+            alert('يرجى اختيار مجموعة الصنف');
+            document.getElementById('itemGroupId').focus();
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+    });
+});
+</script>
+{% endblock %}

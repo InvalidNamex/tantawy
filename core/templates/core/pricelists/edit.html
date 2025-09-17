@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل قائمة الأسعار - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:pricelists' %}">
+                <i class="bi bi-currency-dollar"></i> قوائم الأسعار
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل "{{ pricelist.priceListName }}"
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل قائمة الأسعار
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="priceListName" class="form-label required">
+                            <i class="bi bi-tag me-2"></i>
+                            اسم قائمة الأسعار
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="priceListName" 
+                               name="priceListName"
+                               value="{{ pricelist.priceListName }}"
+                               placeholder="أدخل اسم قائمة الأسعار"
+                               required
+                               autofocus
+                               maxlength="255">
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            يجب أن يكون الاسم وصفياً ومميزاً لقائمة الأسعار
+                        </div>
+                    </div>
+                    
+                    <!-- Current Info Display -->
+                    <div class="alert alert-light border">
+                        <h6 class="mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            معلومات قائمة الأسعار الحالية
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">رقم القائمة</small>
+                                <strong>#{{ pricelist.id }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">تاريخ الإنشاء</small>
+                                <strong>{{ pricelist.createdAt|date:"j F Y - H:i" }}</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">من قام بالإنشاء</small>
+                                <strong>
+                                    {% if pricelist.createdBy %}
+                                        {{ pricelist.createdBy.get_full_name|default:pricelist.createdBy.username }}
+                                    {% else %}
+                                        غير محدد
+                                    {% endif %}
+                                </strong>
+                            </div>
+                            {% if pricelist.updatedAt %}
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">آخر تحديث</small>
+                                <strong>{{ pricelist.updatedAt|date:"j F Y - H:i" }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>تنبيه:</strong> تعديل اسم قائمة الأسعار سيؤثر على جميع المراجع المرتبطة بها
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            حفظ التغييرات
+                        </button>
+                        
+                        <a href="{% url 'core:pricelists' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            إلغاء التعديل
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Additional Actions Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-gear me-2"></i>
+                    إجراءات إضافية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <a href="#" class="btn btn-outline-info">
+                                <i class="bi bi-eye me-2"></i>
+                                عرض تفاصيل الأسعار
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <a href="{% url 'core:pricelists_delete' pricelist.id %}" 
+                               class="btn btn-outline-danger"
+                               onclick="return confirm('هل أنت متأكد من رغبتك في حذف قائمة الأسعار هذه؟')">
+                                <i class="bi bi-trash me-2"></i>
+                                حذف القائمة
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.form-control:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+}
+
+.alert-light {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const nameInput = document.getElementById('priceListName');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalValue = nameInput.value.trim();
+    
+    // Real-time validation
+    nameInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        
+        if (value.length === 0) {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            submitBtn.disabled = true;
+        } else if (value.length < 2) {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+            submitBtn.disabled = true;
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+            submitBtn.disabled = false;
+        }
+        
+        // Check if value changed
+        if (value === originalValue) {
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>حفظ التغييرات';
+            submitBtn.classList.remove('btn-warning');
+            submitBtn.classList.add('btn-primary');
+        } else {
+            submitBtn.innerHTML = '<i class="bi bi-pencil me-2"></i>حفظ التغييرات الجديدة';
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-warning');
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        const name = nameInput.value.trim();
+        
+        if (!name || name.length < 2) {
+            e.preventDefault();
+            nameInput.focus();
+            return false;
+        }
+        
+        // Check if no changes made
+        if (name === originalValue) {
+            if (!confirm('لم تقم بإجراء أي تغييرات. هل تريد المتابعة؟')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+        
+        // Re-enable after 5 seconds in case of issues
+        setTimeout(function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>حفظ التغييرات';
+        }, 5000);
+    });
+    
+    // Character counter
+    nameInput.addEventListener('input', function() {
+        const current = this.value.length;
+        const max = this.getAttribute('maxlength');
+        
+        let counter = document.getElementById('char-counter');
+        if (!counter) {
+            counter = document.createElement('small');
+            counter.id = 'char-counter';
+            counter.className = 'form-text text-muted';
+            this.parentNode.appendChild(counter);
+        }
+        
+        counter.textContent = `${current}/${max} حرف`;
+        
+        if (current > max * 0.9) {
+            counter.className = 'form-text text-warning';
+        } else {
+            counter.className = 'form-text text-muted';
+        }
+    });
+    
+    // Trigger initial validation
+    nameInput.dispatchEvent(new Event('input'));
+});
+</script>
+{% endblock %}

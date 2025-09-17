@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}المخازن - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-shop"></i> المخازن
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">إدارة المخازن</h2>
+        <p class="text-muted mb-0">عرض وإدارة جميع المخازن في النظام</p>
+    </div>
+    <div>
+        <a href="{% url 'core:stores_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>إضافة مخزن جديد
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           name="search" 
+                           value="{{ search_query }}" 
+                           placeholder="البحث في المخازن (الاسم، مجموعة المخزن، الرقم)">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="sort">
+                    <option value="storeName" {% if sort_by == 'storeName' %}selected{% endif %}>ترتيب حسب الاسم</option>
+                    <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ترتيب حسب الرقم</option>
+                    <option value="storeGroup" {% if sort_by == 'storeGroup' %}selected{% endif %}>ترتيب حسب المجموعة</option>
+                    <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>ترتيب حسب تاريخ الإنشاء</option>
+                    <option value="updatedAt" {% if sort_by == 'updatedAt' %}selected{% endif %}>ترتيب حسب تاريخ التحديث</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="direction">
+                    <option value="asc" {% if sort_direction == 'asc' %}selected{% endif %}>تصاعدي</option>
+                    <option value="desc" {% if sort_direction == 'desc' %}selected{% endif %}>تنازلي</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results Summary -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="text-muted">إجمالي النتائج: </span>
+        <span class="badge bg-primary">{{ total_count }}</span>
+        {% if search_query %}
+        <span class="text-muted ms-3">البحث عن: </span>
+        <span class="badge bg-info">"{{ search_query }}"</span>
+        <a href="{% url 'core:stores' %}" class="btn btn-outline-secondary btn-sm ms-2">
+            <i class="bi bi-x-circle me-1"></i>إلغاء البحث
+        </a>
+        {% endif %}
+    </div>
+    <div class="text-muted">
+        صفحة {{ stores.number }} من {{ stores.paginator.num_pages }}
+    </div>
+</div>
+
+<!-- Stores Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if stores %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الرقم</th>
+                        <th>اسم المخزن</th>
+                        <th>مجموعة المخازن</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>من قام بالإنشاء</th>
+                        <th>آخر تحديث</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for store in stores %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-light text-dark">#{{ store.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-shop text-primary me-2"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ store.storeName }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if store.storeGroup %}
+                                <span class="badge bg-success">{{ store.storeGroup }}</span>
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ store.createdAt|date:"j M Y" }}</small><br>
+                            <small class="text-muted">{{ store.createdAt|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            {% if store.createdBy %}
+                                <span class="badge bg-info">{{ store.createdBy.get_full_name|default:store.createdBy.username }}</span>
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if store.updatedAt %}
+                                <small class="text-muted">{{ store.updatedAt|date:"j M Y" }}</small><br>
+                                <small class="text-muted">{{ store.updatedAt|time:"H:i" }}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'core:stores_edit' store.id %}" 
+                                   class="btn btn-outline-warning btn-sm" 
+                                   title="تعديل">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'core:stores_delete' store.id %}" 
+                                   class="btn btn-outline-danger btn-sm" 
+                                   title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-shop display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">لا توجد مخازن</h4>
+            {% if search_query %}
+            <p class="text-muted">لم يتم العثور على أي مخازن تطابق معايير البحث</p>
+            <a href="{% url 'core:stores' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-right me-2"></i>عرض جميع المخازن
+            </a>
+            {% else %}
+            <p class="text-muted">ابدأ بإضافة أول مخزن في النظام</p>
+            <a href="{% url 'core:stores_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>إضافة مخزن جديد
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if stores.has_other_pages %}
+<nav aria-label="pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if stores.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ stores.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for num in stores.paginator.page_range %}
+        {% if num == stores.number %}
+        <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+        </li>
+        {% elif num > stores.number|add:'-3' and num < stores.number|add:'3' %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if stores.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ stores.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ stores.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table th {
+    background-color: var(--light-green);
+    color: var(--dark-green);
+    font-weight: 600;
+    border: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(39, 174, 96, 0.1);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-group .btn {
+    margin: 0 1px;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.search-highlight {
+    background-color: yellow;
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+
+.pagination .page-link {
+    color: var(--primary-green);
+    border-color: var(--light-green);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+.pagination .page-link:hover {
+    background-color: var(--light-green);
+    border-color: var(--primary-green);
+    color: var(--dark-green);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit search form on sort/direction change
+    const sortSelect = document.querySelector('select[name="sort"]');
+    const directionSelect = document.querySelector('select[name="direction"]');
+    
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    if (directionSelect) {
+        directionSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    // Search input auto-complete functionality
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (this.value.length >= 3 || this.value.length === 0) {
+                    this.form.submit();
+                }
+            }, 500);
+        });
+    }
+    
+    // Confirm delete actions
+    document.querySelectorAll('a[href*="delete"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا المخزن؟')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

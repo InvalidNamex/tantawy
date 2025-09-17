@@ -1,173 +1,212 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Tantawy Management System{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{% block title %}نظام إدارة الطنطاوي{% endblock %}</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Cairo Font for Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        .navbar-brand {
-            font-weight: bold;
-            color: #2c3e50 !important;
+        * {
+            font-family: 'Cairo', sans-serif;
         }
-        .footer {
-            background-color: #f8f9fa;
-            margin-top: auto;
+        
+        :root {
+            --primary-green: #27ae60;
+            --light-green: #2ecc71;
+            --dark-green: #1e8449;
+            --hover-green: #229954;
+            --success-green: #58d68d;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #6c757d;
         }
+
         body {
+            background: linear-gradient(135deg, var(--light-gray) 0%, white 100%);
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Cairo', sans-serif;
         }
-        .main-content {
-            flex: 1;
-        }
+
         .login-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2rem 0;
         }
+
         .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            margin: 1rem;
         }
+
         .brand-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
             color: white;
-            border-radius: 15px 0 0 15px;
+            text-align: center;
+            padding: 3rem 2rem;
         }
+
+        .brand-section .logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+        }
+
+        .brand-section .logo img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .brand-section h2 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        .brand-section .lead {
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .brand-section .features {
+            margin-top: 2rem;
+        }
+
+        .brand-section .features i {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-section {
+            padding: 3rem 2rem;
+        }
+
+        .form-section h3 {
+            color: var(--primary-green);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-section .text-muted {
+            margin-bottom: 2rem;
+        }
+
+        .form-control {
+            border-radius: 0.5rem;
+            border: 2px solid var(--medium-gray);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+            background-color: white;
         }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--dark-gray);
+            margin-bottom: 0.5rem;
+        }
+
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
             border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
         }
+
         .btn-primary:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .alert {
+            border-radius: 0.5rem;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-success {
+            background-color: rgba(88, 214, 141, 0.1);
+            color: var(--dark-green);
+            border-right: 4px solid var(--success-green);
+        }
+
+        .alert-danger {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+            border-right: 4px solid #e74c3c;
+        }
+
+        .footer-links {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .footer-links a {
+            color: var(--primary-green);
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .login-card {
+                margin: 0.5rem;
+            }
+            
+            .brand-section,
+            .form-section {
+                padding: 2rem 1.5rem;
+            }
+            
+            .brand-section h2 {
+                font-size: 1.5rem;
+            }
         }
     </style>
+    
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {% if user.is_authenticated %}
-        <!-- Navigation for authenticated users -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-            <div class="container">
-                <a class="navbar-brand" href="{% url 'authentication:dashboard' %}">
-                    <i class="bi bi-shop"></i> Tantawy Management
-                </a>
-                
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'authentication:dashboard' %}">
-                                <i class="bi bi-house"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/core/items-groups/">
-                                <i class="bi bi-collection"></i> Items Groups
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/core/items/">
-                                <i class="bi bi-box"></i> Items
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/core/price-lists/">
-                                <i class="bi bi-currency-dollar"></i> Price Lists
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/core/stores/">
-                                <i class="bi bi-shop"></i> Stores
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin/">
-                                <i class="bi bi-gear"></i> Admin
-                            </a>
-                        </li>
-                    </ul>
-                    
-                    <ul class="navbar-nav">
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> {{ user.username }}
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">
-                                    <i class="bi bi-person"></i> Profile
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'authentication:logout' %}">
-                                    <i class="bi bi-box-arrow-right"></i> Logout
-                                </a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    {% endif %}
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="{% if not user.is_authenticated %}login-container{% else %}container mt-4{% endif %}">
-            <!-- Messages -->
-            {% if messages %}
-                <div class="container mt-3">
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <!-- Page Content -->
-            {% block content %}
-            {% endblock %}
-        </div>
-    </main>
-
-    {% if user.is_authenticated %}
-        <!-- Footer for authenticated users -->
-        <footer class="footer py-3 mt-5">
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-6">
-                        <span class="text-muted">&copy; {% now "Y" %} Tantawy Management System</span>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <span class="text-muted">
-                            <i class="bi bi-code-slash"></i> Built with Django & Bootstrap
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    {% endif %}
-
+    {% block content %}{% endblock %}
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_js %}
-    {% endblock %}
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

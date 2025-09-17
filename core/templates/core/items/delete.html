@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف صنف - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:items' %}">
+                <i class="bi bi-box"></i> الأصناف
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-trash"></i> حذف "{{ item.itemName }}"
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    تأكيد حذف الصنف
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                {% if not can_delete %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>تحذير:</strong> لا يمكن حذف هذا الصنف لأنه مستخدم في النظام!
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه!
+                </div>
+                {% endif %}
+                
+                <p class="lead">
+                    {% if can_delete %}
+                        هل أنت متأكد من رغبتك في حذف الصنف التالي؟
+                    {% else %}
+                        لا يمكن حذف الصنف التالي:
+                    {% endif %}
+                </p>
+                
+                <!-- Item Info -->
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">رقم الصنف</small>
+                                <strong class="text-primary">#{{ item.id }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">اسم الصنف</small>
+                                <strong class="text-primary">{{ item.itemName }}</strong>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">مجموعة الصنف</small>
+                                {% if item.itemGroupId %}
+                                    <strong class="text-info">{{ item.itemGroupId.itemGroupName }}</strong>
+                                {% else %}
+                                    <strong class="text-muted">غير محدد</strong>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">الرمز</small>
+                                {% if item.sign %}
+                                    <strong class="text-secondary">{{ item.sign }}</strong>
+                                {% else %}
+                                    <strong class="text-muted">غير محدد</strong>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">تاريخ الإنشاء</small>
+                                <strong>{{ item.createdAt|date:"j F Y - H:i" }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">من قام بالإنشاء</small>
+                                <strong>
+                                    {% if item.createdBy %}
+                                        {{ item.createdBy.get_full_name|default:item.createdBy.username }}
+                                    {% else %}
+                                        غير محدد
+                                    {% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                        {% if item.updatedAt %}
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">آخر تحديث</small>
+                                <strong>{{ item.updatedAt|date:"j F Y - H:i" }}</strong>
+                            </div>
+                            {% if item.updatedBy %}
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">من قام بآخر تحديث</small>
+                                <strong>{{ item.updatedBy.get_full_name|default:item.updatedBy.username }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Usage Information -->
+                {% if invoice_usage or pricelist_usage %}
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    <strong>الصنف مستخدم في:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% if invoice_usage %}
+                        <li>فواتير في النظام</li>
+                        {% endif %}
+                        {% if pricelist_usage %}
+                        <li>قوائم أسعار</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if can_delete %}
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>ملاحظة:</strong> سيتم حذف الصنف نهائياً من النظام وجميع البيانات المرتبطة به.
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="bi bi-trash me-2"></i>
+                            نعم، احذف الصنف نهائياً
+                        </button>
+                        
+                        <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            لا، إلغاء العملية
+                        </a>
+                    </div>
+                </form>
+                {% else %}
+                <div class="mt-4">
+                    <a href="{% url 'core:items' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-arrow-right me-2"></i>
+                        العودة إلى قائمة الأصناف
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Safety Information Card -->
+        <div class="card mt-4 border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-shield-check me-2"></i>
+                    معلومات الحماية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-check-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>الحذف الآمن</strong>
+                                <small class="d-block text-muted">لن يتم حذف الصنف إذا كان مستخدماً في فواتير أو قوائم أسعار</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-clock-history text-info me-2 mt-1"></i>
+                            <div>
+                                <strong>سجل العمليات</strong>
+                                <small class="d-block text-muted">يتم حفظ معلومات من قام بالحذف ومتى</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-receipt text-warning me-2 mt-1"></i>
+                            <div>
+                                <strong>تأثير على الفواتير</strong>
+                                <small class="d-block text-muted">يجب معالجة الفواتير المرتبطة قبل الحذف</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start mb-3">
+                            <i class="bi bi-currency-dollar text-primary me-2 mt-1"></i>
+                            <div>
+                                <strong>تأثير على قوائم الأسعار</strong>
+                                <small class="d-block text-muted">يجب إزالة الصنف من قوائم الأسعار قبل الحذف</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>بديل آمن:</strong> يمكنك تعديل اسم الصنف أو تغيير مجموعته بدلاً من حذفه.
+                    <a href="{% url 'core:items_edit' item.id %}" class="btn btn-outline-warning btn-sm ms-2">
+                        <i class="bi bi-pencil me-1"></i>تعديل الصنف
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-danger {
+    border-color: #dc3545;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.text-primary {
+    color: var(--primary-green) !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    
+    if (form) {
+        const deleteBtn = form.querySelector('button[type="submit"]');
+        let clickCount = 0;
+        
+        deleteBtn.addEventListener('click', function(e) {
+            clickCount++;
+            
+            if (clickCount === 1) {
+                e.preventDefault();
+                this.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>انقر مرة أخرى للتأكيد';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-warning');
+                
+                // Reset after 3 seconds
+                setTimeout(() => {
+                    clickCount = 0;
+                    this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف الصنف نهائياً';
+                    this.classList.remove('btn-warning');
+                    this.classList.add('btn-danger');
+                }, 3000);
+                
+                return false;
+            } else {
+                // Second click - proceed with deletion
+                this.disabled = true;
+                this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحذف...';
+                
+                // Show final confirmation
+                if (!confirm('هل أنت متأكد تماماً من رغبتك في حذف الصنف؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+                    e.preventDefault();
+                    clickCount = 0;
+                    this.disabled = false;
+                    this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف الصنف نهائياً';
+                    return false;
+                }
+            }
+        });
+    }
+    
+    // Warning animation for non-deletable items
+    const warningAlert = document.querySelector('.alert-warning');
+    if (warningAlert && !warningAlert.querySelector('ul')) {
+        setInterval(() => {
+            warningAlert.style.backgroundColor = '#fff3cd';
+            setTimeout(() => {
+                warningAlert.style.backgroundColor = '#ffeaa7';
+            }, 500);
+        }, 2000);
+    }
+});
+</script>
+{% endblock %}
