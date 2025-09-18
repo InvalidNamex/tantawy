@@ -1,13 +1,19 @@
 from django.urls import path
 from . import views
+from . import invoice_api
 
 # URLConf
 app_name = 'core'
 
 urlpatterns = [
-    # ItemsGroup URLs
-    path('items-groups/', views.itemsgroup_list, name='itemsgroup_list'),
-    path('items-groups/<int:id>/', views.itemsgroup_detail, name='itemsgroup_detail'),
+    # Frontend Template-based URLs
+    
+    # Invoice Management URLs (Template-based for frontend)
+    path('invoices/', views.invoices_main_view, name='invoices_main'),
+    path('invoices/purchase/', views.invoices_purchase_view, name='invoices_purchase'),
+    path('invoices/sales/', views.invoices_sales_view, name='invoices_sales'),
+    path('invoices/return-purchase/', views.invoices_return_purchase_view, name='invoices_return_purchase'),
+    path('invoices/return-sales/', views.invoices_return_sales_view, name='invoices_return_sales'),
     
     # Items URLs (Template-based for frontend)
     path('items/', views.items_view, name='items'),
@@ -19,6 +25,7 @@ urlpatterns = [
     path('items/<int:item_id>/price/<int:price_id>/', views.items_delete_price_view, name='items_delete_price'),
     path('items/edit/<int:item_id>/', views.items_edit_view, name='items_edit'),
     path('items/delete/<int:item_id>/', views.items_delete_view, name='items_delete'),
+    path('items/upload-image/', views.items_upload_image_view, name='items_upload_image'),
     
     # ItemsGroups URLs (Template-based for frontend)
     path('itemsgroups/', views.itemsgroups_view, name='itemsgroups'),
@@ -38,10 +45,6 @@ urlpatterns = [
     path('vendors/edit/<int:vendor_id>/', views.vendors_edit_view, name='vendors_edit'),
     path('vendors/delete/<int:vendor_id>/', views.vendors_delete_view, name='vendors_delete'),
     
-    # PriceList URLs (API)
-    path('price-lists/', views.pricelist_list, name='pricelist_list'),
-    path('price-lists/<int:id>/', views.pricelist_detail, name='pricelist_detail'),
-    
     # PriceList URLs (Template-based for frontend)
     path('pricelists/', views.pricelists_view, name='pricelists'),
     path('pricelists/add/', views.pricelist_add_view, name='pricelists_add'),
@@ -60,45 +63,61 @@ urlpatterns = [
     path('stores/edit/<int:store_id>/', views.stores_edit_view, name='stores_edit'),
     path('stores/delete/<int:store_id>/', views.stores_delete_view, name='stores_delete'),
     
-    # PriceListDetail URLs
-    path('price-list-details/', views.pricelistdetail_list, name='pricelistdetail_list'),
-    path('price-list-details/pricelist/<int:pricelist_id>/', views.pricelistdetail_by_pricelist, name='pricelistdetail_by_pricelist'),
+    # API URLs - All under /api/ prefix
     
-    # StoreGroup URLs
-    path('store-groups/', views.storegroup_list, name='storegroup_list'),
-    path('store-groups/<int:id>/', views.storegroup_detail, name='storegroup_detail'),
-    
-    # Store URLs
-    path('stores/', views.store_list, name='store_list'),
-    path('stores/<int:id>/', views.store_detail, name='store_detail'),
-    
-    # CustomerVendor URLs
-    path('customers-vendors/', views.customervendor_list, name='customervendor_list'),
-    path('customers-vendors/<int:id>/', views.customervendor_detail, name='customervendor_detail'),
-    
-    # InvoiceMaster URLs
-    path('invoices/', views.invoicemaster_list, name='invoicemaster_list'),
-    path('invoices/<int:id>/', views.invoicemaster_detail, name='invoicemaster_detail'),
-    
-    # InvoiceDetail URLs
-    path('invoice-details/', views.invoicedetail_list, name='invoicedetail_list'),
-    path('invoice-details/<int:id>/', views.invoicedetail_detail, name='invoicedetail_detail'),
-    
-    # Stock URLs
-    path('stock/', views.item_stock, name='item_stock'),
-    
-    # Account URLs
-    path('accounts/', views.account_list, name='account_list'),
-    path('accounts/<int:id>/', views.account_detail, name='account_detail'),
-    path('accounts/create/', views.account_create, name='account_create'),
-    
-    # Transaction URLs
-    path('transactions/', views.transaction_list, name='transaction_list'),
-    path('transactions/<int:id>/', views.transaction_detail, name='transaction_detail'),
-    path('transactions/create/', views.transaction_create, name='transaction_create'),
+    # ItemsGroup URLs (API)
+    path('api/items-groups/', views.itemsgroup_list, name='itemsgroup_list'),
+    path('api/items-groups/<int:id>/', views.itemsgroup_detail, name='itemsgroup_detail'),
     
     # Item URLs (API)
     path('api/items/', views.item_list, name='item_list'),
     path('api/items/<int:id>/', views.item_detail, name='item_detail'),
     path('api/items/group/<int:group_id>/', views.item_by_group, name='item_by_group'),
+    
+    # PriceList URLs (API)
+    path('api/price-lists/', views.pricelist_list, name='pricelist_list'),
+    path('api/price-lists/<int:id>/', views.pricelist_detail, name='pricelist_detail'),
+    
+    # PriceListDetail URLs (API)
+    path('api/price-list-details/', views.pricelistdetail_list, name='pricelistdetail_list'),
+    path('api/price-list-details/pricelist/<int:pricelist_id>/', views.pricelistdetail_by_pricelist, name='pricelistdetail_by_pricelist'),
+    
+    # StoreGroup URLs (API)
+    path('api/store-groups/', views.storegroup_list, name='storegroup_list'),
+    path('api/store-groups/<int:id>/', views.storegroup_detail, name='storegroup_detail'),
+    
+    # Store URLs (API)
+    path('api/stores/', views.store_list, name='store_list'),
+    path('api/stores/<int:id>/', views.store_detail, name='store_detail'),
+    
+    # CustomerVendor URLs (API)
+    path('api/customers-vendors/', views.customervendor_list, name='customervendor_list'),
+    path('api/customers-vendors/<int:id>/', views.customervendor_detail, name='customervendor_detail'),
+    
+    # InvoiceMaster URLs (API)
+    path('api/invoices/', views.invoicemaster_list, name='invoicemaster_list'),
+    path('api/invoices/<int:id>/', views.invoicemaster_detail, name='invoicemaster_detail'),
+    
+    # InvoiceDetail URLs (API)
+    path('api/invoice-details/', views.invoicedetail_list, name='invoicedetail_list'),
+    path('api/invoice-details/<int:id>/', views.invoicedetail_detail, name='invoicedetail_detail'),
+    
+    # Stock URLs (API)
+    path('api/stock/', views.item_stock, name='item_stock'),
+    
+    # Account URLs (API)
+    path('api/accounts/', views.account_list, name='account_list'),
+    path('api/accounts/<int:id>/', views.account_detail, name='account_detail'),
+    path('api/accounts/create/', views.account_create, name='account_create'),
+    
+    # Transaction URLs (API)
+    path('api/transactions/', views.transaction_list, name='transaction_list'),
+    path('api/transactions/<int:id>/', views.transaction_detail, name='transaction_detail'),
+    path('api/transactions/create/', views.transaction_create, name='transaction_create'),
+    
+    # Invoice API URLs
+    path('api/invoices/create/', invoice_api.create_invoice_api, name='create_invoice_api'),
+    path('api/invoices/<int:invoice_id>/available-returns/', invoice_api.get_available_returns_api, name='get_available_returns_api'),
+    path('api/invoices/type/<int:invoice_type>/', invoice_api.get_invoices_by_type_api, name='get_invoices_by_type_api'),
+    path('api/invoices/<int:invoice_id>/detail/', invoice_api.get_invoice_detail_api, name='get_invoice_detail_api'),
 ]

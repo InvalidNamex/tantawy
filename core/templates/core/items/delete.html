@@ -121,15 +121,15 @@
                 
                 <!-- Usage Information -->
                 {% if invoice_usage or pricelist_usage %}
-                <div class="alert alert-warning mt-3">
-                    <i class="bi bi-exclamation-circle me-2"></i>
+                <div class="alert {% if invoice_usage %}alert-warning{% else %}alert-info{% endif %} mt-3">
+                    <i class="bi bi-{% if invoice_usage %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
                     <strong>الصنف مستخدم في:</strong>
                     <ul class="mb-0 mt-2">
                         {% if invoice_usage %}
-                        <li>فواتير في النظام</li>
+                        <li><span class="text-danger">فواتير في النظام (يمنع الحذف)</span></li>
                         {% endif %}
                         {% if pricelist_usage %}
-                        <li>قوائم أسعار</li>
+                        <li><span class="text-info">قوائم أسعار (سيتم حذف الأسعار تلقائياً)</span></li>
                         {% endif %}
                     </ul>
                 </div>
@@ -138,7 +138,10 @@
                 {% if can_delete %}
                 <div class="alert alert-info mt-3">
                     <i class="bi bi-info-circle me-2"></i>
-                    <strong>ملاحظة:</strong> سيتم حذف الصنف نهائياً من النظام وجميع البيانات المرتبطة به.
+                    <strong>ملاحظة:</strong> سيتم حذف الصنف نهائياً من النظام. 
+                    {% if pricelist_usage %}
+                    كما سيتم حذف جميع الأسعار المرتبطة به في قوائم الأسعار تلقائياً.
+                    {% endif %}
                 </div>
                 
                 <form method="post" class="mt-4">
@@ -182,7 +185,7 @@
                             <i class="bi bi-check-circle text-success me-2 mt-1"></i>
                             <div>
                                 <strong>الحذف الآمن</strong>
-                                <small class="d-block text-muted">لن يتم حذف الصنف إذا كان مستخدماً في فواتير أو قوائم أسعار</small>
+                                <small class="d-block text-muted">لن يتم حذف الصنف إذا كان مستخدماً في فواتير فقط</small>
                             </div>
                         </div>
                     </div>
@@ -209,10 +212,10 @@
                     </div>
                     <div class="col-md-6">
                         <div class="d-flex align-items-start mb-3">
-                            <i class="bi bi-currency-dollar text-primary me-2 mt-1"></i>
+                            <i class="bi bi-currency-dollar text-success me-2 mt-1"></i>
                             <div>
-                                <strong>تأثير على قوائم الأسعار</strong>
-                                <small class="d-block text-muted">يجب إزالة الصنف من قوائم الأسعار قبل الحذف</small>
+                                <strong>قوائم الأسعار</strong>
+                                <small class="d-block text-muted">سيتم حذف الأسعار المرتبطة تلقائياً عند حذف الصنف</small>
                             </div>
                         </div>
                     </div>
@@ -270,39 +273,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (form) {
         const deleteBtn = form.querySelector('button[type="submit"]');
-        let clickCount = 0;
         
         deleteBtn.addEventListener('click', function(e) {
-            clickCount++;
+            e.preventDefault();
             
-            if (clickCount === 1) {
-                e.preventDefault();
-                this.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>انقر مرة أخرى للتأكيد';
-                this.classList.remove('btn-danger');
-                this.classList.add('btn-warning');
-                
-                // Reset after 3 seconds
-                setTimeout(() => {
-                    clickCount = 0;
-                    this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف الصنف نهائياً';
-                    this.classList.remove('btn-warning');
-                    this.classList.add('btn-danger');
-                }, 3000);
-                
-                return false;
-            } else {
-                // Second click - proceed with deletion
+            // Show confirmation dialog
+            if (confirm('هل أنت متأكد من رغبتك في حذف هذا الصنف؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+                // User confirmed - show loading state and submit
                 this.disabled = true;
                 this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحذف...';
                 
-                // Show final confirmation
-                if (!confirm('هل أنت متأكد تماماً من رغبتك في حذف الصنف؟ هذا الإجراء لا يمكن التراجع عنه!')) {
-                    e.preventDefault();
-                    clickCount = 0;
-                    this.disabled = false;
-                    this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف الصنف نهائياً';
-                    return false;
-                }
+                // Submit the form
+                form.submit();
             }
         });
     }

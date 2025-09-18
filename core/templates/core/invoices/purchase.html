@@ -1,0 +1,9 @@
+{% extends 'core/invoices/base_list.html' %}
+
+{% block title %}فواتير الشراء - نظام إدارة الطنطاوي{% endblock %}
+
+{% block content %}
+{% with invoice_type='purchase' invoice_type_name='فواتير الشراء' %}
+    {{ block.super }}
+{% endwith %}
+{% endblock %}

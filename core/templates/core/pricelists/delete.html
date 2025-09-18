@@ -194,39 +194,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     const deleteBtn = form.querySelector('button[type="submit"]');
-    let clickCount = 0;
     
     deleteBtn.addEventListener('click', function(e) {
-        clickCount++;
+        e.preventDefault();
         
-        if (clickCount === 1) {
-            e.preventDefault();
-            this.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>انقر مرة أخرى للتأكيد';
-            this.classList.remove('btn-danger');
-            this.classList.add('btn-warning');
-            
-            // Reset after 3 seconds
-            setTimeout(() => {
-                clickCount = 0;
-                this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف القائمة نهائياً';
-                this.classList.remove('btn-warning');
-                this.classList.add('btn-danger');
-            }, 3000);
-            
-            return false;
-        } else {
-            // Second click - proceed with deletion
+        // Single confirmation dialog
+        if (confirm('هل أنت متأكد من رغبتك في حذف قائمة الأسعار؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+            // User confirmed - disable button and submit form
             this.disabled = true;
             this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحذف...';
-            
-            // Show final confirmation
-            if (!confirm('هل أنت متأكد تماماً من رغبتك في حذف قائمة الأسعار؟ هذا الإجراء لا يمكن التراجع عنه!')) {
-                e.preventDefault();
-                clickCount = 0;
-                this.disabled = false;
-                this.innerHTML = '<i class="bi bi-trash me-2"></i>نعم، احذف القائمة نهائياً';
-                return false;
-            }
+            form.submit();
         }
     });
     

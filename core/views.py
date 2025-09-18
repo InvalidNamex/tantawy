@@ -6,10 +6,12 @@ All views include proper error handling and performance optimization.
 
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.http import JsonResponse
+from django.utils import timezone
 from decimal import Decimal
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -726,6 +728,8 @@ def pricelist_delete_view(request, id):
         try:
             pricelist.isDeleted = True
             pricelist.deletedBy = request.user
+            pricelist.deletedAt = timezone.now()
+            pricelist.updatedBy = request.user
             pricelist.save()
             messages.success(request, f'تم حذف قائمة السعر "{pricelist.priceListName}" بنجاح')
         except Exception as e:
@@ -847,7 +851,7 @@ def storegroup_delete_view(request, id):
     storegroup = get_object_or_404(StoreGroup, id=id, isDeleted=False)
     
     # Check if store group is referenced in Store table
-    if Store.objects.filter(storeGroupId=storegroup, isDeleted=False).exists():
+    if Store.objects.filter(storeGroup=storegroup, isDeleted=False).exists():
         messages.error(request, 'لا يمكن حذف مجموعة المخازن لأنها مرتبطة بمخازن')
         return redirect('core:storegroups')
     
@@ -855,6 +859,8 @@ def storegroup_delete_view(request, id):
         try:
             storegroup.isDeleted = True
             storegroup.deletedBy = request.user
+            storegroup.deletedAt = timezone.now()
+            storegroup.updatedBy = request.user
             storegroup.save()
             messages.success(request, f'تم حذف مجموعة المخازن "{storegroup.storeGroupName}" بنجاح')
         except Exception as e:
@@ -1023,7 +1029,10 @@ def stores_delete_view(request, store_id):
             
             # Soft delete
             store.isDeleted = True
+            store.deletedBy = request.user
             store.updatedBy = request.user
+            from django.utils import timezone
+            store.deletedAt = timezone.now()
             store.save()
             
             messages.success(request, f'تم حذف المخزن "{store.storeName}" بنجاح')
@@ -1154,7 +1163,7 @@ def items_add_view(request):
             return JsonResponse({
                 'success': False,
                 'errors': errors
-            })
+            }, json_dumps_params={'ensure_ascii': False})
         
         try:
             # Create new item
@@ -1179,13 +1188,13 @@ def items_add_view(request):
             return JsonResponse({
                 'success': True,
                 'message': f'تم إضافة الصنف "{item_name}" بنجاح'
-            })
+            }, json_dumps_params={'ensure_ascii': False})
             
         except Exception as e:
             return JsonResponse({
                 'success': False,
                 'errors': [f'حدث خطأ أثناء إضافة الصنف: {str(e)}']
-            })
+            }, json_dumps_params={'ensure_ascii': False})
     
     # For GET request, return form data
     item_groups = ItemsGroup.objects.filter(isDeleted=False).order_by('itemsGroupName')
@@ -1194,7 +1203,7 @@ def items_add_view(request):
     return JsonResponse({
         'item_groups': [{'id': ig.id, 'name': ig.itemsGroupName} for ig in item_groups],
         'pricelists': [{'id': pl.id, 'name': pl.priceListName} for pl in pricelists]
-    })
+    }, json_dumps_params={'ensure_ascii': False})
 
 
 @login_required
@@ -1355,7 +1364,10 @@ def items_delete_price_view(request, item_id, price_id):
         
         try:
             price_detail.isDeleted = True
+            price_detail.deletedBy = request.user
             price_detail.updatedBy = request.user
+            from django.utils import timezone
+            price_detail.deletedAt = timezone.now()
             price_detail.save()
             
             return JsonResponse({'success': True, 'message': 'تم حذف السعر بنجاح'})
@@ -1499,6 +1511,64 @@ def items_edit_view(request, item_id):
 
 
 @login_required
+def items_upload_image_view(request):
+    """
+    Upload image for item (AJAX endpoint)
+    """
+    if request.method == 'POST' and request.FILES.get('image'):
+        try:
+            import os
+            from django.core.files.storage import default_storage
+            from django.conf import settings
+            import uuid
+            
+            image_file = request.FILES['image']
+            
+            # Validate file type
+            allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+            file_extension = image_file.name.split('.')[-1].lower()
+            
+            if file_extension not in allowed_extensions:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'نوع الملف غير مدعوم. يُسمح بـ: JPG, PNG, GIF, WEBP'
+                }, json_dumps_params={'ensure_ascii': False})
+            
+            # Validate file size (max 5MB)
+            if image_file.size > 5 * 1024 * 1024:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت'
+                }, json_dumps_params={'ensure_ascii': False})
+            
+            # Generate unique filename
+            unique_filename = f"items/{uuid.uuid4().hex}.{file_extension}"
+            
+            # Save file
+            file_path = default_storage.save(unique_filename, image_file)
+            
+            # Return URL
+            file_url = f"{settings.MEDIA_URL}{file_path}"
+            
+            return JsonResponse({
+                'success': True,
+                'url': file_url,
+                'message': 'تم رفع الصورة بنجاح'
+            }, json_dumps_params={'ensure_ascii': False})
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'حدث خطأ أثناء رفع الصورة: {str(e)}'
+            }, json_dumps_params={'ensure_ascii': False})
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'طريقة الطلب غير صحيحة أو لا يوجد ملف'
+    }, json_dumps_params={'ensure_ascii': False})
+
+
+@login_required
 def items_delete_view(request, item_id):
     """
     Delete item (soft delete) - check if used in invoiceDetails or priceListsDetails
@@ -1512,21 +1582,34 @@ def items_delete_view(request, item_id):
                 messages.error(request, f'لا يمكن حذف الصنف "{item.itemName}" لأنه مستخدم في فواتير')
                 return redirect('core:items')
             
-            # Check if item is used in PriceListDetail
-            if hasattr(item, 'pricelistdetail_set') and item.pricelistdetail_set.filter(isDeleted=False).exists():
-                messages.error(request, f'لا يمكن حذف الصنف "{item.itemName}" لأنه مستخدم في قوائم أسعار')
-                return redirect('core:items')
+            # Allow deletion even if item is bound to price lists
+            # When deleting item, also soft delete associated price list details
+            if hasattr(item, 'pricelistdetail_set'):
+                price_details = item.pricelistdetail_set.filter(isDeleted=False)
+                for price_detail in price_details:
+                    price_detail.isDeleted = True
+                    price_detail.deletedBy = request.user
+                    price_detail.updatedBy = request.user
+                    price_detail.deletedAt = timezone.now()
+                    price_detail.save()
             
-            # Soft delete
+            # Soft delete the item
             item.isDeleted = True
+            item.deletedBy = request.user
             item.updatedBy = request.user
+            item.deletedAt = timezone.now()
             item.save()
             
             messages.success(request, f'تم حذف الصنف "{item.itemName}" بنجاح')
+            return redirect('core:items')
+            
         except Exception as e:
+            # More detailed error information for debugging
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error deleting item {item.id}: {error_details}")  # For server logs
             messages.error(request, f'حدث خطأ أثناء حذف الصنف: {str(e)}')
-        
-        return redirect('core:items')
+            return redirect('core:items')
     
     # Check usage for display
     invoice_usage = hasattr(item, 'invoicedetail_set') and item.invoicedetail_set.filter(isDeleted=False).exists()
@@ -1536,7 +1619,7 @@ def items_delete_view(request, item_id):
         'item': item,
         'invoice_usage': invoice_usage,
         'pricelist_usage': pricelist_usage,
-        'can_delete': not (invoice_usage or pricelist_usage)
+        'can_delete': not invoice_usage  # Only prevent deletion if used in invoices
     }
     
     return render(request, 'core/items/delete.html', context)
@@ -1702,7 +1785,11 @@ def itemsgroups_delete_view(request, group_id):
             
             # Soft delete
             itemsgroup.isDeleted = True
+            itemsgroup.deletedBy = request.user
             itemsgroup.updatedBy = request.user
+            # deletedAt will be set automatically due to auto_now=True on updatedAt
+            from django.utils import timezone
+            itemsgroup.deletedAt = timezone.now()
             itemsgroup.save()
             
             messages.success(request, f'تم حذف مجموعة الأصناف "{itemsgroup.itemsGroupName}" بنجاح')
@@ -1943,7 +2030,10 @@ def customers_delete_view(request, customer_id):
         try:
             # Soft delete
             customer.isDeleted = True
+            customer.deletedBy = request.user
             customer.updatedBy = request.user
+            from django.utils import timezone
+            customer.deletedAt = timezone.now()
             customer.save()
             
             messages.success(request, f'تم حذف العميل "{customer.customerVendorName}" بنجاح')
@@ -2172,7 +2262,10 @@ def vendors_delete_view(request, vendor_id):
         try:
             # Soft delete
             vendor.isDeleted = True
+            vendor.deletedBy = request.user
             vendor.updatedBy = request.user
+            from django.utils import timezone
+            vendor.deletedAt = timezone.now()
             vendor.save()
             
             messages.success(request, f'تم حذف المورد "{vendor.customerVendorName}" بنجاح')
@@ -2186,6 +2279,626 @@ def vendors_delete_view(request, vendor_id):
         'can_delete': can_delete,
         'invoice_count': invoice_count,
         'transaction_count': transaction_count,
+    }
+    
+    return render(request, 'core/vendors/delete.html', context)
+
+
+# ============================================================================
+# INVOICE MANAGEMENT VIEWS
+# ============================================================================
+
+@login_required
+def invoices_purchase_view(request):
+    """
+    View Purchase invoices with filtering and sorting
+    """
+    # Get query parameters
+    search = request.GET.get('search', '')
+    sort_by = request.GET.get('sort_by', 'createdAt')
+    sort_order = request.GET.get('sort_order', 'desc')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    created_by_filter = request.GET.get('created_by', '')
+    
+    # Build queryset for Purchase invoices (type=1)
+    queryset = InvoiceMaster.objects.filter(
+        invoiceType=1,  # Purchase invoices
+        isDeleted=False
+    ).select_related('customerOrVendorID', 'storeID', 'createdBy')
+    
+    # Apply search filter
+    if search:
+        queryset = queryset.filter(
+            Q(id__icontains=search) |
+            Q(customerOrVendorID__customerVendorName__icontains=search) |
+            Q(notes__icontains=search)
+        )
+    
+    # Apply date filters
+    if date_from:
+        queryset = queryset.filter(createdAt__date__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(createdAt__date__lte=date_to)
+    
+    # Apply created by filter
+    if created_by_filter:
+        queryset = queryset.filter(
+            Q(createdBy__id=created_by_filter) |
+            Q(createdBy__username__icontains=created_by_filter)
+        )
+    
+    # Apply sorting
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    queryset = queryset.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get all users for filter dropdown
+    users = User.objects.filter(is_active=True).order_by('username')
+    
+    context = {
+        'invoices': page_obj,
+        'search': search,
+        'sort_by': sort_by.lstrip('-'),
+        'sort_order': sort_order,
+        'date_from': date_from,
+        'date_to': date_to,
+        'created_by_filter': created_by_filter,
+        'users': users,
+        'invoice_type': 'purchase',
+        'invoice_type_name': 'فواتير الشراء',
+    }
+    
+    return render(request, 'core/invoices/purchase.html', context)
+
+
+@login_required
+def invoices_sales_view(request):
+    """
+    View Sales invoices with filtering and sorting
+    """
+    # Get query parameters
+    search = request.GET.get('search', '')
+    sort_by = request.GET.get('sort_by', 'createdAt')
+    sort_order = request.GET.get('sort_order', 'desc')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    created_by_filter = request.GET.get('created_by', '')
+    
+    # Build queryset for Sales invoices (type=2)
+    queryset = InvoiceMaster.objects.filter(
+        invoiceType=2,  # Sales invoices
+        isDeleted=False
+    ).select_related('customerOrVendorID', 'storeID', 'createdBy')
+    
+    # Apply search filter
+    if search:
+        queryset = queryset.filter(
+            Q(id__icontains=search) |
+            Q(customerOrVendorID__customerVendorName__icontains=search) |
+            Q(notes__icontains=search)
+        )
+    
+    # Apply date filters
+    if date_from:
+        queryset = queryset.filter(createdAt__date__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(createdAt__date__lte=date_to)
+    
+    # Apply created by filter
+    if created_by_filter:
+        queryset = queryset.filter(
+            Q(createdBy__id=created_by_filter) |
+            Q(createdBy__username__icontains=created_by_filter)
+        )
+    
+    # Apply sorting
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    queryset = queryset.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get all users for filter dropdown
+    users = User.objects.filter(is_active=True).order_by('username')
+    
+    context = {
+        'invoices': page_obj,
+        'search': search,
+        'sort_by': sort_by.lstrip('-'),
+        'sort_order': sort_order,
+        'date_from': date_from,
+        'date_to': date_to,
+        'created_by_filter': created_by_filter,
+        'users': users,
+        'invoice_type': 'sales',
+        'invoice_type_name': 'فواتير المبيعات',
+    }
+    
+    return render(request, 'core/invoices/sales.html', context)
+
+
+@login_required
+def invoices_return_purchase_view(request):
+    """
+    View Return Purchase invoices with filtering and sorting
+    """
+    # Get query parameters
+    search = request.GET.get('search', '')
+    sort_by = request.GET.get('sort_by', 'createdAt')
+    sort_order = request.GET.get('sort_order', 'desc')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    created_by_filter = request.GET.get('created_by', '')
+    
+    # Build queryset for Return Purchase invoices (type=3)
+    queryset = InvoiceMaster.objects.filter(
+        invoiceType=3,  # Return Purchase invoices
+        isDeleted=False
+    ).select_related('customerOrVendorID', 'storeID', 'createdBy', 'originalInvoiceID')
+    
+    # Apply search filter
+    if search:
+        queryset = queryset.filter(
+            Q(id__icontains=search) |
+            Q(customerOrVendorID__customerVendorName__icontains=search) |
+            Q(notes__icontains=search) |
+            Q(originalInvoiceID__id__icontains=search)
+        )
+    
+    # Apply date filters
+    if date_from:
+        queryset = queryset.filter(createdAt__date__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(createdAt__date__lte=date_to)
+    
+    # Apply created by filter
+    if created_by_filter:
+        queryset = queryset.filter(
+            Q(createdBy__id=created_by_filter) |
+            Q(createdBy__username__icontains=created_by_filter)
+        )
+    
+    # Apply sorting
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    queryset = queryset.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get all users for filter dropdown
+    users = User.objects.filter(is_active=True).order_by('username')
+    
+    context = {
+        'invoices': page_obj,
+        'search': search,
+        'sort_by': sort_by.lstrip('-'),
+        'sort_order': sort_order,
+        'date_from': date_from,
+        'date_to': date_to,
+        'created_by_filter': created_by_filter,
+        'users': users,
+        'invoice_type': 'return_purchase',
+        'invoice_type_name': 'فواتير مرتجع المشتريات',
+    }
+    
+    return render(request, 'core/invoices/return_purchase.html', context)
+
+
+@login_required
+def invoices_return_sales_view(request):
+    """
+    View Return Sales invoices with filtering and sorting
+    """
+    # Get query parameters
+    search = request.GET.get('search', '')
+    sort_by = request.GET.get('sort_by', 'createdAt')
+    sort_order = request.GET.get('sort_order', 'desc')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    created_by_filter = request.GET.get('created_by', '')
+    
+    # Build queryset for Return Sales invoices (type=4)
+    queryset = InvoiceMaster.objects.filter(
+        invoiceType=4,  # Return Sales invoices
+        isDeleted=False
+    ).select_related('customerOrVendorID', 'storeID', 'createdBy', 'originalInvoiceID')
+    
+    # Apply search filter
+    if search:
+        queryset = queryset.filter(
+            Q(id__icontains=search) |
+            Q(customerOrVendorID__customerVendorName__icontains=search) |
+            Q(notes__icontains=search) |
+            Q(originalInvoiceID__id__icontains=search)
+        )
+    
+    # Apply date filters
+    if date_from:
+        queryset = queryset.filter(createdAt__date__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(createdAt__date__lte=date_to)
+    
+    # Apply created by filter
+    if created_by_filter:
+        queryset = queryset.filter(
+            Q(createdBy__id=created_by_filter) |
+            Q(createdBy__username__icontains=created_by_filter)
+        )
+    
+    # Apply sorting
+    if sort_order == 'desc':
+        sort_by = f'-{sort_by}'
+    queryset = queryset.order_by(sort_by)
+    
+    # Pagination
+    paginator = Paginator(queryset, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get all users for filter dropdown
+    users = User.objects.filter(is_active=True).order_by('username')
+    
+    context = {
+        'invoices': page_obj,
+        'search': search,
+        'sort_by': sort_by.lstrip('-'),
+        'sort_order': sort_order,
+        'date_from': date_from,
+        'date_to': date_to,
+        'created_by_filter': created_by_filter,
+        'users': users,
+        'invoice_type': 'return_sales',
+        'invoice_type_name': 'فواتير مرتجع المبيعات',
+    }
+    
+    return render(request, 'core/invoices/return_sales.html', context)
+
+
+@login_required
+def invoices_main_view(request):
+    """
+    Main invoices management page with navigation to 4 invoice types
+    """
+    # Get summary statistics for each invoice type
+    purchase_count = InvoiceMaster.objects.filter(invoiceType=1, isDeleted=False).count()
+    sales_count = InvoiceMaster.objects.filter(invoiceType=2, isDeleted=False).count()
+    return_purchase_count = InvoiceMaster.objects.filter(invoiceType=3, isDeleted=False).count()
+    return_sales_count = InvoiceMaster.objects.filter(invoiceType=4, isDeleted=False).count()
+    
+    context = {
+        'purchase_count': purchase_count,
+        'sales_count': sales_count,
+        'return_purchase_count': return_purchase_count,
+        'return_sales_count': return_sales_count,
+    }
+    
+    return render(request, 'core/invoices/main.html', context)
+
+
+# Customer/Vendor Management Views
+
+
+@login_required
+def customer_add_view(request):
+    """
+    Add a new customer
+    """
+    if request.method == 'POST':
+        customer_name = request.POST.get('customerVendorName', '').strip()
+        phone_one = request.POST.get('phone_one', '').strip()
+        phone_two = request.POST.get('phone_two', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        pricelist_id = request.POST.get('pricelist_id')
+        
+        if not customer_name:
+            messages.error(request, 'اسم العميل مطلوب')
+            return redirect('core:customer_add')
+        
+        try:
+            # Create customer (type=1 for customer)
+            customer = CustomerVendor.objects.create(
+                customerVendorName=customer_name,
+                phone_one=phone_one or None,
+                phone_two=phone_two or None,
+                type=1,  # Customer
+                notes=notes or None,
+                createdBy=request.user
+            )
+            
+            # Bind to price list if selected
+            if pricelist_id:
+                try:
+                    pricelist = PriceList.objects.get(id=pricelist_id, isDeleted=False)
+                    CustomerVendorPriceList.objects.create(
+                        customerVendorID=customer,
+                        priceListID=pricelist,
+                        createdBy=request.user
+                    )
+                except (PriceList.DoesNotExist, ValueError):
+                    pass  # Ignore if pricelist doesn't exist
+            
+            messages.success(request, f'تم إنشاء العميل "{customer_name}" بنجاح')
+            return redirect('core:customers')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء إنشاء العميل: {str(e)}')
+    
+    # Get available price lists for dropdown
+    pricelists = PriceList.objects.filter(isDeleted=False).order_by('priceListName')
+    
+    context = {
+        'pricelists': pricelists,
+    }
+    
+    return render(request, 'core/customers/add.html', context)
+
+
+@login_required
+def vendor_add_view(request):
+    """
+    Add a new vendor
+    """
+    if request.method == 'POST':
+        vendor_name = request.POST.get('customerVendorName', '').strip()
+        phone_one = request.POST.get('phone_one', '').strip()
+        phone_two = request.POST.get('phone_two', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        pricelist_id = request.POST.get('pricelist_id')
+        
+        if not vendor_name:
+            messages.error(request, 'اسم المورد مطلوب')
+            return redirect('core:vendor_add')
+        
+        try:
+            # Create vendor (type=2 for vendor)
+            vendor = CustomerVendor.objects.create(
+                customerVendorName=vendor_name,
+                phone_one=phone_one or None,
+                phone_two=phone_two or None,
+                type=2,  # Vendor
+                notes=notes or None,
+                createdBy=request.user
+            )
+            
+            # Bind to price list if selected
+            if pricelist_id:
+                try:
+                    pricelist = PriceList.objects.get(id=pricelist_id, isDeleted=False)
+                    CustomerVendorPriceList.objects.create(
+                        customerVendorID=vendor,
+                        priceListID=pricelist,
+                        createdBy=request.user
+                    )
+                except (PriceList.DoesNotExist, ValueError):
+                    pass  # Ignore if pricelist doesn't exist
+            
+            messages.success(request, f'تم إنشاء المورد "{vendor_name}" بنجاح')
+            return redirect('core:vendors')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء إنشاء المورد: {str(e)}')
+    
+    # Get available price lists for dropdown
+    pricelists = PriceList.objects.filter(isDeleted=False).order_by('priceListName')
+    
+    context = {
+        'pricelists': pricelists,
+    }
+    
+    return render(request, 'core/vendors/add.html', context)
+
+
+@login_required
+def customer_edit_view(request, customer_id):
+    """
+    Edit an existing customer
+    """
+    customer = get_object_or_404(CustomerVendor, id=customer_id, isDeleted=False, type__in=[1, 3])
+    
+    if request.method == 'POST':
+        customer_name = request.POST.get('customerVendorName', '').strip()
+        phone_one = request.POST.get('phone_one', '').strip()
+        phone_two = request.POST.get('phone_two', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        pricelist_id = request.POST.get('pricelist_id')
+        
+        if not customer_name:
+            messages.error(request, 'اسم العميل مطلوب')
+            return redirect('core:customer_edit', customer_id=customer_id)
+        
+        try:
+            # Update customer
+            customer.customerVendorName = customer_name
+            customer.phone_one = phone_one or None
+            customer.phone_two = phone_two or None
+            customer.notes = notes or None
+            customer.updatedBy = request.user
+            customer.save()
+            
+            # Update price list binding
+            CustomerVendorPriceList.objects.filter(customerVendorID=customer).delete()
+            if pricelist_id:
+                try:
+                    pricelist = PriceList.objects.get(id=pricelist_id, isDeleted=False)
+                    CustomerVendorPriceList.objects.create(
+                        customerVendorID=customer,
+                        priceListID=pricelist,
+                        createdBy=request.user
+                    )
+                except (PriceList.DoesNotExist, ValueError):
+                    pass  # Ignore if pricelist doesn't exist
+            
+            messages.success(request, f'تم تحديث العميل "{customer_name}" بنجاح')
+            return redirect('core:customers')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء تحديث العميل: {str(e)}')
+    
+    # Get available price lists for dropdown
+    pricelists = PriceList.objects.filter(isDeleted=False).order_by('priceListName')
+    
+    # Get current price list binding
+    current_pricelist = None
+    try:
+        pricelist_binding = CustomerVendorPriceList.objects.get(customerVendorID=customer)
+        current_pricelist = pricelist_binding.priceListID
+    except CustomerVendorPriceList.DoesNotExist:
+        pass
+    
+    context = {
+        'customer': customer,
+        'pricelists': pricelists,
+        'current_pricelist': current_pricelist,
+    }
+    
+    return render(request, 'core/customers/edit.html', context)
+
+
+@login_required
+def vendor_edit_view(request, vendor_id):
+    """
+    Edit an existing vendor
+    """
+    vendor = get_object_or_404(CustomerVendor, id=vendor_id, isDeleted=False, type__in=[2, 3])
+    
+    if request.method == 'POST':
+        vendor_name = request.POST.get('customerVendorName', '').strip()
+        phone_one = request.POST.get('phone_one', '').strip()
+        phone_two = request.POST.get('phone_two', '').strip()
+        notes = request.POST.get('notes', '').strip()
+        pricelist_id = request.POST.get('pricelist_id')
+        
+        if not vendor_name:
+            messages.error(request, 'اسم المورد مطلوب')
+            return redirect('core:vendor_edit', vendor_id=vendor_id)
+        
+        try:
+            # Update vendor
+            vendor.customerVendorName = vendor_name
+            vendor.phone_one = phone_one or None
+            vendor.phone_two = phone_two or None
+            vendor.notes = notes or None
+            vendor.updatedBy = request.user
+            vendor.save()
+            
+            # Update price list binding
+            CustomerVendorPriceList.objects.filter(customerVendorID=vendor).delete()
+            if pricelist_id:
+                try:
+                    pricelist = PriceList.objects.get(id=pricelist_id, isDeleted=False)
+                    CustomerVendorPriceList.objects.create(
+                        customerVendorID=vendor,
+                        priceListID=pricelist,
+                        createdBy=request.user
+                    )
+                except (PriceList.DoesNotExist, ValueError):
+                    pass  # Ignore if pricelist doesn't exist
+            
+            messages.success(request, f'تم تحديث المورد "{vendor_name}" بنجاح')
+            return redirect('core:vendors')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء تحديث المورد: {str(e)}')
+    
+    # Get available price lists for dropdown
+    pricelists = PriceList.objects.filter(isDeleted=False).order_by('priceListName')
+    
+    # Get current price list binding
+    current_pricelist = None
+    try:
+        pricelist_binding = CustomerVendorPriceList.objects.get(customerVendorID=vendor)
+        current_pricelist = pricelist_binding.priceListID
+    except CustomerVendorPriceList.DoesNotExist:
+        pass
+    
+    context = {
+        'vendor': vendor,
+        'pricelists': pricelists,
+        'current_pricelist': current_pricelist,
+    }
+    
+    return render(request, 'core/vendors/edit.html', context)
+
+
+@login_required
+def customer_delete_view(request, customer_id):
+    """
+    Delete a customer (soft delete)
+    """
+    customer = get_object_or_404(CustomerVendor, id=customer_id, isDeleted=False, type__in=[1, 3])
+    
+    # Check if customer is referenced in invoices
+    if InvoiceMaster.objects.filter(customerOrVendorID=customer, isDeleted=False).exists():
+        messages.error(request, 'لا يمكن حذف العميل لأنه مرتبط بفواتير')
+        return redirect('core:customers')
+    
+    if request.method == 'POST':
+        try:
+            customer.isDeleted = True
+            customer.deletedBy = request.user
+            customer.deletedAt = timezone.now()
+            customer.updatedBy = request.user
+            customer.save()
+            
+            # Also delete price list bindings
+            CustomerVendorPriceList.objects.filter(customerVendorID=customer).delete()
+            
+            messages.success(request, f'تم حذف العميل "{customer.customerVendorName}" بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف العميل: {str(e)}')
+        
+        return redirect('core:customers')
+    
+    context = {
+        'customer': customer,
+    }
+    
+    return render(request, 'core/customers/delete.html', context)
+
+
+@login_required
+def vendor_delete_view(request, vendor_id):
+    """
+    Delete a vendor (soft delete)
+    """
+    vendor = get_object_or_404(CustomerVendor, id=vendor_id, isDeleted=False, type__in=[2, 3])
+    
+    # Check if vendor is referenced in invoices
+    if InvoiceMaster.objects.filter(customerOrVendorID=vendor, isDeleted=False).exists():
+        messages.error(request, 'لا يمكن حذف المورد لأنه مرتبط بفواتير')
+        return redirect('core:vendors')
+    
+    if request.method == 'POST':
+        try:
+            vendor.isDeleted = True
+            vendor.deletedBy = request.user
+            vendor.deletedAt = timezone.now()
+            vendor.updatedBy = request.user
+            vendor.save()
+            
+            # Also delete price list bindings
+            CustomerVendorPriceList.objects.filter(customerVendorID=vendor).delete()
+            
+            messages.success(request, f'تم حذف المورد "{vendor.customerVendorName}" بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف المورد: {str(e)}')
+        
+        return redirect('core:vendors')
+    
+    context = {
+        'vendor': vendor,
     }
     
     return render(request, 'core/vendors/delete.html', context)

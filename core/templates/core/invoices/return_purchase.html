@@ -1,0 +1,9 @@
+{% extends 'core/invoices/base_list.html' %}
+
+{% block title %}فواتير مرتجع الشراء - نظام إدارة الطنطاوي{% endblock %}
+
+{% block content %}
+{% with invoice_type='return_purchase' invoice_type_name='فواتير مرتجع الشراء' %}
+    {{ block.super }}
+{% endwith %}
+{% endblock %}

@@ -320,10 +320,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-focus on name field
     document.getElementById('id_customerVendorName').focus();
     
-    // Phone validation
+    // Phone number validation - only allow numbers and specific symbols
     const phoneInputs = document.querySelectorAll('input[type="tel"]');
-    phoneInputs.forEach(function(input) {
-        input.addEventListener('blur', function() {
+    phoneInputs.forEach(function(phoneInput) {
+        phoneInput.addEventListener('keypress', function(e) {
+            // Allow: numbers, +, -, (, ), space, backspace, delete, tab, enter
+            const allowedKeys = ['0','1','2','3','4','5','6','7','8','9','+','-','(',' ',')'];
+            const key = e.key;
+            
+            // Allow control keys (backspace, delete, tab, enter, etc.)
+            if (e.ctrlKey || e.altKey || 
+                key === 'Backspace' || key === 'Delete' || key === 'Tab' || 
+                key === 'Enter' || key === 'ArrowLeft' || key === 'ArrowRight') {
+                return;
+            }
+            
+            // Block if not in allowed keys
+            if (!allowedKeys.includes(key)) {
+                e.preventDefault();
+            }
+        });
+        
+        // Also validate on paste
+        phoneInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            const cleanedText = pastedText.replace(/[^0-9+\-\s\(\)]/g, '');
+            this.value = cleanedText;
+        });
+        
+        // Validate on input to remove any invalid characters
+        phoneInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9+\-\s\(\)]/g, '');
+        });
+        
+        // Additional validation on blur
+        phoneInput.addEventListener('blur', function() {
             const phone = this.value.trim();
             if (phone && !/^[0-9+\-\s\(\)]+$/.test(phone)) {
                 this.setCustomValidity('يرجى إدخال رقم هاتف صحيح');

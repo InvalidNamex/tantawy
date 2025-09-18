@@ -267,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form validation
     form.addEventListener('submit', function(e) {
         const itemName = itemNameInput.value.trim();
-        const itemGroupId = document.getElementById('itemGroupId').value;
         
         if (!itemName) {
             e.preventDefault();
@@ -283,12 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        if (!itemGroupId) {
-            e.preventDefault();
-            alert('يرجى اختيار مجموعة الصنف');
-            document.getElementById('itemGroupId').focus();
-            return;
-        }
+        // Item group is optional - no validation needed
         
         // Show loading state
         const submitBtn = form.querySelector('button[type="submit"]');

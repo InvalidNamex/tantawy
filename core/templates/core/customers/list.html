@@ -257,8 +257,37 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-focus search field
     const searchInput = document.querySelector('input[name="search"]');
+    const sortSelect = document.querySelector('select[name="sort"]');
+    const directionSelect = document.querySelector('select[name="direction"]');
+    
     if (searchInput && !searchInput.value) {
         searchInput.focus();
+    }
+    
+    // Auto-submit search form on sort/direction change
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    if (directionSelect) {
+        directionSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    // Search input auto-complete functionality with delay
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (this.value.length >= 3 || this.value.length === 0) {
+                    this.form.submit();
+                }
+            }, 500);
+        });
     }
     
     // Search suggestions (you can implement AJAX suggestions here)

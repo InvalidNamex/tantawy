@@ -70,12 +70,14 @@
                                     <i class="bi bi-telephone me-1"></i>
                                     رقم الهاتف الأول
                                 </label>
-                                <input type="text" 
+                                <input type="tel" 
                                        class="form-control" 
                                        id="phone_one" 
                                        name="phone_one" 
                                        value="{{ form_data.phone_one|default:'' }}"
-                                       placeholder="أدخل رقم الهاتف الأول">
+                                       placeholder="أدخل رقم الهاتف الأول"
+                                       pattern="[0-9+\-\s\(\)]*"
+                                       title="يُسمح بالأرقام والرموز التالية فقط: + - ( ) والمسافات">
                                 <div class="form-text">رقم الهاتف الأول (اختياري)</div>
                             </div>
 
@@ -84,12 +86,14 @@
                                     <i class="bi bi-telephone me-1"></i>
                                     رقم الهاتف الثاني
                                 </label>
-                                <input type="text" 
+                                <input type="tel" 
                                        class="form-control" 
                                        id="phone_two" 
                                        name="phone_two" 
                                        value="{{ form_data.phone_two|default:'' }}"
-                                       placeholder="أدخل رقم الهاتف الثاني">
+                                       placeholder="أدخل رقم الهاتف الثاني"
+                                       pattern="[0-9+\-\s\(\)]*"
+                                       title="يُسمح بالأرقام والرموز التالية فقط: + - ( ) والمسافات">
                                 <div class="form-text">رقم الهاتف الثاني (اختياري)</div>
                             </div>
                         </div>
@@ -176,6 +180,41 @@ document.addEventListener('DOMContentLoaded', function() {
     
     customerNameInput.addEventListener('input', updateCounter);
     updateCounter();
+    
+    // Phone number validation - only allow numbers and specific symbols
+    const phoneInputs = document.querySelectorAll('input[type="tel"]');
+    phoneInputs.forEach(function(phoneInput) {
+        phoneInput.addEventListener('keypress', function(e) {
+            // Allow: numbers, +, -, (, ), space, backspace, delete, tab, enter
+            const allowedKeys = ['0','1','2','3','4','5','6','7','8','9','+','-','(',' ',')'];
+            const key = e.key;
+            
+            // Allow control keys (backspace, delete, tab, enter, etc.)
+            if (e.ctrlKey || e.altKey || 
+                key === 'Backspace' || key === 'Delete' || key === 'Tab' || 
+                key === 'Enter' || key === 'ArrowLeft' || key === 'ArrowRight') {
+                return;
+            }
+            
+            // Block if not in allowed keys
+            if (!allowedKeys.includes(key)) {
+                e.preventDefault();
+            }
+        });
+        
+        // Also validate on paste
+        phoneInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            const cleanedText = pastedText.replace(/[^0-9+\-\s\(\)]/g, '');
+            this.value = cleanedText;
+        });
+        
+        // Validate on input to remove any invalid characters
+        phoneInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9+\-\s\(\)]/g, '');
+        });
+    });
 });
 </script>
 {% endblock %}

@@ -28,7 +28,7 @@ E. Stores
 F. Item Management
 - A search bar for items by any part of the word with drop down
 - List of items ID, ItemName, Update, Delete (according to user permission)
-if item was used in invoiceDetails or priceListsDetails then prevent deletion
+if item was used in invoiceDetails then prevent deletion, but allow deletion if only bound to priceListsDetails
 - A button to add a new item which opens a pop up dialog allowing the user to input itemName, sign, choose pricelist from drop down, then set price and binding it to this pricelist in the (priceListsDetails) table.
 - A save button to save this item this dismiss the pop up dialog.
 * choosing pricelist, setting price, selecting items group is all optional in creation and updating.
@@ -59,3 +59,20 @@ H. Customer/Vendor Management
 # We need to create a table, model, etc called customerVendorPriceList.
 # In this table we will join the customerVendorID with a priceList id to set a default pricelist for a customer/vendor
     - in the add new customer/vendor or in the update/edit customer/vendor add a dropdown holding pricelists so the user with correct permissions could bind a pricelist to this customer/vendor
+
+I. Invoices Management (Purchase, Sales, Return Purchase, Return Sales):
+1- add to the website the following
+Invoice management,
+it has 4 sections 
+> View Purchase invoices
+> View Sales invoices
+> View Return Purchase invoices
+> View Return Sales invoices
+in each screen of the above a list of invoices sortable and filterable
+. ID
+. Net Total
+. Notes
+. Vendor/Customer based on the nature of invoice
+. Created By
+. Created On
+We can filter by Date picker from/to dates, invoice id, the user who created it (id, user name)

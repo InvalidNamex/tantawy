@@ -74,10 +74,19 @@ def dashboard_view(request):
         customers_count = CustomerVendor.objects.filter(isDeleted=False, type__in=[1, 3]).count()
         vendors_count = CustomerVendor.objects.filter(isDeleted=False, type__in=[2, 3]).count()
         
+        # Invoice counts by type
+        from core.models import InvoiceMaster
+        purchase_invoices_count = InvoiceMaster.objects.filter(isDeleted=False, invoiceType=1).count()
+        sales_invoices_count = InvoiceMaster.objects.filter(isDeleted=False, invoiceType=2).count()
+        return_purchase_invoices_count = InvoiceMaster.objects.filter(isDeleted=False, invoiceType=3).count()
+        return_sales_invoices_count = InvoiceMaster.objects.filter(isDeleted=False, invoiceType=4).count()
+        total_invoices_count = InvoiceMaster.objects.filter(isDeleted=False).count()
+        
     except Exception as e:
         # In case of database issues, set counts to 0
         items_groups_count = items_count = price_lists_count = store_groups_count = stores_count = 0
         customers_count = vendors_count = 0
+        purchase_invoices_count = sales_invoices_count = return_purchase_invoices_count = return_sales_invoices_count = total_invoices_count = 0
         messages.warning(request, 'Unable to load statistics. Please check database connection.')
     
     context = {
@@ -88,6 +97,11 @@ def dashboard_view(request):
         'stores_count': stores_count,
         'customers_count': customers_count,
         'vendors_count': vendors_count,
+        'purchase_invoices_count': purchase_invoices_count,
+        'sales_invoices_count': sales_invoices_count,
+        'return_purchase_invoices_count': return_purchase_invoices_count,
+        'return_sales_invoices_count': return_sales_invoices_count,
+        'total_invoices_count': total_invoices_count,
         'user': request.user,
     }
     

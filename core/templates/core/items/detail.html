@@ -138,7 +138,21 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">صورة العنصر:</label>
-                                    <input type="text" class="form-control" name="itemImage" value="{{ item.itemImage|default:'' }}" placeholder="رابط الصورة">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="itemImage" id="itemImageUrl" value="{{ item.itemImage|default:'' }}" placeholder="رابط الصورة">
+                                        <input type="file" class="d-none" id="imageFileInput" accept="image/*">
+                                        <button type="button" class="btn btn-outline-primary" id="selectImageBtn">
+                                            <i class="bi bi-cloud-upload me-1"></i>
+                                            اختيار صورة
+                                        </button>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">يمكنك إدخال رابط صورة أو رفع صورة من جهازك (JPG, PNG, GIF, WEBP - حد أقصى 5MB)</small>
+                                    </div>
+                                    <!-- Image preview -->
+                                    <div id="imagePreview" class="mt-2" style="display: none;">
+                                        <img id="previewImg" src="" alt="معاينة الصورة" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -581,6 +595,95 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             showAlert('حدث خطأ في الاتصال', 'danger');
         });
+    });
+    
+    // Image upload functionality
+    const selectImageBtn = document.getElementById('selectImageBtn');
+    const imageFileInput = document.getElementById('imageFileInput');
+    const itemImageUrl = document.getElementById('itemImageUrl');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    
+    // Show file dialog when button is clicked
+    selectImageBtn.addEventListener('click', function() {
+        imageFileInput.click();
+    });
+    
+    // Handle file selection
+    imageFileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            showAlert('نوع الملف غير مدعوم. يُسمح بـ: JPG, PNG, GIF, WEBP', 'danger');
+            return;
+        }
+        
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showAlert('حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت', 'danger');
+            return;
+        }
+        
+        // Show loading state
+        selectImageBtn.disabled = true;
+        selectImageBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>جاري الرفع...';
+        
+        // Upload file
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        fetch('{% url "core:items_upload_image" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the URL field
+                itemImageUrl.value = data.url;
+                
+                // Show preview
+                previewImg.src = data.url;
+                imagePreview.style.display = 'block';
+                
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('حدث خطأ أثناء رفع الصورة', 'danger');
+        })
+        .finally(() => {
+            // Reset button state
+            selectImageBtn.disabled = false;
+            selectImageBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>اختيار صورة';
+            
+            // Clear file input
+            imageFileInput.value = '';
+        });
+    });
+    
+    // Show preview if URL is already set
+    if (itemImageUrl.value) {
+        previewImg.src = itemImageUrl.value;
+        imagePreview.style.display = 'block';
+    }
+    
+    // Update preview when URL is manually changed
+    itemImageUrl.addEventListener('input', function() {
+        if (this.value) {
+            previewImg.src = this.value;
+            imagePreview.style.display = 'block';
+        } else {
+            imagePreview.style.display = 'none';
+        }
     });
 });
 </script>

@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ invoice_type_name }} - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:invoices_main' %}">
+                <i class="bi bi-receipt"></i> إدارة الفواتير
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            {{ invoice_type_name }}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header {% if invoice_type == 'purchase' %}bg-primary{% elif invoice_type == 'sales' %}bg-success{% elif invoice_type == 'return_purchase' %}bg-warning{% else %}bg-danger{% endif %} text-white">
+                    <h4 class="mb-0">
+                        {% if invoice_type == 'purchase' %}
+                            <i class="bi bi-bag-fill me-2"></i>
+                        {% elif invoice_type == 'sales' %}
+                            <i class="bi bi-cart-fill me-2"></i>
+                        {% elif invoice_type == 'return_purchase' %}
+                            <i class="bi bi-arrow-return-left me-2"></i>
+                        {% else %}
+                            <i class="bi bi-arrow-return-right me-2"></i>
+                        {% endif %}
+                        {{ invoice_type_name }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Filters and Search -->
+                    <form method="GET" class="mb-4">
+                        <div class="row g-3">
+                            <!-- Search -->
+                            <div class="col-md-3">
+                                <label class="form-label">البحث</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="search" 
+                                       value="{{ search }}"
+                                       placeholder="رقم الفاتورة، اسم العميل/المورد، ملاحظات">
+                            </div>
+
+                            <!-- Date From -->
+                            <div class="col-md-2">
+                                <label class="form-label">من تاريخ</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       name="date_from" 
+                                       value="{{ date_from }}">
+                            </div>
+
+                            <!-- Date To -->
+                            <div class="col-md-2">
+                                <label class="form-label">إلى تاريخ</label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       name="date_to" 
+                                       value="{{ date_to }}">
+                            </div>
+
+                            <!-- Created By -->
+                            <div class="col-md-2">
+                                <label class="form-label">تم الإنشاء بواسطة</label>
+                                <select class="form-select" name="created_by">
+                                    <option value="">جميع المستخدمين</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}" 
+                                                {% if created_by_filter == user.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ user.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Sort By -->
+                            <div class="col-md-2">
+                                <label class="form-label">ترتيب حسب</label>
+                                <select class="form-select" name="sort_by">
+                                    <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>تاريخ الإنشاء</option>
+                                    <option value="id" {% if sort_by == 'id' %}selected{% endif %}>رقم الفاتورة</option>
+                                    <option value="netTotal" {% if sort_by == 'netTotal' %}selected{% endif %}>إجمالي المبلغ</option>
+                                    <option value="customerOrVendorID__customerVendorName" {% if sort_by == 'customerOrVendorID__customerVendorName' %}selected{% endif %}>اسم العميل/المورد</option>
+                                </select>
+                            </div>
+
+                            <!-- Sort Order -->
+                            <div class="col-md-1">
+                                <label class="form-label">الاتجاه</label>
+                                <select class="form-select" name="sort_order">
+                                    <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>تنازلي</option>
+                                    <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>تصاعدي</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="bi bi-search me-1"></i>
+                                    بحث
+                                </button>
+                                <a href="{% if invoice_type == 'purchase' %}{% url 'core:invoices_purchase' %}{% elif invoice_type == 'sales' %}{% url 'core:invoices_sales' %}{% elif invoice_type == 'return_purchase' %}{% url 'core:invoices_return_purchase' %}{% else %}{% url 'core:invoices_return_sales' %}{% endif %}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>
+                                    إعادة تعيين
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Invoices Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>رقم الفاتورة</th>
+                                    <th>
+                                        {% if invoice_type == 'purchase' or invoice_type == 'return_purchase' %}
+                                            المورد
+                                        {% else %}
+                                            العميل
+                                        {% endif %}
+                                    </th>
+                                    <th>إجمالي المبلغ</th>
+                                    <th>نوع الدفع</th>
+                                    <th>الحالة</th>
+                                    <th>ملاحظات</th>
+                                    {% if invoice_type == 'return_purchase' or invoice_type == 'return_sales' %}
+                                        <th>الفاتورة الأصلية</th>
+                                    {% endif %}
+                                    <th>تم الإنشاء بواسطة</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                    <tr>
+                                        <td>
+                                            <strong class="text-primary">#{{ invoice.id }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if invoice.customerOrVendorID %}
+                                                {{ invoice.customerOrVendorID.customerVendorName }}
+                                            {% else %}
+                                                <span class="text-muted">غير محدد</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-success">
+                                                {{ invoice.netTotal|default:0|floatformat:2 }} ر.س
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if invoice.paymentType == 1 %}
+                                                <span class="badge bg-success">نقدي</span>
+                                            {% elif invoice.paymentType == 2 %}
+                                                <span class="badge bg-info">فيزا</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">آجل</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if invoice.status == 0 %}
+                                                <span class="badge bg-success">مدفوعة</span>
+                                            {% elif invoice.status == 1 %}
+                                                <span class="badge bg-danger">غير مدفوعة</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">مدفوعة جزئياً</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if invoice.notes %}
+                                                <span class="text-truncate" style="max-width: 150px;" title="{{ invoice.notes }}">
+                                                    {{ invoice.notes|truncatechars:30 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">لا توجد ملاحظات</span>
+                                            {% endif %}
+                                        </td>
+                                        {% if invoice_type == 'return_purchase' or invoice_type == 'return_sales' %}
+                                            <td>
+                                                {% if invoice.originalInvoiceID %}
+                                                    <a href="#" class="text-primary">#{{ invoice.originalInvoiceID.id }}</a>
+                                                {% else %}
+                                                    <span class="text-muted">غير محدد</span>
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                        <td>
+                                            {{ invoice.createdBy.username|default:"غير معروف" }}
+                                        </td>
+                                        <td>
+                                            {{ invoice.createdAt|date:"Y-m-d H:i" }}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" 
+                                                        class="btn btn-outline-primary" 
+                                                        title="عرض التفاصيل">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-outline-info" 
+                                                        title="طباعة">
+                                                    <i class="bi bi-printer"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="{% if invoice_type == 'return_purchase' or invoice_type == 'return_sales' %}10{% else %}9{% endif %}" class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                                            لا توجد فواتير متاحة
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if invoices.has_other_pages %}
+                        <nav aria-label="الصفحات">
+                            <ul class="pagination justify-content-center">
+                                {% if invoices.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ invoices.previous_page_number }}">
+                                            السابق
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in invoices.paginator.page_range %}
+                                    {% if invoices.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > invoices.number|add:'-3' and num < invoices.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if invoices.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ invoices.next_page_number }}">
+                                            التالي
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                    <!-- Results Summary -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                عرض {{ invoices.start_index }} إلى {{ invoices.end_index }} من {{ invoices.paginator.count }} فاتورة
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

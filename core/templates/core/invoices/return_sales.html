@@ -1,0 +1,9 @@
+{% extends 'core/invoices/base_list.html' %}
+
+{% block title %}فواتير مرتجع المبيعات - نظام إدارة الطنطاوي{% endblock %}
+
+{% block content %}
+{% with invoice_type='return_sales' invoice_type_name='فواتير مرتجع المبيعات' %}
+    {{ block.super }}
+{% endwith %}
+{% endblock %}

@@ -544,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="bi bi-check-circle me-2"></i>${data.message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
-                document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.d-flex'));
+                document.querySelector('.container').insertBefore(alert, document.querySelector('.d-flex'));
                 
                 // Close modal and reload page
                 addItemModal.hide();
