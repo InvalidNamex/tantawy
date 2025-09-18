@@ -1,0 +1,587 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل العنصر - {{ item.itemName }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-3">
+    <!-- Header with item name and back button -->
+    <div class="row align-items-center mb-4">
+        <div class="col">
+            <h2 class="mb-0 text-dark">
+                <i class="fas fa-box text-success me-2"></i>
+                تفاصيل العنصر: {{ item.itemName }}
+            </h2>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'core:items' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right me-2"></i>
+                العودة للقائمة
+            </a>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-pills mb-4" id="itemTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active text-success" id="main-tab" data-bs-toggle="pill" data-bs-target="#main" 
+                    type="button" role="tab" aria-controls="main" aria-selected="true">
+                <i class="fas fa-info-circle me-2"></i>
+                الرئيسية
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-success" id="pricelists-tab" data-bs-toggle="pill" data-bs-target="#pricelists" 
+                    type="button" role="tab" aria-controls="pricelists" aria-selected="false">
+                <i class="fas fa-tags me-2"></i>
+                قوائم الاسعار
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-success" id="stores-tab" data-bs-toggle="pill" data-bs-target="#stores" 
+                    type="button" role="tab" aria-controls="stores" aria-selected="false">
+                <i class="fas fa-warehouse me-2"></i>
+                المخازن
+            </button>
+        </li>
+    </ul>
+
+    <!-- Custom CSS for tab styling -->
+    <style>
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-green) !important;
+            color: white !important;
+        }
+        .nav-pills .nav-link:not(.active) {
+            color: var(--primary-green) !important;
+            background-color: transparent !important;
+        }
+        .nav-pills .nav-link:not(.active):hover {
+            background-color: rgba(39, 174, 96, 0.1) !important;
+        }
+    </style>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="itemTabsContent">
+        <!-- Main Info Tab -->
+        <div class="tab-pane fade show active" id="main" role="tabpanel" aria-labelledby="main-tab">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle text-success me-2"></i>
+                        المعلومات الأساسية
+                    </h5>
+                    <button type="button" class="btn btn-success btn-sm" id="saveMainInfoBtn">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+                <form id="mainInfoForm">
+                    {% csrf_token %}
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">اسم العنصر:</label>
+                                    <input type="text" class="form-control" name="itemName" value="{{ item.itemName }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">المجموعة:</label>
+                                    <select class="form-select" name="itemGroupId">
+                                        <option value="">اختر المجموعة...</option>
+                                        {% for group in item_groups %}
+                                        <option value="{{ group.id }}" {% if item.itemGroupId and item.itemGroupId.id == group.id %}selected{% endif %}>
+                                            {{ group.itemsGroupName }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">حالة الاستخدام:</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="isUsed" id="isUsedYes" value="true" {% if item.isUsed %}checked{% endif %}>
+                                        <label class="form-check-label" for="isUsedYes">
+                                            <span class="badge bg-success">مستخدم</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="isUsed" id="isUsedNo" value="false" {% if not item.isUsed %}checked{% endif %}>
+                                        <label class="form-check-label" for="isUsedNo">
+                                            <span class="badge bg-secondary">غير مستخدم</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">خاضع للضريبة:</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="isTax" id="isTaxYes" value="true" {% if item.isTax %}checked{% endif %}>
+                                        <label class="form-check-label" for="isTaxYes">
+                                            <span class="badge bg-warning">خاضع للضريبة</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="isTax" id="isTaxNo" value="false" {% if not item.isTax %}checked{% endif %}>
+                                        <label class="form-check-label" for="isTaxNo">
+                                            <span class="badge bg-secondary">معفى من الضريبة</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">الباركود الرئيسي:</label>
+                                    <input type="text" class="form-control" name="barcode" value="{{ item.barcode|default:'' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">الإشارة:</label>
+                                    <input type="text" class="form-control" name="sign" value="{{ item.sign|default:'' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">صورة العنصر:</label>
+                                    <input type="text" class="form-control" name="itemImage" value="{{ item.itemImage|default:'' }}" placeholder="رابط الصورة">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Units Information -->
+                        <hr>
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-balance-scale me-2"></i>
+                            معلومات الوحدات
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-header text-center">
+                                        <h6 class="card-title text-success mb-0">الوحدة الرئيسية</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <label class="form-label fw-bold">الاسم:</label>
+                                            <input type="text" class="form-control form-control-sm" name="mainUnitName" value="{{ item.mainUnitName|default:'' }}">
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-bold">الباركود:</label>
+                                            <input type="text" class="form-control form-control-sm" name="mainUnitBarcode" value="{{ item.barcode|default:'' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-header text-center">
+                                        <h6 class="card-title text-success mb-0">الوحدة الفرعية</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <label class="form-label fw-bold">الاسم:</label>
+                                            <input type="text" class="form-control form-control-sm" name="subUnitName" value="{{ item.subUnitName|default:'' }}">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label fw-bold">العبوة:</label>
+                                            <input type="number" class="form-control form-control-sm" name="subUnitPack" value="{{ item.subUnitPack|floatformat:2 }}" step="0.01" min="0">
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-bold">الباركود:</label>
+                                            <input type="text" class="form-control form-control-sm" name="subUnitBarCode" value="{{ item.subUnitBarCode|default:'' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-header text-center">
+                                        <h6 class="card-title text-success mb-0">الوحدة الصغيرة</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-2">
+                                            <label class="form-label fw-bold">الاسم:</label>
+                                            <input type="text" class="form-control form-control-sm" name="smallUnitName" value="{{ item.smallUnitName|default:'' }}">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label fw-bold">العبوة:</label>
+                                            <input type="number" class="form-control form-control-sm" name="mainUnitPack" value="{{ item.mainUnitPack|floatformat:2 }}" step="0.01" min="0">
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-bold">الباركود:</label>
+                                            <input type="text" class="form-control form-control-sm" name="smallUnitBarCode" value="{{ item.smallUnitBarCode|default:'' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Price Lists Tab -->
+        <div class="tab-pane fade" id="pricelists" role="tabpanel" aria-labelledby="pricelists-tab">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tags text-success me-2"></i>
+                        قوائم الأسعار
+                    </h5>
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addPriceModal">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة سعر
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>قائمة الأسعار</th>
+                                    <th>السعر</th>
+                                    <th>العملة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="priceListsTable">
+                                {% for price_detail in price_details %}
+                                <tr data-price-id="{{ price_detail.id }}">
+                                    <td>{{ price_detail.priceList.priceListName }}</td>
+                                    <td class="price-cell">
+                                        <span class="price-display">{{ price_detail.price|floatformat:2 }}</span>
+                                        <input type="number" class="form-control price-input d-none" 
+                                               value="{{ price_detail.price }}" step="0.01" min="0">
+                                    </td>
+                                    <td>جنيه</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary edit-price-btn" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success save-price-btn d-none" title="حفظ">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary cancel-price-btn d-none" title="إلغاء">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-price-btn" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        لا توجد أسعار محددة لهذا العنصر
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stores Tab -->
+        <div class="tab-pane fade" id="stores" role="tabpanel" aria-labelledby="stores-tab">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-warehouse text-success me-2"></i>
+                        المخزون في المخازن
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>اسم المخزن</th>
+                                    <th>الكمية المتوفرة</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stock in store_stocks %}
+                                <tr>
+                                    <td>{{ stock.store_name }}</td>
+                                    <td class="fw-bold">{{ stock.stock|floatformat:3 }}</td>
+                                    <td>
+                                        {% if stock.stock > 0 %}
+                                            <span class="badge bg-success">متوفر</span>
+                                        {% elif stock.stock == 0 %}
+                                            <span class="badge bg-warning">نفذت الكمية</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">عجز</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        لا توجد بيانات مخزون لهذا العنصر
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Price Modal -->
+<div class="modal fade" id="addPriceModal" tabindex="-1" aria-labelledby="addPriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPriceModalLabel">إضافة سعر جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addPriceForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="priceListSelect" class="form-label">قائمة الأسعار</label>
+                        <select class="form-select" id="priceListSelect" name="price_list_id" required>
+                            <option value="">اختر قائمة الأسعار...</option>
+                            {% for pricelist in available_pricelists %}
+                            <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="priceInput" class="form-label">السعر</label>
+                        <input type="number" class="form-control" id="priceInput" name="price" 
+                               step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">إضافة السعر</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemId = {{ item.id }};
+
+    // Tab management - remember active tab
+    const activeTab = localStorage.getItem('activeItemTab') || 'main';
+    
+    // Activate the remembered tab
+    if (activeTab !== 'main') {
+        const tabButton = document.getElementById(activeTab + '-tab');
+        const tabContent = document.getElementById(activeTab);
+        
+        if (tabButton && tabContent) {
+            // Remove active from current
+            document.querySelector('.nav-link.active').classList.remove('active');
+            document.querySelector('.tab-pane.show.active').classList.remove('show', 'active');
+            
+            // Add active to remembered tab
+            tabButton.classList.add('active');
+            tabContent.classList.add('show', 'active');
+        }
+    }
+    
+    // Save active tab when changed
+    document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            const tabId = e.target.getAttribute('aria-controls');
+            localStorage.setItem('activeItemTab', tabId);
+        });
+    });
+
+    // Price editing functionality
+    document.querySelectorAll('.edit-price-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('tr');
+            const priceDisplay = row.querySelector('.price-display');
+            const priceInput = row.querySelector('.price-input');
+            const editBtn = row.querySelector('.edit-price-btn');
+            const saveBtn = row.querySelector('.save-price-btn');
+            const cancelBtn = row.querySelector('.cancel-price-btn');
+
+            priceDisplay.classList.add('d-none');
+            priceInput.classList.remove('d-none');
+            editBtn.classList.add('d-none');
+            saveBtn.classList.remove('d-none');
+            cancelBtn.classList.remove('d-none');
+            priceInput.focus();
+        });
+    });
+
+    document.querySelectorAll('.cancel-price-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('tr');
+            cancelPriceEdit(row);
+        });
+    });
+
+    document.querySelectorAll('.save-price-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('tr');
+            const priceId = row.dataset.priceId;
+            const newPrice = row.querySelector('.price-input').value;
+
+            fetch(`/core/items/${itemId}/price/${priceId}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({price: newPrice})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    row.querySelector('.price-display').textContent = parseFloat(newPrice).toFixed(2);
+                    cancelPriceEdit(row);
+                    showAlert('تم تحديث السعر بنجاح', 'success');
+                } else {
+                    showAlert('حدث خطأ في تحديث السعر', 'danger');
+                }
+            });
+        });
+    });
+
+    function cancelPriceEdit(row) {
+        const priceDisplay = row.querySelector('.price-display');
+        const priceInput = row.querySelector('.price-input');
+        const editBtn = row.querySelector('.edit-price-btn');
+        const saveBtn = row.querySelector('.save-price-btn');
+        const cancelBtn = row.querySelector('.cancel-price-btn');
+
+        priceDisplay.classList.remove('d-none');
+        priceInput.classList.add('d-none');
+        editBtn.classList.remove('d-none');
+        saveBtn.classList.add('d-none');
+        cancelBtn.classList.add('d-none');
+        priceInput.value = priceDisplay.textContent;
+    }
+
+    // Add new price functionality
+    document.getElementById('addPriceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch(`/core/items/${itemId}/add-price/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addPriceModal'));
+                modal.hide();
+                
+                // Clear form
+                document.getElementById('addPriceForm').reset();
+                
+                // Show success message
+                showAlert('تم إضافة السعر بنجاح', 'success');
+                
+                // Set tab to pricelists before reload
+                localStorage.setItem('activeItemTab', 'pricelists');
+                
+                // Reload the page but stay on price lists tab
+                location.reload();
+            } else {
+                showAlert(data.error || 'حدث خطأ في إضافة السعر', 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('حدث خطأ في الاتصال', 'danger');
+        });
+    });
+
+    // Delete price functionality
+    document.querySelectorAll('.delete-price-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('هل أنت متأكد من حذف هذا السعر؟')) {
+                const row = this.closest('tr');
+                const priceId = row.dataset.priceId;
+
+                fetch(`/core/items/${itemId}/price/${priceId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        row.remove();
+                        showAlert('تم حذف السعر بنجاح', 'success');
+                    } else {
+                        showAlert('حدث خطأ في حذف السعر', 'danger');
+                    }
+                });
+            }
+        });
+    });
+
+    function showAlert(message, type) {
+        // Create bootstrap alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of container
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto dismiss after 3 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+    
+    // Clear modal form when modal is hidden
+    document.getElementById('addPriceModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('addPriceForm').reset();
+    });
+
+    // Handle main info form submission
+    document.getElementById('saveMainInfoBtn').addEventListener('click', function() {
+        const form = document.getElementById('mainInfoForm');
+        const formData = new FormData(form);
+        
+        fetch(`/core/items/${itemId}/update-main-info/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('تم حفظ التغييرات بنجاح', 'success');
+                // Update page title if item name changed
+                const newItemName = formData.get('itemName');
+                document.title = `تفاصيل العنصر - ${newItemName}`;
+                document.querySelector('h2').innerHTML = `<i class="fas fa-box text-success me-2"></i>تفاصيل العنصر: ${newItemName}`;
+            } else {
+                showAlert(data.error || 'حدث خطأ في حفظ التغييرات', 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('حدث خطأ في الاتصال', 'danger');
+        });
+    });
+});
+</script>
+{% endblock %}

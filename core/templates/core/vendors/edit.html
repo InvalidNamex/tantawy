@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل مورد - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:vendors' %}">
+                <i class="bi bi-truck"></i> الموردين
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل: {{ vendor.customerVendorName }}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-pencil me-2"></i>
+                        <h5 class="card-title mb-0">تعديل مورد: {{ vendor.customerVendorName }}</h5>
+                    </div>
+                    <div class="text-muted small">
+                        الرقم: #{{ vendor.id }}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="bi bi-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Vendor Information Summary -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-2">
+                                <i class="bi bi-info-circle me-1"></i>معلومات المورد الحالية
+                            </h6>
+                            <p class="mb-1"><strong>اسم المورد:</strong> {{ vendor.customerVendorName }}</p>
+                            <p class="mb-1"><strong>أنشأه:</strong> {{ vendor.createdBy.username|default:"غير محدد" }}</p>
+                            <p class="mb-0"><strong>تاريخ الإنشاء:</strong> {{ vendor.createdAt|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-2">
+                                <i class="bi bi-telephone me-1"></i>بيانات الاتصال
+                            </h6>
+                            <p class="mb-1"><strong>الهاتف الأول:</strong> {{ vendor.phone_one|default:"غير محدد" }}</p>
+                            <p class="mb-1"><strong>الهاتف الثاني:</strong> {{ vendor.phone_two|default:"غير محدد" }}</p>
+                            <p class="mb-0"><strong>آخر تحديث:</strong> {{ vendor.updatedAt|date:"d/m/Y H:i"|default:"لم يحدث تحديث" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_customerVendorName" class="form-label required">
+                                    <i class="bi bi-person me-1"></i>اسم المورد
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if form.customerVendorName.errors %}is-invalid{% endif %}" 
+                                       id="id_customerVendorName" 
+                                       name="customerVendorName" 
+                                       value="{{ form.customerVendorName.value|default:vendor.customerVendorName }}"
+                                       placeholder="أدخل اسم المورد"
+                                       required>
+                                {% if form.customerVendorName.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.customerVendorName.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    يجب أن يكون اسم المورد واضحاً ومميزاً
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_phone_one" class="form-label">
+                                    <i class="bi bi-telephone me-1"></i>الهاتف الأول
+                                </label>
+                                <input type="tel" 
+                                       class="form-control {% if form.phone_one.errors %}is-invalid{% endif %}" 
+                                       id="id_phone_one" 
+                                       name="phone_one" 
+                                       value="{{ form.phone_one.value|default:vendor.phone_one }}"
+                                       placeholder="مثال: 01012345678"
+                                       pattern="[0-9+\-\s\(\)]+">
+                                {% if form.phone_one.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone_one.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    رقم الهاتف الأساسي للمورد
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_phone_two" class="form-label">
+                                    <i class="bi bi-telephone me-1"></i>الهاتف الثاني
+                                </label>
+                                <input type="tel" 
+                                       class="form-control {% if form.phone_two.errors %}is-invalid{% endif %}" 
+                                       id="id_phone_two" 
+                                       name="phone_two" 
+                                       value="{{ form.phone_two.value|default:vendor.phone_two }}"
+                                       placeholder="مثال: 01087654321"
+                                       pattern="[0-9+\-\s\(\)]+">
+                                {% if form.phone_two.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone_two.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    رقم هاتف إضافي (اختياري)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_notes" class="form-label">
+                                    <i class="bi bi-chat-square-text me-1"></i>ملاحظات
+                                </label>
+                                <textarea class="form-control {% if form.notes.errors %}is-invalid{% endif %}" 
+                                          id="id_notes" 
+                                          name="notes" 
+                                          rows="4"
+                                          placeholder="أضف أي ملاحظات إضافية حول المورد (اختياري)">{{ form.notes.value|default:vendor.notes }}</textarea>
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.notes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    يمكنك إضافة ملاحظات حول المورد، عنوانه، أو أي معلومات إضافية
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_default_price_list" class="form-label">
+                                    <i class="bi bi-currency-dollar me-1"></i>قائمة الأسعار الافتراضية
+                                </label>
+                                <select class="form-select {% if form.default_price_list.errors %}is-invalid{% endif %}" 
+                                        id="id_default_price_list" 
+                                        name="default_price_list">
+                                    <option value="">اختر قائمة الأسعار (اختياري)</option>
+                                    {% for price_list in price_lists %}
+                                        <option value="{{ price_list.id }}" 
+                                                {% if vendor.default_price_list_id == price_list.id %}selected{% endif %}>
+                                            {{ price_list.priceListName }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.default_price_list.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.default_price_list.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    قائمة الأسعار الافتراضية لهذا المورد (اختياري)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Type field (hidden as it should remain as vendor) -->
+                    <input type="hidden" name="type" value="{{ vendor.type }}">
+
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{% url 'core:vendors' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>إلغاء
+                                </a>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="bi bi-check-circle me-2"></i>حفظ التعديلات
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Related Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-link-45deg me-2"></i>ارتباطات المورد
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="bi bi-receipt me-1"></i>الفواتير المرتبطة
+                        </h6>
+                        {% if vendor.invoicemaster_set.exists %}
+                            <p class="text-success mb-2">
+                                <i class="bi bi-check-circle me-1"></i>
+                                يوجد {{ vendor.invoicemaster_set.count }} فاتورة مرتبطة
+                            </p>
+                        {% else %}
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-dash-circle me-1"></i>
+                                لا توجد فواتير مرتبطة
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info">
+                            <i class="bi bi-arrow-left-right me-1"></i>المعاملات المرتبطة
+                        </h6>
+                        {% if vendor.transaction_set.exists %}
+                            <p class="text-success mb-2">
+                                <i class="bi bi-check-circle me-1"></i>
+                                يوجد {{ vendor.transaction_set.count }} معاملة مرتبطة
+                            </p>
+                        {% else %}
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-dash-circle me-1"></i>
+                                لا توجد معاملات مرتبطة
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if vendor.invoicemaster_set.exists or vendor.transaction_set.exists %}
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>تنبيه:</strong> هذا المورد مرتبط بفواتير أو معاملات. تأكد من مراجعة هذه الارتباطات قبل إجراء تعديلات جوهرية.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Change History -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2"></i>تاريخ التعديلات
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">إنشاء المورد</h6>
+                            <p class="timeline-text text-muted">
+                                أنشأه: {{ vendor.createdBy.username|default:"غير محدد" }} 
+                                في {{ vendor.createdAt|date:"d/m/Y" }} الساعة {{ vendor.createdAt|date:"H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                    {% if vendor.updatedAt %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-warning"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">آخر تحديث</h6>
+                            <p class="timeline-text text-muted">
+                                في {{ vendor.updatedAt|date:"d/m/Y" }} الساعة {{ vendor.updatedAt|date:"H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on name field
+    document.getElementById('id_customerVendorName').focus();
+    
+    // Phone validation
+    const phoneInputs = document.querySelectorAll('input[type="tel"]');
+    phoneInputs.forEach(function(input) {
+        input.addEventListener('blur', function() {
+            const phone = this.value.trim();
+            if (phone && !/^[0-9+\-\s\(\)]+$/.test(phone)) {
+                this.setCustomValidity('يرجى إدخال رقم هاتف صحيح');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('id_customerVendorName');
+        if (!nameInput.value.trim()) {
+            e.preventDefault();
+            nameInput.focus();
+            nameInput.classList.add('is-invalid');
+        }
+    });
+});
+</script>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -37px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    top: 17px;
+    width: 2px;
+    height: calc(100% + 10px);
+    background: #dee2e6;
+}
+
+.timeline-title {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.timeline-text {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+</style>
+{% endblock %}

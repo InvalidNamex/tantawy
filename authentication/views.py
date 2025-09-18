@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.db.models import Count
-from core.models import ItemsGroup, Item, PriceList, Store, StoreGroup
+from core.models import ItemsGroup, Item, PriceList, Store, StoreGroup, CustomerVendor
 
 
 @never_cache
@@ -69,9 +69,15 @@ def dashboard_view(request):
         price_lists_count = PriceList.objects.filter(isDeleted=False).count()
         store_groups_count = StoreGroup.objects.filter(isDeleted=False).count()
         stores_count = Store.objects.filter(isDeleted=False).count()
+        
+        # Customer and vendor counts
+        customers_count = CustomerVendor.objects.filter(isDeleted=False, type__in=[1, 3]).count()
+        vendors_count = CustomerVendor.objects.filter(isDeleted=False, type__in=[2, 3]).count()
+        
     except Exception as e:
         # In case of database issues, set counts to 0
         items_groups_count = items_count = price_lists_count = store_groups_count = stores_count = 0
+        customers_count = vendors_count = 0
         messages.warning(request, 'Unable to load statistics. Please check database connection.')
     
     context = {
@@ -80,6 +86,8 @@ def dashboard_view(request):
         'price_lists_count': price_lists_count,
         'store_groups_count': store_groups_count,
         'stores_count': stores_count,
+        'customers_count': customers_count,
+        'vendors_count': vendors_count,
         'user': request.user,
     }
     

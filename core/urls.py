@@ -12,8 +12,31 @@ urlpatterns = [
     # Items URLs (Template-based for frontend)
     path('items/', views.items_view, name='items'),
     path('items/add/', views.items_add_view, name='items_add'),
+    path('items/<int:item_id>/detail/', views.items_detail_view, name='items_detail'),
+    path('items/<int:item_id>/update-main-info/', views.items_update_main_info_view, name='items_update_main_info'),
+    path('items/<int:item_id>/add-price/', views.items_add_price_view, name='items_add_price'),
+    path('items/<int:item_id>/price/<int:price_id>/', views.items_update_price_view, name='items_update_price'),
+    path('items/<int:item_id>/price/<int:price_id>/', views.items_delete_price_view, name='items_delete_price'),
     path('items/edit/<int:item_id>/', views.items_edit_view, name='items_edit'),
     path('items/delete/<int:item_id>/', views.items_delete_view, name='items_delete'),
+    
+    # ItemsGroups URLs (Template-based for frontend)
+    path('itemsgroups/', views.itemsgroups_view, name='itemsgroups'),
+    path('itemsgroups/add/', views.itemsgroups_add_view, name='itemsgroups_add'),
+    path('itemsgroups/edit/<int:group_id>/', views.itemsgroups_edit_view, name='itemsgroups_edit'),
+    path('itemsgroups/delete/<int:group_id>/', views.itemsgroups_delete_view, name='itemsgroups_delete'),
+    
+    # Customers URLs (Template-based for frontend)
+    path('customers/', views.customers_view, name='customers'),
+    path('customers/add/', views.customers_add_view, name='customers_add'),
+    path('customers/edit/<int:customer_id>/', views.customers_edit_view, name='customers_edit'),
+    path('customers/delete/<int:customer_id>/', views.customers_delete_view, name='customers_delete'),
+    
+    # Vendors URLs (Template-based for frontend)
+    path('vendors/', views.vendors_view, name='vendors'),
+    path('vendors/add/', views.vendors_add_view, name='vendors_add'),
+    path('vendors/edit/<int:vendor_id>/', views.vendors_edit_view, name='vendors_edit'),
+    path('vendors/delete/<int:vendor_id>/', views.vendors_delete_view, name='vendors_delete'),
     
     # PriceList URLs (API)
     path('price-lists/', views.pricelist_list, name='pricelist_list'),

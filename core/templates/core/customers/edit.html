@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل العميل: {{ customer.customerVendorName }} - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:customers' %}">
+                <i class="bi bi-people"></i> العملاء
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل العميل
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>
+                    تعديل العميل: {{ customer.customerVendorName }}
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="customerVendorName" class="form-label fw-bold required">
+                                <i class="bi bi-person me-1"></i>
+                                اسم العميل
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="customerVendorName" 
+                                   name="customerVendorName" 
+                                   value="{{ customer.customerVendorName }}"
+                                   required
+                                   maxlength="255"
+                                   placeholder="أدخل اسم العميل">
+                            <div class="form-text">اسم العميل مطلوب ولا يمكن أن يتجاوز 255 حرف</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone_one" class="form-label fw-bold">
+                                <i class="bi bi-telephone me-1"></i>
+                                الهاتف الأول
+                            </label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   id="phone_one" 
+                                   name="phone_one" 
+                                   value="{{ customer.phone_one|default:'' }}"
+                                   placeholder="أدخل رقم الهاتف الأول">
+                            <div class="form-text">رقم الهاتف الأساسي للعميل (اختياري)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="phone_two" class="form-label fw-bold">
+                                <i class="bi bi-telephone me-1"></i>
+                                الهاتف الثاني
+                            </label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   id="phone_two" 
+                                   name="phone_two" 
+                                   value="{{ customer.phone_two|default:'' }}"
+                                   placeholder="أدخل رقم الهاتف الثاني">
+                            <div class="form-text">رقم الهاتف الثانوي للعميل (اختياري)</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-4">
+                            <label for="notes" class="form-label fw-bold">
+                                <i class="bi bi-clipboard-data me-1"></i>
+                                الملاحظات
+                            </label>
+                            <textarea class="form-control" 
+                                      id="notes" 
+                                      name="notes" 
+                                      rows="3"
+                                      placeholder="أدخل أي ملاحظات إضافية عن العميل">{{ customer.notes|default:'' }}</textarea>
+                            <div class="form-text">ملاحظات إضافية أو تعليقات حول العميل (اختياري)</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-4">
+                            <label for="default_price_list" class="form-label fw-bold">
+                                <i class="bi bi-currency-dollar me-1"></i>
+                                قائمة الأسعار الافتراضية
+                            </label>
+                            <select class="form-select" 
+                                    id="default_price_list" 
+                                    name="default_price_list">
+                                <option value="">اختر قائمة الأسعار (اختياري)</option>
+                                {% for price_list in price_lists %}
+                                    <option value="{{ price_list.id }}" 
+                                            {% if customer.default_price_list_id == price_list.id %}selected{% endif %}>
+                                        {{ price_list.priceListName }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">قائمة الأسعار الافتراضية لهذا العميل (اختياري)</div>
+                        </div>
+                    </div>
+
+                    <!-- Display creation and update information -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">معلومات النظام</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <strong>تم الإنشاء بواسطة:</strong> 
+                                                {{ customer.createdBy.username|default:"غير محدد" }}
+                                                <br>
+                                                <strong>تاريخ الإنشاء:</strong> 
+                                                {{ customer.createdAt|date:"d/m/Y H:i" }}
+                                            </small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <strong>آخر تحديث بواسطة:</strong> 
+                                                {{ customer.updatedBy.username|default:"غير محدد" }}
+                                                <br>
+                                                <strong>تاريخ آخر تحديث:</strong> 
+                                                {{ customer.updatedAt|date:"d/m/Y H:i"|default:"لم يحدث تحديث" }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle me-2"></i>
+                            حفظ التغييرات
+                        </button>
+                        <a href="{% url 'core:customers' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.required::after {
+    content: " *";
+    color: red;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on customer name field
+    document.getElementById('customerVendorName').focus();
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const customerName = document.getElementById('customerVendorName').value.trim();
+        
+        if (!customerName) {
+            e.preventDefault();
+            alert('يرجى إدخال اسم العميل');
+            document.getElementById('customerVendorName').focus();
+            return false;
+        }
+        
+        if (customerName.length > 255) {
+            e.preventDefault();
+            alert('اسم العميل لا يمكن أن يتجاوز 255 حرف');
+            document.getElementById('customerVendorName').focus();
+            return false;
+        }
+    });
+    
+    // Character counter for customer name
+    const customerNameInput = document.getElementById('customerVendorName');
+    const customerNameCounter = document.createElement('div');
+    customerNameCounter.className = 'form-text text-end';
+    customerNameInput.parentNode.appendChild(customerNameCounter);
+    
+    function updateCounter() {
+        const length = customerNameInput.value.length;
+        customerNameCounter.textContent = `${length}/255 حرف`;
+        
+        if (length > 240) {
+            customerNameCounter.className = 'form-text text-end text-warning';
+        } else if (length > 255) {
+            customerNameCounter.className = 'form-text text-end text-danger';
+        } else {
+            customerNameCounter.className = 'form-text text-end';
+        }
+    }
+    
+    customerNameInput.addEventListener('input', updateCounter);
+    updateCounter();
+});
+</script>
+{% endblock %}

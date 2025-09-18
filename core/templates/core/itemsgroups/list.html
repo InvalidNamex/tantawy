@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إدارة مجموعات الأصناف - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-collection"></i> مجموعات الأصناف
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">إدارة مجموعات الأصناف</h2>
+        <p class="text-muted mb-0">عرض وإدارة جميع مجموعات الأصناف في النظام</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemsGroupModal">
+            <i class="bi bi-plus-circle me-2"></i>إضافة مجموعة جديدة
+        </button>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           name="search" 
+                           value="{{ search_query }}" 
+                           placeholder="البحث في مجموعات الأصناف (الاسم، الرقم)">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="sort">
+                    <option value="itemsGroupName" {% if sort_by == 'itemsGroupName' %}selected{% endif %}>ترتيب حسب الاسم</option>
+                    <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ترتيب حسب الرقم</option>
+                    <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>ترتيب حسب تاريخ الإنشاء</option>
+                    <option value="updatedAt" {% if sort_by == 'updatedAt' %}selected{% endif %}>ترتيب حسب تاريخ التحديث</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="direction">
+                    <option value="asc" {% if sort_direction == 'asc' %}selected{% endif %}>تصاعدي</option>
+                    <option value="desc" {% if sort_direction == 'desc' %}selected{% endif %}>تنازلي</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results Summary -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="text-muted">إجمالي النتائج: </span>
+        <span class="badge bg-primary">{{ total_count }}</span>
+        {% if search_query %}
+        <span class="text-muted ms-3">البحث عن: </span>
+        <span class="badge bg-info">"{{ search_query }}"</span>
+        <a href="{% url 'core:itemsgroups' %}" class="btn btn-outline-secondary btn-sm ms-2">
+            <i class="bi bi-x-circle me-1"></i>إلغاء البحث
+        </a>
+        {% endif %}
+    </div>
+    <div class="text-muted">
+        صفحة {{ items_groups.number }} من {{ items_groups.paginator.num_pages }}
+    </div>
+</div>
+
+<!-- ItemsGroups Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if items_groups %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الرقم</th>
+                        <th>اسم المجموعة</th>
+                        <th>تم الإنشاء بواسطة</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>آخر تحديث</th>
+                        <th class="text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in items_groups %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-light text-dark">#{{ group.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-collection text-primary me-2"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ group.itemsGroupName }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if group.createdBy %}
+                                <span class="text-muted">{{ group.createdBy.username }}</span>
+                            {% else %}
+                                <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {{ group.createdAt|date:"Y/m/d H:i" }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if group.updatedAt %}
+                                <small class="text-muted">
+                                    {{ group.updatedAt|date:"Y/m/d H:i" }}
+                                </small>
+                            {% else %}
+                                <small class="text-muted">لم يتم التحديث</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'core:itemsgroups_edit' group.id %}" 
+                                   class="btn btn-outline-warning btn-sm" 
+                                   title="تعديل">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'core:itemsgroups_delete' group.id %}" 
+                                   class="btn btn-outline-danger btn-sm" 
+                                   title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if items_groups.has_other_pages %}
+        <div class="card-footer bg-light">
+            <nav aria-label="نتائج البحث">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    {% if items_groups.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if sort_by %}sort={{ sort_by }}&{% endif %}{% if sort_direction %}direction={{ sort_direction }}&{% endif %}page={{ items_groups.previous_page_number }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in items_groups.paginator.page_range %}
+                        {% if items_groups.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > items_groups.number|add:'-3' and num < items_groups.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if sort_by %}sort={{ sort_by }}&{% endif %}{% if sort_direction %}direction={{ sort_direction }}&{% endif %}page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if items_groups.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if sort_by %}sort={{ sort_by }}&{% endif %}{% if sort_direction %}direction={{ sort_direction }}&{% endif %}page={{ items_groups.next_page_number }}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-collection text-muted" style="font-size: 3rem;"></i>
+            <h5 class="text-muted mt-3">لا توجد مجموعات أصناف</h5>
+            <p class="text-muted">
+                {% if search_query %}
+                    لم يتم العثور على نتائج للبحث "{{ search_query }}"
+                {% else %}
+                    لم يتم إنشاء أي مجموعات أصناف بعد
+                {% endif %}
+            </p>
+            {% if not search_query %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemsGroupModal">
+                <i class="bi bi-plus-circle me-2"></i>إضافة أول مجموعة
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add ItemsGroup Modal -->
+<div class="modal fade" id="addItemsGroupModal" tabindex="-1" aria-labelledby="addItemsGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemsGroupModalLabel">إضافة مجموعة أصناف جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addItemsGroupForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="itemsGroupName" class="form-label">اسم مجموعة الأصناف <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="itemsGroupName" name="itemsGroupName" required maxlength="255">
+                        <div class="form-text">يجب أن يكون اسم المجموعة فريداً وواضحاً</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>إضافة المجموعة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle add itemsgroup form submission
+    document.getElementById('addItemsGroupForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+        
+        fetch('{% url "core:itemsgroups_add" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addItemsGroupModal'));
+                modal.hide();
+                
+                // Show success message
+                showAlert(data.message, 'success');
+                
+                // Reload page to show new itemsgroup
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                if (data.errors && Array.isArray(data.errors)) {
+                    data.errors.forEach(error => showAlert(error, 'danger'));
+                } else {
+                    showAlert(data.error || 'حدث خطأ في إضافة المجموعة', 'danger');
+                }
+            }
+        })
+        .catch(error => {
+            showAlert('حدث خطأ في الاتصال', 'danger');
+        })
+        .finally(() => {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+
+    // Clear modal form when modal is hidden
+    document.getElementById('addItemsGroupModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('addItemsGroupForm').reset();
+    });
+
+    function showAlert(message, type) {
+        // Create bootstrap alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of container
+        const container = document.querySelector('.container-fluid') || document.body;
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto dismiss after 3 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

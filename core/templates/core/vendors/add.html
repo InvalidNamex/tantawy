@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إضافة مورد جديد - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:vendors' %}">
+                <i class="bi bi-truck"></i> الموردين
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-plus-circle"></i> إضافة مورد جديد
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-truck me-2"></i>
+                    <h5 class="card-title mb-0">إضافة مورد جديد</h5>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            <i class="bi bi-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_customerVendorName" class="form-label required">
+                                    <i class="bi bi-person me-1"></i>اسم المورد
+                                </label>
+                                <input type="text" 
+                                       class="form-control {% if form.customerVendorName.errors %}is-invalid{% endif %}" 
+                                       id="id_customerVendorName" 
+                                       name="customerVendorName" 
+                                       value="{{ form.customerVendorName.value|default:'' }}"
+                                       placeholder="أدخل اسم المورد"
+                                       required>
+                                {% if form.customerVendorName.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.customerVendorName.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    يجب أن يكون اسم المورد واضحاً ومميزاً
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_phone_one" class="form-label">
+                                    <i class="bi bi-telephone me-1"></i>الهاتف الأول
+                                </label>
+                                <input type="tel" 
+                                       class="form-control {% if form.phone_one.errors %}is-invalid{% endif %}" 
+                                       id="id_phone_one" 
+                                       name="phone_one" 
+                                       value="{{ form.phone_one.value|default:'' }}"
+                                       placeholder="مثال: 01012345678"
+                                       pattern="[0-9+\-\s\(\)]+">
+                                {% if form.phone_one.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone_one.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    رقم الهاتف الأساسي للمورد
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_phone_two" class="form-label">
+                                    <i class="bi bi-telephone me-1"></i>الهاتف الثاني
+                                </label>
+                                <input type="tel" 
+                                       class="form-control {% if form.phone_two.errors %}is-invalid{% endif %}" 
+                                       id="id_phone_two" 
+                                       name="phone_two" 
+                                       value="{{ form.phone_two.value|default:'' }}"
+                                       placeholder="مثال: 01087654321"
+                                       pattern="[0-9+\-\s\(\)]+">
+                                {% if form.phone_two.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone_two.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    رقم هاتف إضافي (اختياري)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_notes" class="form-label">
+                                    <i class="bi bi-chat-square-text me-1"></i>ملاحظات
+                                </label>
+                                <textarea class="form-control {% if form.notes.errors %}is-invalid{% endif %}" 
+                                          id="id_notes" 
+                                          name="notes" 
+                                          rows="4"
+                                          placeholder="أضف أي ملاحظات إضافية حول المورد (اختياري)">{{ form.notes.value|default:'' }}</textarea>
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.notes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    يمكنك إضافة ملاحظات حول المورد، عنوانه، أو أي معلومات إضافية
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_default_price_list" class="form-label">
+                                    <i class="bi bi-currency-dollar me-1"></i>قائمة الأسعار الافتراضية
+                                </label>
+                                <select class="form-select {% if form.default_price_list.errors %}is-invalid{% endif %}" 
+                                        id="id_default_price_list" 
+                                        name="default_price_list">
+                                    <option value="">اختر قائمة الأسعار (اختياري)</option>
+                                    {% for price_list in price_lists %}
+                                        <option value="{{ price_list.id }}" 
+                                                {% if form.default_price_list.value == price_list.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ price_list.priceListName }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.default_price_list.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.default_price_list.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    قائمة الأسعار الافتراضية لهذا المورد (اختياري)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Type field (hidden as it will be set to vendor) -->
+                    <input type="hidden" name="type" value="2">
+
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{% url 'core:vendors' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>إلغاء
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle me-2"></i>إضافة المورد
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>معلومات مهمة
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="bi bi-check-circle me-1"></i>نصائح لإضافة مورد
+                        </h6>
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left text-muted me-2"></i>
+                                تأكد من صحة اسم المورد
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left text-muted me-2"></i>
+                                أضف رقم هاتف للتواصل
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left text-muted me-2"></i>
+                                استخدم الملاحظات لتسجيل معلومات إضافية
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">
+                            <i class="bi bi-lightbulb me-1"></i>ملاحظات مفيدة
+                        </h6>
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left text-muted me-2"></i>
+                                يمكن تعديل بيانات المورد لاحقاً
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left text-muted me-2"></i>
+                                يمكن ربط المورد بالفواتير والمعاملات
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-arrow-left text-muted me-2"></i>
+                                جميع الحقول قابلة للتعديل عدا النوع
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on name field
+    document.getElementById('id_customerVendorName').focus();
+    
+    // Phone validation
+    const phoneInputs = document.querySelectorAll('input[type="tel"]');
+    phoneInputs.forEach(function(input) {
+        input.addEventListener('blur', function() {
+            const phone = this.value.trim();
+            if (phone && !/^[0-9+\-\s\(\)]+$/.test(phone)) {
+                this.setCustomValidity('يرجى إدخال رقم هاتف صحيح');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('id_customerVendorName');
+        if (!nameInput.value.trim()) {
+            e.preventDefault();
+            nameInput.focus();
+            nameInput.classList.add('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}

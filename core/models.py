@@ -285,3 +285,25 @@ class Transaction(BaseModel):
         db_table = 'transactions'
         verbose_name = "Transaction"
         verbose_name_plural = "Transactions"
+
+
+class CustomerVendorPriceList(BaseModel):
+    """
+    Junction table to assign default price lists to customers or vendors.
+    Allows each customer/vendor to have a default price list for transactions.
+    """
+    customerVendorID = models.ForeignKey(CustomerVendor, on_delete=models.CASCADE,
+                                        help_text="Associated customer or vendor")
+    priceListID = models.ForeignKey(PriceList, on_delete=models.CASCADE,
+                                   help_text="Default price list for this customer/vendor")
+    
+    def __str__(self):
+        return f"{self.customerVendorID.customerVendorName} - {self.priceListID.priceListName}"
+    
+    class Meta:
+        ordering = ['customerVendorID__customerVendorName']
+        db_table = 'customerVendorPriceList'
+        verbose_name = "Customer/Vendor Price List"
+        verbose_name_plural = "Customer/Vendor Price Lists"
+        # Ensure unique combination of customer/vendor and price list
+        unique_together = ['customerVendorID', 'priceListID']

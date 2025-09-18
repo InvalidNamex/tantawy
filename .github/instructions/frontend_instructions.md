@@ -42,26 +42,20 @@ Second tab: is called قوائم الاسعار, it has a list of all price list
 Third tab:is called المخازن :
 It displays a list of stores and the amount of the item in the corresponding store
 Create a view in data base similar to this and read the stock of each item in each store from.
-# CREATE OR REPLACE VIEW "itemStock" AS
-SELECT 
-    i.id AS id, 
-    i."itemName" AS "itemName",
-    i."isDeleted" AS "isDeleted",
-    COALESCE(im."storeID", id."storeID") AS "storeID",  -- Derived from two tables
-    COALESCE(SUM(
-        CASE 
-            WHEN im."invoiceType" = 1 AND im."isDeleted" = FALSE THEN id.quantity 
-            ELSE 0 
-        END
-    ), 0) 
-    - 
-    COALESCE(SUM(
-        CASE 
-            WHEN im."invoiceType" = 2 AND im."isDeleted" = FALSE THEN id.quantity 
-            ELSE 0 
-        END
-    ), 0) AS stock
-FROM items i
-LEFT JOIN "invoiceDetail" id ON i.id = id.item
-LEFT JOIN "invoiceMaster" im ON id."invoiceMasterID" = im.id
-GROUP BY i.id, i."itemName", i."isDeleted", COALESCE(im."storeID", id."storeID");
+
+G. ItemsGroups Management
+    - A search bar for items groups
+    - List of Items groups by ID, Name,  Who created it, last update, a button to edit
+    (if user has permission) allowing for updating the name, also a button to delete Items group if it is not referenced in items table and the user has the right permission.
+    - A button to add a new Items group if user has permission.
+
+H. Customer/Vendor Management
+    - This section would be separated in 2 one for managing Customers and the other for managing Vendors, even though they are similar except for one column in the model, but for sake of ease we will split them in the view.
+    - When Customer Management or Vendor Management is clicked we will navigate to a new page, the page will display a search bar where the user can search by customer/vendor using any part of their name.
+    - List of customers/vendors by ID, Name, Phone 1, Phone 2 Notes
+    (if user has permission) allowing for updating the model, also a button to delete customers/vendors if it is not referenced in transactions table or invoiceMaster table and the user has the right permission.
+    - to be continued
+
+# We need to create a table, model, etc called customerVendorPriceList.
+# In this table we will join the customerVendorID with a priceList id to set a default pricelist for a customer/vendor
+    - in the add new customer/vendor or in the update/edit customer/vendor add a dropdown holding pricelists so the user with correct permissions could bind a pricelist to this customer/vendor
