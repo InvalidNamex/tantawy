@@ -192,7 +192,7 @@ def user_create_view(request):
                 # Create user
                 user = User.objects.create_user(
                     username=form.cleaned_data['username'],
-                    email=form.cleaned_data['email'],
+                    email='',  # Set email to empty string by default
                     password=form.cleaned_data['password'],
                     first_name=form.cleaned_data['first_name'],
                     last_name=form.cleaned_data['last_name']
@@ -240,7 +240,9 @@ def user_edit_view(request, user_id):
             try:
                 # Update user
                 user_to_edit.username = form.cleaned_data['username']
-                user_to_edit.email = form.cleaned_data['email']
+                # Keep existing email or set to empty string if None
+                if not user_to_edit.email:
+                    user_to_edit.email = ''
                 user_to_edit.first_name = form.cleaned_data['first_name']
                 user_to_edit.last_name = form.cleaned_data['last_name']
                 user_to_edit.is_staff = form.cleaned_data['is_staff']
@@ -510,11 +512,21 @@ def agent_detail_view(request, agent_id):
     
     # Get filter parameters
     transaction_type_filter = request.GET.get('transaction_type', '').strip()
+    transaction_id_filter = request.GET.get('transaction_id', '').strip()
+    customer_vendor_filter = request.GET.get('customer_vendor', '').strip()
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     
-    # Build query for voucher transactions created by this agent
-    query = Q(notes__icontains=f'Voucher {agent.id}000') & Q(isDeleted=False)
+    # Build query for actual vouchers only (cash/bank transactions)
+    # Type 1: Receipt vouchers (customer payments for sales)
+    # Type 2: Payment vouchers (agent payments for returns) - only cash/bank accounts
+    # Exclude customer account entries which are just accounting records
+    from core.models import Account
+    cash_bank_accounts = Account.objects.filter(
+        accountName__in=['Store Cash', 'Main Bank', 'Cash', 'Bank']
+    ).values_list('id', flat=True)
+    
+    query = Q(agentID=agent) & Q(isDeleted=False) & Q(accountID__in=cash_bank_accounts)
     
     # Apply transaction type filter
     if transaction_type_filter:
@@ -538,37 +550,18 @@ def agent_detail_view(request, agent_id):
         except ValueError:
             messages.warning(request, 'تاريخ النهاية غير صحيح')
     
-    # Get transactions and group by voucher ID
-    all_transactions = Transaction.objects.filter(query).select_related(
+    # Apply transaction/invoice ID filter
+    if transaction_id_filter:
+        query &= Q(Q(id__icontains=transaction_id_filter) | Q(invoiceID__id__icontains=transaction_id_filter))
+    
+    # Apply customer/vendor filter
+    if customer_vendor_filter:
+        query &= Q(customerVendorID__id=customer_vendor_filter)
+    
+    # Get transactions directly using agentID field
+    transactions_list = Transaction.objects.filter(query).select_related(
         'accountID', 'customerVendorID'
     ).order_by('-createdAt')
-    
-    # Group transactions by voucher ID and get unique vouchers
-    voucher_transactions = {}
-    for transaction in all_transactions:
-        # Extract voucher ID from notes
-        notes = transaction.notes or ''
-        voucher_id = None
-        if f'Voucher {agent.id}000' in notes:
-            try:
-                voucher_start = notes.find('Voucher ') + 8
-                voucher_end = notes.find(' ', voucher_start)
-                if voucher_end == -1:
-                    voucher_end = notes.find('-', voucher_start)
-                if voucher_end == -1:
-                    voucher_end = len(notes)
-                voucher_id = notes[voucher_start:voucher_end].strip()
-            except:
-                continue
-        
-        # Only include cash transactions (one per voucher)
-        if voucher_id and voucher_id not in voucher_transactions:
-            if ((transaction.type == 1 and transaction.amount > 0 and transaction.accountID.id == 35) or 
-                (transaction.type == 2 and transaction.amount < 0 and transaction.accountID.id == 35)):
-                voucher_transactions[voucher_id] = transaction
-    
-    # Convert to list for template
-    transactions_list = list(voucher_transactions.values())
     
     # Apply pagination
     paginator = Paginator(transactions_list, 15)
@@ -576,9 +569,9 @@ def agent_detail_view(request, agent_id):
     transactions = paginator.get_page(page_number)
     
     # Calculate statistics
-    total_transactions = len(voucher_transactions)
-    receipt_transactions = sum(1 for t in voucher_transactions.values() if t.type == 1)
-    payment_transactions = sum(1 for t in voucher_transactions.values() if t.type == 2)
+    total_transactions = transactions_list.count()
+    receipt_transactions = transactions_list.filter(type=1).count()
+    payment_transactions = transactions_list.filter(type=2).count()
     
     # Get invoices created by this agent
     sales_invoices = InvoiceMaster.objects.filter(
@@ -592,6 +585,10 @@ def agent_detail_view(request, agent_id):
         invoiceType=4,  # Return Sales
         isDeleted=False
     ).count()
+    
+    # Get customers for the filter dropdown (only customers, not vendors)
+    from core.models import CustomerVendor
+    customers = CustomerVendor.objects.filter(isDeleted=False, type=1).order_by('customerVendorName')
 
     context = {
         'agent': agent,
@@ -601,7 +598,10 @@ def agent_detail_view(request, agent_id):
         'payment_transactions': payment_transactions,
         'sales_invoices': sales_invoices,
         'return_sales_invoices': return_sales_invoices,
+        'customers': customers,
         'transaction_type_filter': transaction_type_filter,
+        'transaction_id_filter': transaction_id_filter,
+        'customer_vendor_filter': customer_vendor_filter,
         'date_from': date_from,
         'date_to': date_to,
         'today_date': timezone.now().date().strftime('%Y-%m-%d'),
@@ -885,6 +885,8 @@ def agent_invoices_filtered_api(request):
     try:
         agent_id = request.GET.get('agent_id')
         invoice_type = request.GET.get('invoice_type')
+        transaction_id = request.GET.get('transaction_id')
+        customer_vendor = request.GET.get('customer_vendor')
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         
@@ -925,6 +927,17 @@ def agent_invoices_filtered_api(request):
             try:
                 date_to_parsed = datetime.strptime(date_to, '%Y-%m-%d').date()
                 query &= Q(createdAt__date__lte=date_to_parsed)
+            except ValueError:
+                pass
+        
+        # Filter by transaction/invoice ID
+        if transaction_id:
+            query &= Q(id__icontains=transaction_id)
+        
+        # Filter by customer/vendor
+        if customer_vendor:
+            try:
+                query &= Q(customerOrVendorID__id=int(customer_vendor))
             except ValueError:
                 pass
         
@@ -974,6 +987,8 @@ def agent_transactions_filtered_api(request):
     try:
         agent_id = request.GET.get('agent_id')
         transaction_type = request.GET.get('transaction_type')
+        transaction_id = request.GET.get('transaction_id')
+        customer_vendor = request.GET.get('customer_vendor')
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         
@@ -995,8 +1010,16 @@ def agent_transactions_filtered_api(request):
                 'message': 'Agent not found'
             }, status=404)
         
-        # Build query for voucher transactions created by this agent
-        query = Q(notes__icontains=f'Voucher {agent.id}000') & Q(isDeleted=False)
+        # Build query for actual vouchers only (cash/bank transactions)
+        # Type 1: Receipt vouchers (customer payments for sales)
+        # Type 2: Payment vouchers (agent payments for returns) - only cash/bank accounts
+        # Exclude customer account entries which are just accounting records
+        from core.models import Account
+        cash_bank_accounts = Account.objects.filter(
+            accountName__in=['Store Cash', 'Main Bank', 'Cash', 'Bank']
+        ).values_list('id', flat=True)
+        
+        query = Q(agentID=agent) & Q(isDeleted=False) & Q(accountID__in=cash_bank_accounts)
         
         # Filter by transaction type
         if transaction_type:
@@ -1017,48 +1040,51 @@ def agent_transactions_filtered_api(request):
             except ValueError:
                 pass
         
-        # Get transactions and group by voucher ID
+        # Filter by transaction/invoice ID
+        if transaction_id:
+            query &= Q(Q(id__icontains=transaction_id) | Q(invoiceID__id__icontains=transaction_id))
+        
+        # Filter by customer/vendor
+        if customer_vendor:
+            try:
+                query &= Q(customerVendorID__id=int(customer_vendor))
+            except ValueError:
+                pass
+        
+        # Get transactions created by this agent
         all_transactions = Transaction.objects.filter(query).select_related(
-            'accountID', 'customerVendorID'
+            'accountID', 'customerVendorID', 'invoiceID'
         ).order_by('-createdAt')
         
-        # Group transactions by voucher ID and get unique voucher
-        voucher_transactions = {}
+        # Filter for cash/payment transactions only (receipts and payments)
+        payment_transactions = []
         for transaction in all_transactions:
-            # Extract voucher ID from notes
-            notes = transaction.notes or ''
-            voucher_id = None
-            if f'Voucher {agent.id}000' in notes:
-                try:
-                    voucher_start = notes.find('Voucher ') + 8
-                    voucher_end = notes.find(' ', voucher_start)
-                    if voucher_end == -1:
-                        voucher_end = notes.find('-', voucher_start)
-                    if voucher_end == -1:
-                        voucher_end = len(notes)
-                    voucher_id = notes[voucher_start:voucher_end].strip()
-                except:
-                    continue
-            
-            # Only include cash transactions (one per voucher)
-            if voucher_id and voucher_id not in voucher_transactions:
-                if ((transaction.type == 1 and transaction.amount > 0 and transaction.accountID.id == 35) or 
-                    (transaction.type == 2 and transaction.amount < 0 and transaction.accountID.id == 35)):
-                    voucher_transactions[voucher_id] = transaction
+            # Include cash account transactions (Account ID 35 = Cash, 10 = Bank/Visa)
+            if transaction.accountID and transaction.accountID.id in [35, 10]:
+                # For receipt vouchers (type 1): positive amounts in cash accounts
+                # For payment vouchers (type 2): negative amounts in cash accounts
+                if ((transaction_type == '1' and transaction.amount > 0) or 
+                    (transaction_type == '2' and transaction.amount < 0) or
+                    (not transaction_type)):  # Include all if no type filter
+                    payment_transactions.append(transaction)
         
-        # Convert to list and limit results
-        transactions_list = list(voucher_transactions.values())[:50]
+        # Limit results and sort by creation date
+        transactions_list = payment_transactions[:50]
         
         transactions_data = []
         for transaction in transactions_list:
+            # Determine transaction type display
+            transaction_type_display = 1 if transaction.amount > 0 else 2  # 1=Receipt, 2=Payment
+            
             transaction_data = {
                 'id': transaction.id,
-                'voucherNumber': transaction.notes.split(' - ')[0] if ' - ' in (transaction.notes or '') else str(transaction.id),
-                'type': transaction.type,
-                'amount': float(transaction.amount) if transaction.amount else 0.0,
+                'voucherNumber': f"INV-{transaction.invoiceID.id}" if transaction.invoiceID else f"TXN-{transaction.id}",
+                'type': transaction_type_display,
+                'amount': float(abs(transaction.amount)) if transaction.amount else 0.0,  # Use absolute value for display
                 'customerName': transaction.customerVendorID.customerVendorName if transaction.customerVendorID else None,
-                'notes': transaction.notes,
-                'createdAt': transaction.createdAt.isoformat() if transaction.createdAt else None
+                'notes': transaction.notes or f"Invoice #{transaction.invoiceID.id}" if transaction.invoiceID else "Manual Transaction",
+                'createdAt': transaction.createdAt.isoformat() if transaction.createdAt else None,
+                'invoiceId': transaction.invoiceID.id if transaction.invoiceID else None
             }
             transactions_data.append(transaction_data)
         

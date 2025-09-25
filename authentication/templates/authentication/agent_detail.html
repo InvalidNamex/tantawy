@@ -138,15 +138,6 @@
             <div class="glass-card-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <div class="stat-card text-center clickable-stat" data-type="return-sales" style="cursor: pointer;" title="انقر لعرض مرتجع البيع">
-                            <div class="stat-icon text-warning">
-                                <i class="bi bi-arrow-return-left"></i>
-                            </div>
-                            <div class="stat-value">{{ return_sales_invoices }}</div>
-                            <div class="stat-label">مرتجع البيع</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
                         <div class="stat-card text-center clickable-stat" data-type="receipt-vouchers" style="cursor: pointer;" title="انقر لعرض سندات القبض">
                             <div class="stat-icon text-success">
                                 <i class="bi bi-arrow-down-circle"></i>
@@ -173,6 +164,15 @@
                             <div class="stat-label">فواتير البيع</div>
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center clickable-stat" data-type="return-sales" style="cursor: pointer;" title="انقر لعرض مرتجع البيع">
+                            <div class="stat-icon text-warning">
+                                <i class="bi bi-arrow-return-left"></i>
+                            </div>
+                            <div class="stat-value">{{ return_sales_invoices }}</div>
+                            <div class="stat-label">مرتجع البيع</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -191,21 +191,22 @@
                     <!-- Filter Form -->
                     <form method="GET" class="d-flex gap-2 align-items-end" id="filter-form">
                         <input type="hidden" name="data_type" id="data_type_input" value="">
-                        <div class="form-group" id="invoice-type-filter" style="display: none;">
-                            <label for="invoice_type" class="form-label-sm">نوع الفاتورة</label>
-                            <select name="invoice_type" id="invoice_type" class="form-select form-select-sm">
-                                <option value="">جميع الأنواع</option>
-                                <option value="2">فواتير البيع</option>
-                                <option value="4">مرتجع البيع</option>
-                            </select>
+                        <div class="form-group" id="transaction-id-filter" style="display: none;">
+                            <label for="transaction_id" class="form-label-sm">رقم المعاملة/الفاتورة</label>
+                            <input type="text" name="transaction_id" id="transaction_id" class="form-control form-control-sm" 
+                                   placeholder="رقم المعاملة أو الفاتورة" value="{{ request.GET.transaction_id }}">
                         </div>
-                        <div class="form-group" id="transaction-type-filter" style="display: none;">
-                            <label for="transaction_type" class="form-label-sm">نوع القسيمة</label>
-                            <select name="transaction_type" id="transaction_type" class="form-select form-select-sm">
-                                <option value="">جميع الأنواع</option>
-                                <option value="1">سند قبض</option>
-                                <option value="2">سند دفع</option>
-                            </select>
+                        <div class="form-group" id="customer-filter" style="display: none;">
+                            <label for="customer_vendor" class="form-label-sm">العميل</label>
+                            <div class="position-relative">
+                                <input type="text" name="customer_vendor_name" id="customer_vendor_name" 
+                                       class="form-control form-control-sm" placeholder="اكتب اسم العميل للبحث..."
+                                       value="" autocomplete="off">
+                                <input type="hidden" name="customer_vendor" id="customer_vendor" value="{{ request.GET.customer_vendor }}">
+                                <div id="customer-dropdown" class="dropdown-menu position-absolute w-100" style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;">
+                                    <!-- Dynamic customer options will be populated here -->
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="date_from" class="form-label-sm">من تاريخ</label>
@@ -319,12 +320,32 @@
 </div>
 
 <style>
+
+
 .agent-info .info-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
     border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Filter form styling */
+#filter-form .form-group {
+    min-width: 120px;
+}
+
+#filter-form .form-control, #filter-form .form-select {
+    font-size: 0.875rem;
+}
+
+#transaction-id-filter .form-control {
+    min-width: 150px;
+}
+
+#customer-filter .form-select {
+    min-width: 180px;
+    max-width: 220px;
 }
 
 .agent-info .info-item:last-child {
@@ -399,8 +420,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeSection = document.getElementById('close-section');
     const resetFilters = document.getElementById('reset-filters');
     const filterForm = document.getElementById('filter-form');
-    const invoiceTypeFilter = document.getElementById('invoice-type-filter');
-    const transactionTypeFilter = document.getElementById('transaction-type-filter');
+    const transactionIdFilter = document.getElementById('transaction-id-filter');
+    const customerFilter = document.getElementById('customer-filter');
     
     // Set today's date as default
     const today = new Date().toISOString().split('T')[0];
@@ -430,38 +451,40 @@ document.addEventListener('DOMContentLoaded', function() {
             dataTypeInput.value = dataType;
             
             // Show appropriate filters and section
-            invoiceTypeFilter.style.display = 'none';
-            transactionTypeFilter.style.display = 'none';
+            transactionIdFilter.style.display = 'none';
+            customerFilter.style.display = 'none';
             
             switch(dataType) {
                 case 'sales-invoices':
                     console.log('Showing sales invoices section');
                     sectionTitle.innerHTML = '<i class="bi bi-basket me-2"></i>فواتير البيع';
                     document.getElementById('sales-invoices-section').style.display = 'block';
-                    document.getElementById('invoice_type').value = '2';
+                    transactionIdFilter.style.display = 'block';
+                    customerFilter.style.display = 'block';
                     loadInvoicesData('2');
                     break;
                     
                 case 'return-sales':
                     sectionTitle.innerHTML = '<i class="bi bi-arrow-return-left me-2"></i>مرتجع البيع';
                     document.getElementById('return-sales-section').style.display = 'block';
-                    document.getElementById('invoice_type').value = '4';
+                    transactionIdFilter.style.display = 'block';
+                    customerFilter.style.display = 'block';
                     loadInvoicesData('4');
                     break;
                     
                 case 'receipt-vouchers':
                     sectionTitle.innerHTML = '<i class="bi bi-arrow-down-circle me-2"></i>سندات القبض';
                     document.getElementById('vouchers-section').style.display = 'block';
-                    transactionTypeFilter.style.display = 'block';
-                    document.getElementById('transaction_type').value = '1';
+                    transactionIdFilter.style.display = 'block';
+                    customerFilter.style.display = 'block';
                     loadVouchersData('1');
                     break;
                     
                 case 'payment-vouchers':
                     sectionTitle.innerHTML = '<i class="bi bi-arrow-up-circle me-2"></i>سندات الدفع';
                     document.getElementById('vouchers-section').style.display = 'block';
-                    transactionTypeFilter.style.display = 'block';
-                    document.getElementById('transaction_type').value = '2';
+                    transactionIdFilter.style.display = 'block';
+                    customerFilter.style.display = 'block';
                     loadVouchersData('2');
                     break;
             }
@@ -485,8 +508,9 @@ document.addEventListener('DOMContentLoaded', function() {
     resetFilters.addEventListener('click', function() {
         document.getElementById('date_from').value = today;
         document.getElementById('date_to').value = today;
-        document.getElementById('invoice_type').value = '';
-        document.getElementById('transaction_type').value = '';
+        document.getElementById('transaction_id').value = '';
+        customerInput.value = '';
+        customerHidden.value = '';
         
         // Reload data based on current active section
         const activeDataType = dataTypeInput.value;
@@ -532,6 +556,18 @@ document.addEventListener('DOMContentLoaded', function() {
             'date_to': dateTo || today
         });
         
+        // Add transaction/invoice ID filter
+        const transactionIdValue = document.getElementById('transaction_id').value.trim();
+        if (transactionIdValue) {
+            params.append('transaction_id', transactionIdValue);
+        }
+        
+        // Add customer/vendor filter
+        const customerVendorValue = document.getElementById('customer_vendor').value.trim();
+        if (customerVendorValue) {
+            params.append('customer_vendor', customerVendorValue);
+        }
+        
         console.log('Loading invoices with params:', params.toString());
         
         fetch(`/api/agents/invoices/?${params}`)
@@ -555,7 +591,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (invoices && invoices.length > 0) {
                     console.log('Displaying', invoices.length, 'invoices');
-                    document.getElementById('sales-invoices-section').style.display = 'block';
                     displayInvoices(invoices, invoiceType);
                 } else {
                     console.log('No invoices found or API error');
@@ -573,11 +608,27 @@ document.addEventListener('DOMContentLoaded', function() {
         showLoading();
         
         const params = new URLSearchParams({
-            'transaction_type': transactionType,
             'agent_id': '{{ agent.id }}',
             'date_from': dateFrom || today,
             'date_to': dateTo || today
         });
+        
+        // Only add transaction_type if it's not empty
+        if (transactionType && transactionType !== '') {
+            params.append('transaction_type', transactionType);
+        }
+        
+        // Add transaction/invoice ID filter
+        const transactionIdValue = document.getElementById('transaction_id').value.trim();
+        if (transactionIdValue) {
+            params.append('transaction_id', transactionIdValue);
+        }
+        
+        // Add customer/vendor filter
+        const customerVendorValue = document.getElementById('customer_vendor').value.trim();
+        if (customerVendorValue) {
+            params.append('customer_vendor', customerVendorValue);
+        }
         
         fetch(`/api/agents/transactions/?${params}`)
             .then(response => response.json())
@@ -604,6 +655,11 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('invoices-table-body');
         
         console.log('Table body element:', tableBody);
+        
+        // Hide all sections first, then show the correct one
+        document.getElementById('sales-invoices-section').style.display = 'none';
+        document.getElementById('return-sales-section').style.display = 'none';
+        document.getElementById('vouchers-section').style.display = 'none';
         
         // Ensure the correct section is visible
         if (type === '4') {
@@ -660,6 +716,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.getElementById('vouchers-table-body');
         tableBody.innerHTML = '';
         
+        // Hide all sections first, then show vouchers section
+        document.getElementById('sales-invoices-section').style.display = 'none';
+        document.getElementById('return-sales-section').style.display = 'none';
+        document.getElementById('vouchers-section').style.display = 'block';
+        
         vouchers.forEach(voucher => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -707,6 +768,97 @@ document.addEventListener('DOMContentLoaded', function() {
         // Open the proper invoice detail page
         window.open(`/invoices/${invoiceId}/`, '_blank');
     };
+
+    // Searchable customer dropdown functionality
+    const customerInput = document.getElementById('customer_vendor_name');
+    const customerHidden = document.getElementById('customer_vendor');
+    const customerDropdown = document.getElementById('customer-dropdown');
+    
+    // Prepare customers array for JavaScript
+    const customersArray = [
+        {% for customer in customers %}
+        {id: {{ customer.id }}, name: "{{ customer.customerVendorName|escapejs }}"},
+        {% endfor %}
+    ];
+    
+    // Filter and display customers
+    function filterCustomers(searchTerm) {
+        const filtered = customersArray.filter(customer => 
+            customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        customerDropdown.innerHTML = '';
+        
+        if (filtered.length === 0) {
+            customerDropdown.innerHTML = '<div class="dropdown-item text-muted">لا توجد نتائج</div>';
+        } else {
+            // Add "All customers" option
+            if (searchTerm === '') {
+                const allOption = document.createElement('div');
+                allOption.className = 'dropdown-item';
+                allOption.style.cursor = 'pointer';
+                allOption.textContent = 'جميع العملاء';
+                allOption.onclick = function() {
+                    customerInput.value = '';
+                    customerHidden.value = '';
+                    customerDropdown.style.display = 'none';
+                    reloadCurrentSection(); // Auto-filter when "All customers" is selected
+                };
+                customerDropdown.appendChild(allOption);
+            }
+            
+            filtered.forEach(customer => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-item';
+                option.style.cursor = 'pointer';
+                option.textContent = customer.name;
+                option.onclick = function() {
+                    customerInput.value = customer.name;
+                    customerHidden.value = customer.id;
+                    customerDropdown.style.display = 'none';
+                    reloadCurrentSection(); // Auto-filter when customer is selected
+                };
+                customerDropdown.appendChild(option);
+            });
+        }
+        
+        customerDropdown.style.display = 'block';
+    }
+    
+    // Customer input events
+    customerInput.addEventListener('input', function() {
+        filterCustomers(this.value);
+    });
+    
+    customerInput.addEventListener('focus', function() {
+        filterCustomers(this.value);
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!customerInput.contains(event.target) && !customerDropdown.contains(event.target)) {
+            customerDropdown.style.display = 'none';
+        }
+    });
+    
+    // Enter key functionality for all filter inputs
+    const filterInputs = document.querySelectorAll('#filter-form input, #filter-form select');
+    filterInputs.forEach(input => {
+        input.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                reloadCurrentSection();
+            }
+        });
+    });
+    
+    // Set current customer name if pre-selected
+    if (customerHidden.value) {
+        const selectedCustomer = customersArray.find(c => c.id == customerHidden.value);
+        if (selectedCustomer) {
+            customerInput.value = selectedCustomer.name;
+        }
+    }
 });
 </script>
 {% endblock %}

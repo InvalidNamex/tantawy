@@ -32,7 +32,10 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-)x15l7l#$al+63b*vw&zv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,tantawy.ezymanage.app,https://tantawy.ezymanage.app/').split(',')
+CSRF_TRUSTED_ORIGINS = [
+    "https://tantawy.ezymanage.app",
+]
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',') if config('CORS_ALLOWED_ORIGINS', default='') else []

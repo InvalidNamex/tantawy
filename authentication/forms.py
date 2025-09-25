@@ -63,10 +63,16 @@ class CustomUserCreationForm(forms.ModelForm):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         help_text='هل الحساب نشط'
     )
+    
+    is_staff = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text='هل المستخدم له صلاحية دخول لوحة الإدارة'
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'is_active']
+        fields = ['username', 'first_name', 'last_name', 'is_active', 'is_staff']
 
     def clean_username(self):
         """
@@ -174,10 +180,16 @@ class CustomUserEditForm(forms.ModelForm):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         help_text='هل الحساب نشط'
     )
+    
+    is_staff = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text='هل المستخدم له صلاحية دخول لوحة الإدارة'
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'is_active']
+        fields = ['username', 'first_name', 'last_name', 'is_active', 'is_staff']
 
     def __init__(self, *args, **kwargs):
         self.instance = kwargs.get('instance')

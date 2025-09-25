@@ -525,117 +525,177 @@ def create_invoice_transactions(invoice_master, user):
 def create_purchase_transactions(invoice_master, account, user):
     """Create transactions for Purchase Invoice (Type 1)"""
     
-    # Invoice Transaction: +netTotal (Debit)
+    # Always create the deferred/liability transaction
     Transaction.objects.create(
         invoiceID=invoice_master,
-        accountID=account,
+        accountID_id=38,  # Vendors Deferred Account
         customerVendorID=invoice_master.customerOrVendorID,
-        amount=invoice_master.netTotal,  # Positive for debit
+        amount=invoice_master.netTotal,  # Positive for debit (we owe vendor)
         type=TRANSACTION_TYPE_PURCHASE,
         notes=f'Purchase Invoice #{invoice_master.id} - {invoice_master.notes}',
+        agentID=invoice_master.agentID,  # Set the agent who created this transaction
         createdBy=user,
         updatedBy=user
     )
     
-    # Voucher Transaction (if not deferred): -netTotal (Credit)
-    if invoice_master.paymentType != PAYMENT_TYPE_PARTIAL_DEFERRED:
+    # Create payment transaction based on status
+    if invoice_master.status == 0:  # Paid
         Transaction.objects.create(
             invoiceID=invoice_master,
-            accountID=account,
+            accountID=account,  # Cash/Visa account
             customerVendorID=invoice_master.customerOrVendorID,
-            amount=-invoice_master.netTotal,  # Negative for credit
+            amount=-invoice_master.netTotal,  # Negative for credit (cash goes out)
             type=2,  # Payment type
             notes=f'Payment for Purchase Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
             createdBy=user,
             updatedBy=user
         )
+    elif invoice_master.status == 2:  # Partially Paid
+        Transaction.objects.create(
+            invoiceID=invoice_master,
+            accountID=account,  # Cash/Visa account
+            customerVendorID=invoice_master.customerOrVendorID,
+            amount=-invoice_master.totalPaid,  # Negative for credit (partial cash goes out)
+            type=2,  # Payment type
+            notes=f'Partial Payment for Purchase Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
+            createdBy=user,
+            updatedBy=user
+        )
+    # If status == 1 (Unpaid), no payment transaction is created
 
 
 def create_sales_transactions(invoice_master, account, user):
     """Create transactions for Sales Invoice (Type 2)"""
     
-    # Invoice Transaction: -netTotal (Credit)
+    # Always create the deferred/receivable transaction
     Transaction.objects.create(
         invoiceID=invoice_master,
-        accountID=account,
+        accountID_id=36,  # Customers Deferred Account
         customerVendorID=invoice_master.customerOrVendorID,
-        amount=-invoice_master.netTotal,  # Negative for credit
+        amount=-invoice_master.netTotal,  # Negative for credit (customer owes us)
         type=TRANSACTION_TYPE_SALES,
         notes=f'Sales Invoice #{invoice_master.id} - {invoice_master.notes}',
+        agentID=invoice_master.agentID,  # Set the agent who created this transaction
         createdBy=user,
         updatedBy=user
     )
     
-    # Voucher Transaction (if not deferred): +netTotal (Debit)
-    if invoice_master.paymentType != PAYMENT_TYPE_PARTIAL_DEFERRED:
+    # Create receipt transaction based on status
+    if invoice_master.status == 0:  # Paid
         Transaction.objects.create(
             invoiceID=invoice_master,
-            accountID=account,
+            accountID=account,  # Cash/Visa account
             customerVendorID=invoice_master.customerOrVendorID,
-            amount=invoice_master.netTotal,  # Positive for debit
+            amount=invoice_master.netTotal,  # Positive for debit (cash comes in)
             type=1,  # Receipt type
             notes=f'Receipt for Sales Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
             createdBy=user,
             updatedBy=user
         )
+    elif invoice_master.status == 2:  # Partially Paid
+        Transaction.objects.create(
+            invoiceID=invoice_master,
+            accountID=account,  # Cash/Visa account
+            customerVendorID=invoice_master.customerOrVendorID,
+            amount=invoice_master.totalPaid,  # Positive for debit (partial cash comes in)
+            type=1,  # Receipt type
+            notes=f'Partial Receipt for Sales Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
+            createdBy=user,
+            updatedBy=user
+        )
+    # If status == 1 (Unpaid), no receipt transaction is created
 
 
 def create_return_purchase_transactions(invoice_master, account, user):
     """Create transactions for Return Purchase Invoice (Type 3)"""
     
-    # Invoice Transaction: -netTotal (Credit - opposite of purchase)
+    # Always create the deferred/liability reversal transaction
     Transaction.objects.create(
         invoiceID=invoice_master,
-        accountID=account,
+        accountID_id=38,  # Vendors Deferred Account
         customerVendorID=invoice_master.customerOrVendorID,
-        amount=-invoice_master.netTotal,  # Negative for credit
+        amount=-invoice_master.netTotal,  # Negative for credit (we owe vendor less)
         type=TRANSACTION_TYPE_RETURN_PURCHASE,
         notes=f'Return Purchase Invoice #{invoice_master.id} - {invoice_master.notes}',
+        agentID=invoice_master.agentID,  # Set the agent who created this transaction
         createdBy=user,
         updatedBy=user
     )
     
-    # Voucher Transaction (if not deferred): +netTotal (Debit - opposite of purchase)
-    if invoice_master.paymentType != PAYMENT_TYPE_PARTIAL_DEFERRED:
+    # Create receipt transaction based on status (if vendor refunds us)
+    if invoice_master.status == 0:  # Paid (refunded)
         Transaction.objects.create(
             invoiceID=invoice_master,
-            accountID=account,
+            accountID=account,  # Cash/Visa account
             customerVendorID=invoice_master.customerOrVendorID,
-            amount=invoice_master.netTotal,  # Positive for debit
+            amount=invoice_master.netTotal,  # Positive for debit (cash comes in)
             type=1,  # Receipt type (we receive money back)
             notes=f'Receipt for Return Purchase Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
             createdBy=user,
             updatedBy=user
         )
+    elif invoice_master.status == 2:  # Partially Paid (partially refunded)
+        Transaction.objects.create(
+            invoiceID=invoice_master,
+            accountID=account,  # Cash/Visa account
+            customerVendorID=invoice_master.customerOrVendorID,
+            amount=invoice_master.totalPaid,  # Positive for debit (partial cash comes in)
+            type=1,  # Receipt type
+            notes=f'Partial Receipt for Return Purchase Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
+            createdBy=user,
+            updatedBy=user
+        )
+    # If status == 1 (Unpaid/Not Refunded), no receipt transaction is created
 
 
 def create_return_sales_transactions(invoice_master, account, user):
     """Create transactions for Return Sales Invoice (Type 4)"""
     
-    # Invoice Transaction: +netTotal (Debit - opposite of sales)
+    # Always create the deferred/receivable reversal transaction
     Transaction.objects.create(
         invoiceID=invoice_master,
-        accountID=account,
+        accountID_id=36,  # Customers Deferred Account
         customerVendorID=invoice_master.customerOrVendorID,
-        amount=invoice_master.netTotal,  # Positive for debit
+        amount=invoice_master.netTotal,  # Positive for debit (customer owes us less)
         type=TRANSACTION_TYPE_RETURN_SALES,
         notes=f'Return Sales Invoice #{invoice_master.id} - {invoice_master.notes}',
+        agentID=invoice_master.agentID,  # Set the agent who created this transaction
         createdBy=user,
         updatedBy=user
     )
     
-    # Voucher Transaction (if not deferred): -netTotal (Credit - opposite of sales)
-    if invoice_master.paymentType != PAYMENT_TYPE_PARTIAL_DEFERRED:
+    # Create payment transaction based on status (if we refund customer)
+    if invoice_master.status == 0:  # Paid (refunded)
         Transaction.objects.create(
             invoiceID=invoice_master,
-            accountID=account,
+            accountID=account,  # Cash/Visa account
             customerVendorID=invoice_master.customerOrVendorID,
-            amount=-invoice_master.netTotal,  # Negative for credit
+            amount=-invoice_master.netTotal,  # Negative for credit (cash goes out)
             type=2,  # Payment type (we pay money back)
             notes=f'Payment for Return Sales Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
             createdBy=user,
             updatedBy=user
         )
+    elif invoice_master.status == 2:  # Partially Paid (partially refunded)
+        Transaction.objects.create(
+            invoiceID=invoice_master,
+            accountID=account,  # Cash/Visa account
+            customerVendorID=invoice_master.customerOrVendorID,
+            amount=-invoice_master.totalPaid,  # Negative for credit (partial cash goes out)
+            type=2,  # Payment type
+            notes=f'Partial Payment for Return Sales Invoice #{invoice_master.id}',
+            agentID=invoice_master.agentID,  # Set the agent who created this transaction
+            createdBy=user,
+            updatedBy=user
+        )
+    # If status == 1 (Unpaid/Not Refunded), no payment transaction is created
 
 
 def update_original_invoice_return_status(original_invoice):

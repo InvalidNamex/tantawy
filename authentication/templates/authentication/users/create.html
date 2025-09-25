@@ -231,6 +231,21 @@
                                                         </div>
                                                     {% endif %}
                                                 </div>
+
+                                                <div class="form-check mt-3">
+                                                    {{ form.is_staff }}
+                                                    <label class="form-check-label" for="{{ form.is_staff.id_for_label }}">
+                                                        <strong>صلاحية الإدارة</strong>
+                                                        <small class="d-block text-muted">{{ form.is_staff.help_text }}</small>
+                                                    </label>
+                                                    {% if form.is_staff.errors %}
+                                                        <div class="text-danger small">
+                                                            {% for error in form.is_staff.errors %}
+                                                                <div>{{ error }}</div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

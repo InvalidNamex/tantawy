@@ -279,6 +279,8 @@ class Transaction(BaseModel):
                                         help_text="Associated customer or vendor")
     invoiceID = models.ForeignKey(InvoiceMaster, on_delete=models.CASCADE, null=True, blank=True,
                                  help_text="Associated invoice")
+    agentID = models.ForeignKey('Agent', on_delete=models.SET_NULL, null=True, blank=True,
+                               help_text="Agent who created this transaction", db_column='agentID')
     
     def __str__(self):
         return f"Transaction {self.id} - {self.accountID.accountName} ({self.amount})"

@@ -1,0 +1,190 @@
+{
+  "invoices": [
+    {
+      "invoiceMaster": {
+        "invoiceType": 2,
+        "customerOrVendorID": 2,
+        "storeId": 4,
+        "agentID": 7,
+        "status": 0,
+        "paymentType": 1,
+        "notes": "Sales Invoice - Customer 2 - FULLY PAID",
+        "discountAmount": 80.00,
+        "discountPercentage": 4.0,
+        "taxAmount": 280.00,
+        "taxPercentage": 14.0,
+        "netTotal": 2000.00,
+        "totalPaid": 2000.00
+      },
+      "invoiceDetails": [
+        {
+          "item": 1,
+          "quantity": 2.0,
+          "price": 600.00,
+          "notes": "Premium Product X - 2 units"
+        },
+        {
+          "item": 5,
+          "quantity": 4.0,
+          "price": 400.00,
+          "notes": "Standard Product Y - 4 units"
+        }
+      ]
+    },
+    {
+      "invoiceMaster": {
+        "invoiceType": 2,
+        "customerOrVendorID": 3,
+        "storeId": 4,
+        "agentID": 7,
+        "status": 2,
+        "paymentType": 1,
+        "notes": "Sales Invoice - Customer 3 - PARTIALLY PAID",
+        "discountAmount": 60.00,
+        "discountPercentage": 3.0,
+        "taxAmount": 210.00,
+        "taxPercentage": 14.0,
+        "netTotal": 1500.00,
+        "totalPaid": 800.00
+      },
+      "invoiceDetails": [
+        {
+          "item": 1,
+          "quantity": 1.0,
+          "price": 600.00,
+          "notes": "Premium Product X - 1 unit"
+        },
+        {
+          "item": 5,
+          "quantity": 3.0,
+          "price": 450.00,
+          "notes": "Standard Product Y - 3 units"
+        }
+      ]
+    },
+    {
+      "invoiceMaster": {
+        "invoiceType": 2,
+        "customerOrVendorID": 4,
+        "storeId": 4,
+        "agentID": 7,
+        "status": 1,
+        "paymentType": 1,
+        "notes": "Sales Invoice - Customer 4 - UNPAID",
+        "discountAmount": 100.00,
+        "discountPercentage": 5.0,
+        "taxAmount": 245.00,
+        "taxPercentage": 14.0,
+        "netTotal": 1750.00,
+        "totalPaid": 0.00
+      },
+      "invoiceDetails": [
+        {
+          "item": 1,
+          "quantity": 3.0,
+          "price": 550.00,
+          "notes": "Premium Product X - 3 units"
+        },
+        {
+          "item": 5,
+          "quantity": 2.0,
+          "price": 500.00,
+          "notes": "Standard Product Y - 2 units"
+        }
+      ]
+    },
+    {
+      "invoiceMaster": {
+        "invoiceType": 2,
+        "customerOrVendorID": 5,
+        "storeId": 4,
+        "agentID": 7,
+        "status": 0,
+        "paymentType": 2,
+        "notes": "Sales Invoice - Customer 5 - FULLY PAID (Visa)",
+        "discountAmount": 50.00,
+        "discountPercentage": 2.5,
+        "taxAmount": 140.00,
+        "taxPercentage": 14.0,
+        "netTotal": 1000.00,
+        "totalPaid": 1000.00
+      },
+      "invoiceDetails": [
+        {
+          "item": 1,
+          "quantity": 1.0,
+          "price": 600.00,
+          "notes": "Premium Product X - 1 unit"
+        },
+        {
+          "item": 5,
+          "quantity": 2.0,
+          "price": 350.00,
+          "notes": "Standard Product Y - 2 units"
+        }
+      ]
+    },
+    {
+      "invoiceMaster": {
+        "invoiceType": 2,
+        "customerOrVendorID": 6,
+        "storeId": 4,
+        "agentID": 7,
+        "status": 2,
+        "paymentType": 1,
+        "notes": "Sales Invoice - Customer 6 - PARTIALLY PAID",
+        "discountAmount": 75.00,
+        "discountPercentage": 3.5,
+        "taxAmount": 175.00,
+        "taxPercentage": 14.0,
+        "netTotal": 1250.00,
+        "totalPaid": 600.00
+      },
+      "invoiceDetails": [
+        {
+          "item": 1,
+          "quantity": 2.0,
+          "price": 500.00,
+          "notes": "Premium Product X - 2 units"
+        },
+        {
+          "item": 5,
+          "quantity": 1.0,
+          "price": 500.00,
+          "notes": "Standard Product Y - 1 unit"
+        }
+      ]
+    },
+    {
+      "invoiceMaster": {
+        "invoiceType": 2,
+        "customerOrVendorID": 7,
+        "storeId": 4,
+        "agentID": 7,
+        "status": 1,
+        "paymentType": 1,
+        "notes": "Sales Invoice - Customer 7 - UNPAID",
+        "discountAmount": 40.00,
+        "discountPercentage": 2.0,
+        "taxAmount": 112.00,
+        "taxPercentage": 14.0,
+        "netTotal": 800.00,
+        "totalPaid": 0.00
+      },
+      "invoiceDetails": [
+        {
+          "item": 1,
+          "quantity": 1.0,
+          "price": 400.00,
+          "notes": "Premium Product X - 1 unit"
+        },
+        {
+          "item": 5,
+          "quantity": 2.0,
+          "price": 300.00,
+          "notes": "Standard Product Y - 2 units"
+        }
+      ]
+    }
+  ]
+}
