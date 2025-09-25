@@ -5,221 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}نظام إدارة الطنطاوي{% endblock %}</title>
     
-    <!-- Bootstrap RTL CSS -->
+    {% load static %}
+    
+    <!-- Compiled Glassmorphism CSS -->
+    <link rel="stylesheet" href="{% static 'css/compiled.css' %}?v=2.2">
+    <!-- Bootstrap CSS for layout -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <!-- Cairo Font for Arabic -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <style>
-        * {
-            font-family: 'Cairo', sans-serif;
-        }
-        
-        :root {
-            --primary-green: #27ae60;
-            --light-green: #2ecc71;
-            --dark-green: #1e8449;
-            --hover-green: #229954;
-            --success-green: #58d68d;
-            --light-gray: #f8f9fa;
-            --medium-gray: #e9ecef;
-            --dark-gray: #6c757d;
-        }
-
-        body {
-            background-color: white;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            font-family: 'Cairo', sans-serif;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            color: white !important;
-            font-size: 1.5rem;
-        }
-
-        .navbar-brand:hover {
-            color: var(--light-gray) !important;
-        }
-
-        .navbar-nav .nav-link {
-            color: white !important;
-            font-weight: 500;
-            margin: 0 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .navbar-nav .nav-link:hover {
-            color: var(--light-gray) !important;
-            background-color: rgba(255,255,255,0.1);
-            border-radius: 0.25rem;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 2rem 0;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-            border: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
-        }
-
-        .btn-success {
-            background-color: var(--success-green);
-            border-color: var(--success-green);
-        }
-
-        .btn-success:hover {
-            background-color: var(--light-green);
-            border-color: var(--light-green);
-        }
-
-        .card {
-            border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-radius: 0.75rem;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-            color: white;
-            font-weight: 600;
-            border-radius: 0.75rem 0.75rem 0 0 !important;
-        }
-
-        .footer {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-            color: white;
-            padding: 1rem 0;
-            margin-top: auto;
-        }
-
-        .logo {
-            height: 40px;
-            width: auto;
-            margin-left: 0.5rem;
-        }
-
-        .alert {
-            border-radius: 0.5rem;
-            border: none;
-        }
-
-        .alert-success {
-            background-color: rgba(88, 214, 141, 0.1);
-            color: var(--dark-green);
-            border-right: 4px solid var(--success-green);
-        }
-
-        .alert-error,
-        .alert-danger {
-            background-color: rgba(231, 76, 60, 0.1);
-            color: #c0392b;
-            border-right: 4px solid #e74c3c;
-        }
-
-        .alert-warning {
-            background-color: rgba(243, 156, 18, 0.1);
-            color: #d68910;
-            border-right: 4px solid #f39c12;
-        }
-
-        .alert-info {
-            background-color: rgba(52, 152, 219, 0.1);
-            color: #2471a3;
-            border-right: 4px solid #3498db;
-        }
-
-        /* Form styles */
-        .form-control:focus {
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
-        }
-
-        .form-select:focus {
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
-        }
-
-        /* Table styles */
-        .table thead th {
-            background-color: var(--light-gray);
-            border-bottom: 2px solid var(--primary-green);
-            font-weight: 600;
-        }
-
-        .table-hover tbody tr:hover {
-            background-color: rgba(39, 174, 96, 0.05);
-        }
-
-        /* Breadcrumb */
-        .breadcrumb {
-            background-color: var(--light-gray);
-            border-radius: 0.5rem;
-        }
-
-        .breadcrumb-item.active {
-            color: var(--primary-green);
-        }
-
-        /* Loading spinner */
-        .spinner-border-green {
-            color: var(--primary-green);
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 1rem 0;
-            }
-            
-            .navbar-brand {
-                font-size: 1.25rem;
-            }
-            
-            .logo {
-                height: 35px;
-            }
-        }
-    </style>
+    <!-- Meta tags for PWA and theme -->
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="نظام إدارة الطنطاوي - نظام شامل لإدارة الأعمال">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg">
+    <!-- Glass Navigation Bar -->
+    <nav class="glass-navbar navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{% url 'authentication:dashboard' %}">
-                <img src="{% load static %}{% static 'logo.png' %}" alt="شعار الطنطاوي" class="logo">
-                نظام إدارة الطنطاوي
+                <img src="/media/logo.png" alt="شعار الطنطاوي" class="logo">
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+            <!-- Animated Pill Theme Toggle -->
+            <div class="theme-toggle-wrapper me-3">
+                <button id="theme-switch" class="theme-toggle-pill" 
+                        role="switch" 
+                        aria-checked="false" 
+                        aria-label="تبديل بين النمط الفاتح والداكن"
+                        tabindex="0">
+                    <div class="toggle-background">
+                        <div class="toggle-icons">
+                            <span class="icon sun-icon" aria-hidden="true">☀️</span>
+                            <span class="icon moon-icon" aria-hidden="true">🌙</span>
+                        </div>
+                        <div class="toggle-slider"></div>
+                    </div>
+                </button>
+            </div>
+            
+            <button class="glass-navbar-toggler navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="bi bi-list"></i>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -236,11 +65,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:storegroups' %}">
-                            <i class="bi bi-building"></i> مجموعات المخازن
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'core:items' %}">
                             <i class="bi bi-box"></i> الأصناف
                         </a>
@@ -250,22 +74,32 @@
                             <i class="bi bi-shop"></i> المخازن
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'authentication:agents_manage' %}">
+                            <i class="bi bi-people"></i> إدارة المناديب
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'authentication:users_list' %}">
+                            <i class="bi bi-people"></i> إدارة المستخدمين
+                        </a>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}
+                    <li class="nav-item navbar-user">
+                        <a class="nav-link user-toggle dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">
+                        <ul class="glass-dropdown-menu dropdown-menu">
+                            <li><a class="glass-dropdown-item dropdown-item" href="#">
                                 <i class="bi bi-person"></i> الملف الشخصي
                             </a></li>
-                            <li><a class="dropdown-item" href="#">
+                            <li><a class="glass-dropdown-item dropdown-item" href="#">
                                 <i class="bi bi-gear"></i> الإعدادات
                             </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'authentication:logout' %}">
+                            <li><div class="glass-dropdown-divider dropdown-divider"></div></li>
+                            <li><a class="glass-dropdown-item dropdown-item" href="{% url 'authentication:logout' %}">
                                 <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
                             </a></li>
                         </ul>
@@ -277,42 +111,42 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main id="main-content" class="main-content">
         <div class="container">
             <!-- Breadcrumb -->
             {% block breadcrumb %}{% endblock %}
-            
-            <!-- Messages -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {% if message.tags == 'success' %}
-                            <i class="bi bi-check-circle"></i>
-                        {% elif message.tags == 'error' or message.tags == 'danger' %}
-                            <i class="bi bi-exclamation-circle"></i>
-                        {% elif message.tags == 'warning' %}
-                            <i class="bi bi-exclamation-triangle"></i>
-                        {% elif message.tags == 'info' %}
-                            <i class="bi bi-info-circle"></i>
-                        {% endif %}
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-            
-            <!-- Page Content -->
-            {% block content %}{% endblock %}
+                
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show glass-fade-in" role="alert">
+                            {% if message.tags == 'success' %}
+                                <i class="bi bi-check-circle me-2"></i>
+                            {% elif message.tags == 'error' or message.tags == 'danger' %}
+                                <i class="bi bi-exclamation-circle me-2"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                            {% elif message.tags == 'info' %}
+                                <i class="bi bi-info-circle me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Page Content -->
+                {% block content %}{% endblock %}
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
+    <!-- Glass Footer -->
+    <footer class="glass-footer footer">
         <div class="container">
-            <div class="row">
+            <div class="row align-items-center">
                 <div class="col-md-6">
                     <div class="d-flex align-items-center">
-                        <img src="{% load static %}{% static 'logo.png' %}" alt="شعار الطنطاوي" class="logo">
+                        <img src="/media/logo.png" alt="شعار الطنطاوي" class="logo">
                         <span class="fw-bold me-2">نظام إدارة الطنطاوي</span>
                     </div>
                 </div>
@@ -323,8 +157,93 @@
         </div>
     </footer>
 
+    <!-- jQuery (required for Bootstrap Select) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Theme Toggle Manager -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeSwitch = document.getElementById('theme-switch');
+            
+            if (!themeSwitch) return;
+            
+            // Get initial theme from localStorage or default to light
+            function getInitialTheme() {
+                const savedTheme = localStorage.getItem('tantawy-theme');
+                if (savedTheme === 'light' || savedTheme === 'dark') {
+                    return savedTheme;
+                }
+                
+                // Check system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+                
+                return 'light';
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme, animate = false) {
+                document.documentElement.setAttribute('data-theme', theme);
+                document.body.setAttribute('data-theme', theme);
+                themeSwitch.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
+                
+                // Add pulse animation class
+                if (animate) {
+                    themeSwitch.classList.add('toggling');
+                    setTimeout(() => {
+                        themeSwitch.classList.remove('toggling');
+                    }, 600);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('tantawy-theme', theme);
+                
+                // Emit custom event
+                window.dispatchEvent(new CustomEvent('themechange', {
+                    detail: { theme: theme }
+                }));
+                
+                console.log('Theme switched to:', theme);
+            }
+            
+            // Toggle theme function
+            function toggleTheme() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                applyTheme(newTheme, true);
+            }
+            
+            // Initialize theme on page load
+            const initialTheme = getInitialTheme();
+            applyTheme(initialTheme, false);
+            
+            // Event listeners
+            themeSwitch.addEventListener('click', toggleTheme);
+            
+            // Keyboard accessibility
+            themeSwitch.addEventListener('keydown', function(e) {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    toggleTheme();
+                }
+            });
+            
+            // Listen for system theme changes
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', function(e) {
+                    // Only auto-switch if user hasn't manually set a preference
+                    if (!localStorage.getItem('tantawy-theme')) {
+                        applyTheme(e.matches ? 'dark' : 'light', false);
+                    }
+                });
+            }
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

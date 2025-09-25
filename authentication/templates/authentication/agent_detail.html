@@ -1,0 +1,712 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل المندوب: {{ agent.agentName }} - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:agents_manage' %}">
+                <i class="bi bi-people"></i> إدارة المناديب
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-person"></i> {{ agent.agentName }}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card-primary mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="text-white mb-2">
+                        <i class="bi bi-person me-2"></i>
+                        {{ agent.agentName }}
+                    </h1>
+                    <p class="text-white mb-0">
+                        تفاصيل المندوب ومعاملاته في النظام
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group">
+                        {% if perms.core.change_agent %}
+                        <a href="{% url 'authentication:agent_edit' agent.id %}" class="glass-btn-warning glass-btn">
+                            <i class="bi bi-pencil me-1"></i> تعديل
+                        </a>
+                        {% endif %}
+                        {% if perms.core.delete_agent %}
+                        <a href="{% url 'authentication:agent_delete' agent.id %}" class="glass-btn-danger glass-btn">
+                            <i class="bi bi-trash me-1"></i> حذف
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Information Card -->
+<div class="row mb-4">
+    <div class="col-lg-4">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i> معلومات المندوب
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                <div class="agent-info">
+                    <div class="info-item">
+                        <label class="info-label">رقم التعريف:</label>
+                        <span class="info-value">{{ agent.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">اسم المندوب:</label>
+                        <span class="info-value">{{ agent.agentName }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">اسم المستخدم:</label>
+                        <span class="info-value">{{ agent.agentUsername }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">رقم الهاتف:</label>
+                        <span class="info-value">{{ agent.agentPhone|default:"غير محدد" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">المخزن:</label>
+                        <span class="info-value">
+                            {% if agent.storeID %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-shop me-1"></i>
+                                    {{ agent.storeID.storeName }}
+                                    {% if agent.storeID.storeGroup %}
+                                        - {{ agent.storeID.storeGroup }}
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">غير مخصص لمخزن</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">الحالة:</label>
+                        <span class="info-value">
+                            {% if agent.isActive %}
+                                <span class="badge bg-success">نشط</span>
+                            {% else %}
+                                <span class="badge bg-danger">غير نشط</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">أنشأه:</label>
+                        <span class="info-value">{{ agent.createdBy.username|default:"النظام" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">تاريخ الإنشاء:</label>
+                        <span class="info-value">{{ agent.createdAt|date:"Y-m-d H:i" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">آخر تحديث:</label>
+                        <span class="info-value">{{ agent.updatedAt|date:"Y-m-d H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i> إحصائيات المندوب
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center clickable-stat" data-type="return-sales" style="cursor: pointer;" title="انقر لعرض مرتجع البيع">
+                            <div class="stat-icon text-warning">
+                                <i class="bi bi-arrow-return-left"></i>
+                            </div>
+                            <div class="stat-value">{{ return_sales_invoices }}</div>
+                            <div class="stat-label">مرتجع البيع</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center clickable-stat" data-type="receipt-vouchers" style="cursor: pointer;" title="انقر لعرض سندات القبض">
+                            <div class="stat-icon text-success">
+                                <i class="bi bi-arrow-down-circle"></i>
+                            </div>
+                            <div class="stat-value">{{ receipt_transactions }}</div>
+                            <div class="stat-label">سند قبض</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center clickable-stat" data-type="payment-vouchers" style="cursor: pointer;" title="انقر لعرض سندات الدفع">
+                            <div class="stat-icon text-danger">
+                                <i class="bi bi-arrow-up-circle"></i>
+                            </div>
+                            <div class="stat-value">{{ payment_transactions }}</div>
+                            <div class="stat-label">سند الدفع</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center clickable-stat" data-type="sales-invoices" style="cursor: pointer;" title="انقر لعرض فواتير البيع">
+                            <div class="stat-icon text-info">
+                                <i class="bi bi-basket"></i>
+                            </div>
+                            <div class="stat-value">{{ sales_invoices }}</div>
+                            <div class="stat-label">فواتير البيع</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Data Sections -->
+<div class="row mt-4" id="data-sections" style="display: none;">
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="glass-card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="section-title">
+                    <i class="bi bi-list-task me-2"></i> <span id="title-text">البيانات</span>
+                </h5>
+                <div class="d-flex gap-2">
+                    <!-- Filter Form -->
+                    <form method="GET" class="d-flex gap-2 align-items-end" id="filter-form">
+                        <input type="hidden" name="data_type" id="data_type_input" value="">
+                        <div class="form-group" id="invoice-type-filter" style="display: none;">
+                            <label for="invoice_type" class="form-label-sm">نوع الفاتورة</label>
+                            <select name="invoice_type" id="invoice_type" class="form-select form-select-sm">
+                                <option value="">جميع الأنواع</option>
+                                <option value="2">فواتير البيع</option>
+                                <option value="4">مرتجع البيع</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="transaction-type-filter" style="display: none;">
+                            <label for="transaction_type" class="form-label-sm">نوع القسيمة</label>
+                            <select name="transaction_type" id="transaction_type" class="form-select form-select-sm">
+                                <option value="">جميع الأنواع</option>
+                                <option value="1">سند قبض</option>
+                                <option value="2">سند دفع</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="date_from" class="form-label-sm">من تاريخ</label>
+                            <input type="date" name="date_from" id="date_from" class="form-control form-control-sm" 
+                                   value="{{ request.GET.date_from|default:today_date }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="date_to" class="form-label-sm">إلى تاريخ</label>
+                            <input type="date" name="date_to" id="date_to" class="form-control form-control-sm" 
+                                   value="{{ request.GET.date_to|default:today_date }}">
+                        </div>
+                        <button type="submit" class="btn btn-sm glass-btn-primary" title="تصفية">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm glass-btn" id="reset-filters" title="إعادة تعيين">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm glass-btn-secondary" id="close-section" title="إغلاق">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="glass-card-body">
+                <!-- Sales Invoices Section -->
+                <div id="sales-invoices-section" class="data-section" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم الفاتورة</th>
+                                    <th>العميل</th>
+                                    <th>المخزن</th>
+                                    <th>إجمالي الصافي</th>
+                                    <th>حالة الدفع</th>
+                                    <th>التاريخ</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoices-table-body">
+                                <!-- Dynamic content will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Return Sales Section -->
+                <div id="return-sales-section" class="data-section" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم المرتجع</th>
+                                    <th>العميل</th>
+                                    <th>المخزن</th>
+                                    <th>إجمالي الصافي</th>
+                                    <th>الفاتورة الأصلية</th>
+                                    <th>التاريخ</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="returns-table-body">
+                                <!-- Dynamic content will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vouchers Section -->
+                <div id="vouchers-section" class="data-section" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم القسيمة</th>
+                                    <th>نوع القسيمة</th>
+                                    <th>العميل/المورد</th>
+                                    <th>المبلغ</th>
+                                    <th>ملاحظات</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vouchers-table-body">
+                                <!-- Dynamic content will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" style="display: none;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="text-muted mt-3">جاري تحميل البيانات...</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" style="display: none;">
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="text-muted mt-3">لا توجد بيانات</h4>
+                        <p class="text-muted">لا توجد بيانات مطابقة للفترة المحددة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.agent-info .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.agent-info .info-item:last-child {
+    border-bottom: none;
+}
+
+.agent-info .info-label {
+    font-weight: 600;
+    color: #6c757d;
+    flex: 0 0 40%;
+}
+
+.agent-info .info-value {
+    flex: 1;
+    text-align: left;
+}
+
+.stat-card {
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.clickable-stat {
+    transition: all 0.3s ease;
+}
+
+.clickable-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.clickable-stat.active {
+    border: 2px solid #0d6efd;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+}
+
+.data-section {
+    min-height: 300px;
+}
+
+.form-label-sm {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clickableStats = document.querySelectorAll('.clickable-stat');
+    const dataSections = document.getElementById('data-sections');
+    const sectionTitle = document.getElementById('title-text');
+    const dataTypeInput = document.getElementById('data_type_input');
+    const closeSection = document.getElementById('close-section');
+    const resetFilters = document.getElementById('reset-filters');
+    const filterForm = document.getElementById('filter-form');
+    const invoiceTypeFilter = document.getElementById('invoice-type-filter');
+    const transactionTypeFilter = document.getElementById('transaction-type-filter');
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date_from').value = today;
+    document.getElementById('date_to').value = today;
+    
+    // Handle stat card clicks
+    clickableStats.forEach(stat => {
+        stat.addEventListener('click', function() {
+            const dataType = this.getAttribute('data-type');
+            
+            // Remove active class from all stats
+            clickableStats.forEach(s => s.classList.remove('active'));
+            
+            // Add active class to clicked stat
+            this.classList.add('active');
+            
+            // Show data section
+            dataSections.style.display = 'block';
+            
+            // Hide all data sections
+            document.querySelectorAll('.data-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Update form data type
+            dataTypeInput.value = dataType;
+            
+            // Show appropriate filters and section
+            invoiceTypeFilter.style.display = 'none';
+            transactionTypeFilter.style.display = 'none';
+            
+            switch(dataType) {
+                case 'sales-invoices':
+                    console.log('Showing sales invoices section');
+                    sectionTitle.innerHTML = '<i class="bi bi-basket me-2"></i>فواتير البيع';
+                    document.getElementById('sales-invoices-section').style.display = 'block';
+                    document.getElementById('invoice_type').value = '2';
+                    loadInvoicesData('2');
+                    break;
+                    
+                case 'return-sales':
+                    sectionTitle.innerHTML = '<i class="bi bi-arrow-return-left me-2"></i>مرتجع البيع';
+                    document.getElementById('return-sales-section').style.display = 'block';
+                    document.getElementById('invoice_type').value = '4';
+                    loadInvoicesData('4');
+                    break;
+                    
+                case 'receipt-vouchers':
+                    sectionTitle.innerHTML = '<i class="bi bi-arrow-down-circle me-2"></i>سندات القبض';
+                    document.getElementById('vouchers-section').style.display = 'block';
+                    transactionTypeFilter.style.display = 'block';
+                    document.getElementById('transaction_type').value = '1';
+                    loadVouchersData('1');
+                    break;
+                    
+                case 'payment-vouchers':
+                    sectionTitle.innerHTML = '<i class="bi bi-arrow-up-circle me-2"></i>سندات الدفع';
+                    document.getElementById('vouchers-section').style.display = 'block';
+                    transactionTypeFilter.style.display = 'block';
+                    document.getElementById('transaction_type').value = '2';
+                    loadVouchersData('2');
+                    break;
+            }
+            
+            // Scroll to data section
+            dataSections.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+    
+    // Handle close section
+    closeSection.addEventListener('click', function() {
+        dataSections.style.display = 'none';
+        clickableStats.forEach(s => s.classList.remove('active'));
+        // Clear all table bodies
+        document.getElementById('invoices-table-body').innerHTML = '';
+        document.getElementById('returns-table-body').innerHTML = '';
+        document.getElementById('vouchers-table-body').innerHTML = '';
+    });
+    
+    // Handle reset filters
+    resetFilters.addEventListener('click', function() {
+        document.getElementById('date_from').value = today;
+        document.getElementById('date_to').value = today;
+        document.getElementById('invoice_type').value = '';
+        document.getElementById('transaction_type').value = '';
+        
+        // Reload data based on current active section
+        const activeDataType = dataTypeInput.value;
+        if (activeDataType) {
+            reloadCurrentSection();
+        }
+    });
+    
+    // Handle form submission
+    filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        reloadCurrentSection();
+    });
+    
+    function reloadCurrentSection() {
+        const dataType = dataTypeInput.value;
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        
+        switch(dataType) {
+            case 'sales-invoices':
+                loadInvoicesData('2', dateFrom, dateTo);
+                break;
+            case 'return-sales':
+                loadInvoicesData('4', dateFrom, dateTo);
+                break;
+            case 'receipt-vouchers':
+                loadVouchersData('1', dateFrom, dateTo);
+                break;
+            case 'payment-vouchers':
+                loadVouchersData('2', dateFrom, dateTo);
+                break;
+        }
+    }
+    
+    function loadInvoicesData(invoiceType, dateFrom = null, dateTo = null) {
+        showLoading();
+        
+        const params = new URLSearchParams({
+            'invoice_type': invoiceType,
+            'agent_id': '{{ agent.id }}',
+            'date_from': dateFrom || today,
+            'date_to': dateTo || today
+        });
+        
+        console.log('Loading invoices with params:', params.toString());
+        
+        fetch(`/api/agents/invoices/?${params}`)
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response:', data);
+                hideLoading();
+                
+                // Handle different response formats
+                let invoices = data;
+                if (data.success && data.invoices) {
+                    invoices = data.invoices;
+                } else if (data.invoices) {
+                    invoices = data.invoices;
+                } else if (Array.isArray(data)) {
+                    invoices = data;
+                }
+                
+                if (invoices && invoices.length > 0) {
+                    console.log('Displaying', invoices.length, 'invoices');
+                    document.getElementById('sales-invoices-section').style.display = 'block';
+                    displayInvoices(invoices, invoiceType);
+                } else {
+                    console.log('No invoices found or API error');
+                    showEmptyState();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error loading invoices:', error);
+                showEmptyState();
+            });
+    }
+    
+    function loadVouchersData(transactionType, dateFrom = null, dateTo = null) {
+        showLoading();
+        
+        const params = new URLSearchParams({
+            'transaction_type': transactionType,
+            'agent_id': '{{ agent.id }}',
+            'date_from': dateFrom || today,
+            'date_to': dateTo || today
+        });
+        
+        fetch(`/api/agents/transactions/?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success && data.transactions.length > 0) {
+                    displayVouchers(data.transactions);
+                } else {
+                    showEmptyState();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error loading vouchers:', error);
+                showEmptyState();
+            });
+    }
+    
+    function displayInvoices(invoices, type) {
+        console.log('displayInvoices called with:', invoices.length, 'invoices, type:', type);
+        
+        const tableBody = type === '4' ? 
+            document.getElementById('returns-table-body') : 
+            document.getElementById('invoices-table-body');
+        
+        console.log('Table body element:', tableBody);
+        
+        // Ensure the correct section is visible
+        if (type === '4') {
+            document.getElementById('return-sales-section').style.display = 'block';
+        } else {
+            document.getElementById('sales-invoices-section').style.display = 'block';
+        }
+        
+        tableBody.innerHTML = '';
+        
+        invoices.forEach((invoice, index) => {
+            console.log('Processing invoice', index + 1, ':', invoice);
+            const row = document.createElement('tr');
+            
+            if (type === '4') { // Return invoices
+                row.innerHTML = `
+                    <td><code class="text-primary">${invoice.invoiceNumber || invoice.id}</code></td>
+                    <td>${invoice.customerName || '-'}</td>
+                    <td>${invoice.storeName || '-'}</td>
+                    <td class="text-end"><span class="fw-bold text-danger">${invoice.netTotal} ج.م</span></td>
+                    <td><code class="text-muted">${invoice.originalInvoiceNumber || '-'}</code></td>
+                    <td><small class="text-muted">${new Date(invoice.createdAt).toLocaleDateString('ar-EG')}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice(${invoice.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                `;
+            } else { // Sales invoices
+                row.innerHTML = `
+                    <td><code class="text-primary">${invoice.invoiceNumber || invoice.id}</code></td>
+                    <td>${invoice.customerName || '-'}</td>
+                    <td>${invoice.storeName || '-'}</td>
+                    <td class="text-end"><span class="fw-bold text-success">${invoice.netTotal} ج.م</span></td>
+                    <td>
+                        <span class="badge ${invoice.status === 0 ? 'bg-success' : (invoice.status === 1 ? 'bg-danger' : 'bg-warning')}">
+                            ${invoice.status === 0 ? 'مدفوع' : (invoice.status === 1 ? 'غير مدفوع' : 'مدفوع جزئياً')}
+                        </span>
+                    </td>
+                    <td><small class="text-muted">${new Date(invoice.createdAt).toLocaleDateString('ar-EG')}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewInvoice(${invoice.id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                `;
+            }
+            
+            tableBody.appendChild(row);
+        });
+    }
+    
+    function displayVouchers(vouchers) {
+        const tableBody = document.getElementById('vouchers-table-body');
+        tableBody.innerHTML = '';
+        
+        vouchers.forEach(voucher => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><code class="text-primary">${voucher.voucherNumber || voucher.id}</code></td>
+                <td>
+                    <span class="badge ${voucher.type == 1 ? 'bg-success' : 'bg-danger'}">
+                        <i class="bi bi-arrow-${voucher.type == 1 ? 'down' : 'up'}-circle me-1"></i>
+                        ${voucher.type == 1 ? 'سند قبض' : 'سند دفع'}
+                    </span>
+                </td>
+                <td>${voucher.customerName || '-'}</td>
+                <td class="text-end">
+                    <span class="fw-bold ${voucher.amount > 0 ? 'text-success' : 'text-danger'}">
+                        ${Math.abs(voucher.amount)} ج.م
+                    </span>
+                </td>
+                <td><span class="text-muted small">${voucher.notes || '-'}</span></td>
+                <td><small class="text-muted">${new Date(voucher.createdAt).toLocaleDateString('ar-EG')}</small></td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    
+    function showLoading() {
+        document.querySelectorAll('.data-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('loading-state').style.display = 'block';
+    }
+    
+    function hideLoading() {
+        document.getElementById('loading-state').style.display = 'none';
+    }
+    
+    function showEmptyState() {
+        document.querySelectorAll('.data-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById('empty-state').style.display = 'block';
+    }
+    
+    // Global function for viewing invoices
+    window.viewInvoice = function(invoiceId) {
+        // Open the proper invoice detail page
+        window.open(`/invoices/${invoiceId}/`, '_blank');
+    };
+});
+</script>
+{% endblock %}

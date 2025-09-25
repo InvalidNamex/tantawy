@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف المندوب: {{ agent.agentName }} - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:agents_manage' %}">
+                <i class="bi bi-people"></i> إدارة المناديب
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:agent_detail' agent.id %}">
+                <i class="bi bi-person"></i> {{ agent.agentName }}
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-trash"></i> حذف
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card-danger mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="text-white mb-2">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        تأكيد حذف المندوب
+                    </h1>
+                    <p class="text-white mb-0">
+                        هذا الإجراء لا يمكن التراجع عنه
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{% url 'authentication:agent_detail' agent.id %}" class="glass-btn glass-btn">
+                        <i class="bi bi-arrow-right me-1"></i> العودة للتفاصيل
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation -->
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="glass-card border-danger">
+            <div class="glass-card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-trash me-2"></i> تأكيد الحذف
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                <!-- Agent Information -->
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>تحذير:</strong> سيتم حذف المندوب والبيانات المرتبطة به بشكل نهائي
+                </div>
+
+                <div class="agent-summary mb-4">
+                    <h6 class="fw-bold mb-3">بيانات المندوب المراد حذفه:</h6>
+                    <div class="row g-2">
+                        <div class="col-sm-4"><strong>الاسم:</strong></div>
+                        <div class="col-sm-8">{{ agent.agentName }}</div>
+                        
+                        <div class="col-sm-4"><strong>اسم المستخدم:</strong></div>
+                        <div class="col-sm-8">{{ agent.agentUsername }}</div>
+                        
+                        <div class="col-sm-4"><strong>رقم الهاتف:</strong></div>
+                        <div class="col-sm-8">{{ agent.agentPhone|default:"غير محدد" }}</div>
+                        
+                        <div class="col-sm-4"><strong>الحالة:</strong></div>
+                        <div class="col-sm-8">
+                            {% if agent.isActive %}
+                                <span class="badge bg-success">نشط</span>
+                            {% else %}
+                                <span class="badge bg-danger">غير نشط</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Check -->
+                {% if transaction_count > 0 %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>تحذير:</strong> هذا المندوب لديه {{ transaction_count }} معاملة مسجلة في النظام.
+                    <br>
+                    سيتم تحويل هذه المعاملات لتظهر بدون مندوب مرتبط.
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    هذا المندوب ليس لديه أي معاملات مسجلة في النظام.
+                </div>
+                {% endif %}
+
+                <!-- System Information -->
+                <div class="system-info mb-4">
+                    <h6 class="fw-bold mb-2">معلومات إضافية:</h6>
+                    <div class="row g-2 small text-muted">
+                        <div class="col-sm-4">أنشأه:</div>
+                        <div class="col-sm-8">{{ agent.createdBy.username|default:"النظام" }}</div>
+                        
+                        <div class="col-sm-4">تاريخ الإنشاء:</div>
+                        <div class="col-sm-8">{{ agent.createdAt|date:"Y-m-d H:i" }}</div>
+                        
+                        <div class="col-sm-4">آخر تحديث:</div>
+                        <div class="col-sm-8">{{ agent.updatedAt|date:"Y-m-d H:i" }}</div>
+                    </div>
+                </div>
+
+                <!-- Confirmation Form -->
+                <form method="POST" id="deleteForm">
+                    {% csrf_token %}
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+                        <label class="form-check-label" for="confirmDelete">
+                            أؤكد أنني أريد حذف هذا المندوب نهائياً
+                        </label>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'authentication:agent_detail' agent.id %}" class="glass-btn glass-btn">
+                            <i class="bi bi-x-circle me-1"></i> إلغاء
+                        </a>
+                        <button type="submit" class="btn btn-danger" id="deleteButton" disabled>
+                            <i class="bi bi-trash me-1"></i> حذف نهائي
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.glass-card-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.9), rgba(108, 117, 125, 0.9));
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 1.5rem;
+}
+
+.agent-summary {
+    background: rgba(0,0,0,0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.system-info {
+    background: rgba(0,0,0,0.03);
+    border-radius: 6px;
+    padding: 0.75rem;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+</style>
+
+<script>
+// Enable/disable delete button based on confirmation checkbox
+document.getElementById('confirmDelete').addEventListener('change', function() {
+    const deleteButton = document.getElementById('deleteButton');
+    deleteButton.disabled = !this.checked;
+});
+
+// Confirm before submit
+document.getElementById('deleteForm').addEventListener('submit', function(e) {
+    const confirmed = confirm('هل أنت متأكد من حذف هذا المندوب؟ هذا الإجراء لا يمكن التراجع عنه.');
+    if (!confirmed) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}

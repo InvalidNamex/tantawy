@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل المندوب: {{ agent.agentName }} - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:agents_manage' %}">
+                <i class="bi bi-people"></i> إدارة المناديب
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:agent_detail' agent.id %}">
+                <i class="bi bi-person"></i> {{ agent.agentName }}
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<!-- Bootstrap Select CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
+<style>
+.bootstrap-select .dropdown-toggle {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+.bootstrap-select .dropdown-menu {
+    z-index: 1060;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card-primary mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="text-white mb-2">
+                        <i class="bi bi-pencil me-2"></i>
+                        تعديل المندوب: {{ agent.agentName }}
+                    </h1>
+                    <p class="text-white mb-0">
+                        تحديث بيانات المندوب في النظام
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group">
+                        <a href="{% url 'authentication:agent_detail' agent.id %}" class="glass-btn glass-btn">
+                            <i class="bi bi-arrow-right me-1"></i> العودة للتفاصيل
+                        </a>
+                        <a href="{% url 'authentication:agents_manage' %}" class="glass-btn glass-btn">
+                            <i class="bi bi-list me-1"></i> القائمة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Edit Form -->
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-gear me-2"></i> تعديل بيانات المندوب
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" id="agentEditForm">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <!-- Agent Name -->
+                        <div class="col-md-6">
+                            <label for="agentName" class="form-label">
+                                اسم المندوب <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="agentName" name="agentName" 
+                                   value="{{ agent.agentName }}" required
+                                   placeholder="أدخل اسم المندوب الكامل">
+                            {% if form.agentName.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.agentName.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Agent Username -->
+                        <div class="col-md-6">
+                            <label for="agentUsername" class="form-label">
+                                اسم المستخدم <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="agentUsername" name="agentUsername" 
+                                   value="{{ agent.agentUsername }}" required
+                                   placeholder="أدخل اسم المستخدم الفريد">
+                            <div class="form-text">يجب أن يكون اسم المستخدم فريداً ويمكن أن يحتوي على مسافات</div>
+                            {% if form.agentUsername.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.agentUsername.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Agent Phone -->
+                        <div class="col-md-6">
+                            <label for="agentPhone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="agentPhone" name="agentPhone" 
+                                   value="{{ agent.agentPhone|default:'' }}"
+                                   placeholder="أدخل رقم الهاتف (اختياري)">
+                            {% if form.agentPhone.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.agentPhone.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Store Assignment -->
+                        <div class="col-12">
+                            <label for="storeID" class="form-label">المخزن</label>
+                            <select class="form-control selectpicker" 
+                                    id="storeID" 
+                                    name="storeID" 
+                                    data-live-search="true"
+                                    data-size="8"
+                                    data-style="btn-outline-secondary"
+                                    data-none-selected-text="اختر مخزن (اختياري)"
+                                    data-no-results-text="لا توجد نتائج"
+                                    data-live-search-placeholder="ابحث عن مخزن..."
+                                    title="اختر مخزن (اختياري)">
+                                <option value="">-- بدون مخزن --</option>
+                                {% for store in stores %}
+                                    <option value="{{ store.id }}" 
+                                            {% if agent.storeID and agent.storeID.id == store.id %}selected{% endif %}>
+                                        {{ store.storeName }}
+                                        {% if store.storeGroup %}
+                                            - {{ store.storeGroup }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">يمكن تخصيص المندوب لمخزن معين لتتبع مبيعاته</div>
+                            {% if form.storeID.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.storeID.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Password Section -->
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>تغيير كلمة المرور:</strong> اتركها فارغة إذا كنت لا تريد تغيير كلمة المرور الحالية
+                            </div>
+                        </div>
+
+                        <!-- New Password -->
+                        <div class="col-md-6">
+                            <label for="agentPassword" class="form-label">كلمة المرور الجديدة</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="agentPassword" name="agentPassword" 
+                                       placeholder="أدخل كلمة مرور جديدة (اختياري)">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('agentPassword')">
+                                    <i class="bi bi-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">اتركها فارغة للاحتفاظ بكلمة المرور الحالية</div>
+                            {% if form.agentPassword.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.agentPassword.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Confirm New Password -->
+                        <div class="col-md-6">
+                            <label for="confirmPassword" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" 
+                                       placeholder="أعد إدخال كلمة المرور الجديدة">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword')">
+                                    <i class="bi bi-eye" id="confirmToggleIcon"></i>
+                                </button>
+                            </div>
+                            <div id="passwordMatch" class="form-text"></div>
+                        </div>
+
+                        <!-- Is Active -->
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isActive" name="isActive" 
+                                       {% if agent.isActive %}checked{% endif %}>
+                                <label class="form-check-label" for="isActive">
+                                    حساب نشط (يمكن مندوب تسجيل الدخول)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- System Information -->
+                        <div class="col-12">
+                            <div class="system-info-card">
+                                <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>معلومات النظام</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <small class="text-muted">أنشأه:</small>
+                                        <div>{{ agent.createdBy.username|default:"النظام" }}</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted">تاريخ الإنشاء:</small>
+                                        <div>{{ agent.createdAt|date:"Y-m-d H:i" }}</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted">آخر تحديث:</small>
+                                        <div>{{ agent.updatedAt|date:"Y-m-d H:i" }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="glass-btn-success glass-btn">
+                                    <i class="bi bi-check-circle me-1"></i> حفظ التغييرات
+                                </button>
+                                <a href="{% url 'authentication:agent_detail' agent.id %}" class="glass-btn glass-btn">
+                                    <i class="bi bi-x-circle me-1"></i> إلغاء
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.system-info-card {
+    background: rgba(0,0,0,0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+</style>
+
+<script>
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = fieldId === 'agentPassword' ? document.getElementById('toggleIcon') : document.getElementById('confirmToggleIcon');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+// Password confirmation validation
+document.getElementById('confirmPassword').addEventListener('input', function() {
+    const password = document.getElementById('agentPassword').value;
+    const confirmPassword = this.value;
+    const matchDiv = document.getElementById('passwordMatch');
+    
+    if (password === '' && confirmPassword === '') {
+        matchDiv.textContent = '';
+        matchDiv.className = 'form-text';
+    } else if (confirmPassword === '') {
+        matchDiv.textContent = '';
+        matchDiv.className = 'form-text';
+    } else if (password === confirmPassword) {
+        matchDiv.textContent = 'كلمات المرور متطابقة ✓';
+        matchDiv.className = 'form-text text-success';
+    } else {
+        matchDiv.textContent = 'كلمات المرور غير متطابقة ✗';
+        matchDiv.className = 'form-text text-danger';
+    }
+});
+
+// Form validation before submit
+document.getElementById('agentEditForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('agentPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    // Only validate passwords if they are not empty
+    if (password !== '' || confirmPassword !== '') {
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('كلمات المرور غير متطابقة. يرجى التأكد من تطابقها.');
+            return false;
+        }
+        
+        // Password length validation removed - any password length allowed
+        return true;
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Bootstrap Select JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/js/i18n/defaults-ar.min.js"></script>
+
+<script>
+// Initialize Bootstrap Select
+$(document).ready(function() {
+    $('.selectpicker').selectpicker({
+        style: 'btn-outline-secondary',
+        size: 8,
+        liveSearch: true,
+        showTick: true
+    });
+});
+</script>
+{% endblock %}

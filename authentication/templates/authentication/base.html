@@ -29,11 +29,34 @@
         }
 
         body {
-            background: linear-gradient(135deg, var(--light-gray) 0%, white 100%);
+            background-image: url('/media/background.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             font-family: 'Cairo', sans-serif;
+            position: relative;
+        }
+
+        /* Background Overlay for Better Content Readability */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(39, 174, 96, 0.1) 100%
+            );
+            pointer-events: none;
+            z-index: -1;
         }
 
         .login-container {

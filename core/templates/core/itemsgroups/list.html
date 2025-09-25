@@ -3,6 +3,169 @@
 
 {% block title %}إدارة مجموعات الأصناف - نظام إدارة الطنطاوي{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Custom Modal Styles */
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    overflow-y: auto;
+}
+
+.custom-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.custom-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    animation: modalSlideIn 0.3s ease-out;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+[data-theme="dark"] .custom-modal-content {
+    background: rgba(30, 30, 30, 0.95);
+    color: #fff;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.custom-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .custom-modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.custom-modal-header h5 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.custom-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.custom-close-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .custom-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.custom-modal-body {
+    padding: 20px 24px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.custom-modal-footer {
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+[data-theme="dark"] .custom-modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Alert styles for messages */
+.custom-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 10000;
+    min-width: 300px;
+    animation: alertSlideIn 0.3s ease-out;
+}
+
+.custom-alert.success {
+    background: rgba(40, 167, 69, 0.9);
+    color: white;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.custom-alert.danger {
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+@keyframes alertSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+</style>
+{% endblock %}
+
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -25,7 +188,7 @@
         <p class="text-muted mb-0">عرض وإدارة جميع مجموعات الأصناف في النظام</p>
     </div>
     <div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemsGroupModal">
+        <button type="button" class="btn btn-primary" onclick="openAddModal()">
             <i class="bi bi-plus-circle me-2"></i>إضافة مجموعة جديدة
         </button>
     </div>
@@ -217,111 +380,143 @@
     </div>
 </div>
 
-<!-- Add ItemsGroup Modal -->
-<div class="modal fade" id="addItemsGroupModal" tabindex="-1" aria-labelledby="addItemsGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addItemsGroupModalLabel">إضافة مجموعة أصناف جديدة</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addItemsGroupForm">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="itemsGroupName" class="form-label">اسم مجموعة الأصناف <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="itemsGroupName" name="itemsGroupName" required maxlength="255">
-                        <div class="form-text">يجب أن يكون اسم المجموعة فريداً وواضحاً</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-2"></i>إضافة المجموعة
-                    </button>
-                </div>
-            </form>
+<!-- Custom Add ItemsGroup Modal -->
+<div id="customModal" class="custom-modal" style="display: none;">
+    <div class="custom-modal-backdrop" onclick="closeAddModal()"></div>
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h5>إضافة مجموعة أصناف جديدة</h5>
+            <button type="button" class="custom-close-btn" onclick="closeAddModal()">×</button>
         </div>
+        <form id="addItemsGroupForm" onsubmit="handleFormSubmit(event)">
+            {% csrf_token %}
+            <div class="custom-modal-body">
+                <div class="form-group">
+                    <label for="itemsGroupName">اسم مجموعة الأصناف <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="itemsGroupName" name="itemsGroupName" required maxlength="255" placeholder="أدخل اسم المجموعة">
+                    <small class="form-text text-muted">يجب أن يكون اسم المجموعة فريداً وواضحاً</small>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">إلغاء</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-check-circle me-2"></i>إضافة المجموعة
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle add itemsgroup form submission
-    document.getElementById('addItemsGroupForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
-        
-        fetch('{% url "core:itemsgroups_add" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addItemsGroupModal'));
-                modal.hide();
-                
-                // Show success message
-                showAlert(data.message, 'success');
-                
-                // Reload page to show new itemsgroup
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+// Simple Custom Modal Functions
+function openAddModal() {
+    const modal = document.getElementById('customModal');
+    const nameInput = document.getElementById('itemsGroupName');
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Focus on input after animation
+    setTimeout(() => {
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }, 300);
+}
+
+function closeAddModal() {
+    const modal = document.getElementById('customModal');
+    const form = document.getElementById('addItemsGroupForm');
+    
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    
+    // Reset form
+    if (form) {
+        form.reset();
+    }
+}
+
+// Handle form submission
+function handleFormSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Prevent multiple submissions
+    if (submitBtn.disabled) {
+        return;
+    }
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+    
+    fetch('{% url "core:itemsgroups_add" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            closeAddModal();
+            
+            // Show success message
+            showCustomAlert(data.message, 'success');
+            
+            // Refresh page after short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            if (data.errors && Array.isArray(data.errors)) {
+                data.errors.forEach(error => showCustomAlert(error, 'danger'));
             } else {
-                if (data.errors && Array.isArray(data.errors)) {
-                    data.errors.forEach(error => showAlert(error, 'danger'));
-                } else {
-                    showAlert(data.error || 'حدث خطأ في إضافة المجموعة', 'danger');
-                }
+                showCustomAlert(data.error || 'حدث خطأ في إضافة المجموعة', 'danger');
             }
-        })
-        .catch(error => {
-            showAlert('حدث خطأ في الاتصال', 'danger');
-        })
-        .finally(() => {
-            // Reset button state
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showCustomAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
     });
+}
 
-    // Clear modal form when modal is hidden
-    document.getElementById('addItemsGroupModal').addEventListener('hidden.bs.modal', function() {
-        document.getElementById('addItemsGroupForm').reset();
-    });
+// Custom alert function
+function showCustomAlert(message, type) {
+    const alert = document.createElement('div');
+    alert.className = `custom-alert ${type}`;
+    alert.textContent = message;
+    
+    document.body.appendChild(alert);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 3000);
+}
 
-    function showAlert(message, type) {
-        // Create bootstrap alert
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        // Insert at top of container
-        const container = document.querySelector('.container-fluid') || document.body;
-        container.insertBefore(alertDiv, container.firstChild);
-        
-        // Auto dismiss after 3 seconds
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 3000);
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('customModal');
+        if (modal && modal.style.display === 'flex') {
+            closeAddModal();
+        }
     }
 });
 </script>

@@ -1,0 +1,381 @@
+/* Glass Alert Components */
+
+.glass-alert {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    transition: var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-alert::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--primary-green), 
+        transparent
+    );
+    opacity: 0.7;
+}
+
+.glass-alert:hover {
+    background: var(--glass-bg-lighter);
+    backdrop-filter: blur(15px);
+    transform: translateY(-1px);
+    box-shadow: var(--glass-shadow-light);
+}
+
+/* Alert Variants */
+.glass-alert-primary {
+    border-color: var(--primary-green-light);
+    color: var(--primary-green-dark);
+}
+
+.glass-alert-primary::before {
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--primary-green), 
+        transparent
+    );
+}
+
+.glass-alert-secondary {
+    border-color: var(--secondary-light);
+    color: var(--secondary-dark);
+}
+
+.glass-alert-secondary::before {
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--secondary), 
+        transparent
+    );
+}
+
+.glass-alert-success {
+    border-color: var(--success-light);
+    color: var(--success-dark);
+}
+
+.glass-alert-success::before {
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--success), 
+        transparent
+    );
+}
+
+.glass-alert-danger {
+    border-color: var(--danger-light);
+    color: var(--danger-dark);
+}
+
+.glass-alert-danger::before {
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--danger), 
+        transparent
+    );
+}
+
+.glass-alert-warning {
+    border-color: var(--warning-light);
+    color: var(--warning-dark);
+}
+
+.glass-alert-warning::before {
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--warning), 
+        transparent
+    );
+}
+
+.glass-alert-info {
+    border-color: var(--info-light);
+    color: var(--info-dark);
+}
+
+.glass-alert-info::before {
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--info), 
+        transparent
+    );
+}
+
+/* Alert Icons */
+.glass-alert i {
+    font-size: 1.1rem;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.glass-alert-primary i {
+    color: var(--primary-green);
+}
+
+.glass-alert-success i {
+    color: var(--success);
+}
+
+.glass-alert-danger i {
+    color: var(--danger);
+}
+
+.glass-alert-warning i {
+    color: var(--warning);
+}
+
+.glass-alert-info i {
+    color: var(--info);
+}
+
+.glass-alert-secondary i {
+    color: var(--secondary);
+}
+
+/* Alert Content */
+.glass-alert-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.glass-alert-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.glass-alert-message {
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* Dismissible Alerts */
+.glass-alert-dismissible {
+    padding-right: calc(var(--spacing-md) + 30px);
+    position: relative;
+}
+
+.glass-alert-close {
+    position: absolute;
+    top: 50%;
+    right: var(--spacing-sm);
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: var(--transition-base);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.glass-alert-close:hover {
+    opacity: 1;
+    background: var(--glass-bg-light);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.glass-alert-close:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Alert Animations */
+.glass-alert-fade-in {
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: alertFadeIn 0.3s ease-out forwards;
+}
+
+.glass-alert-fade-out {
+    opacity: 1;
+    animation: alertFadeOut 0.3s ease-in forwards;
+}
+
+@keyframes alertFadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes alertFadeOut {
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* Glass Badge Components */
+.glass-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: var(--border-radius-sm);
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: var(--transition-base);
+}
+
+.glass-badge:hover {
+    background: var(--glass-bg-lighter);
+    backdrop-filter: blur(15px);
+    transform: translateY(-1px);
+    box-shadow: var(--glass-shadow-light);
+}
+
+/* Badge Variants */
+.glass-badge-primary {
+    background: linear-gradient(135deg, 
+        var(--primary-green-light), 
+        var(--primary-green)
+    );
+    color: white;
+    border-color: var(--primary-green);
+}
+
+.glass-badge-secondary {
+    background: linear-gradient(135deg, 
+        var(--secondary-light), 
+        var(--secondary)
+    );
+    color: white;
+    border-color: var(--secondary);
+}
+
+.glass-badge-success {
+    background: linear-gradient(135deg, 
+        var(--success-light), 
+        var(--success)
+    );
+    color: white;
+    border-color: var(--success);
+}
+
+.glass-badge-danger {
+    background: linear-gradient(135deg, 
+        var(--danger-light), 
+        var(--danger)
+    );
+    color: white;
+    border-color: var(--danger);
+}
+
+.glass-badge-warning {
+    background: linear-gradient(135deg, 
+        var(--warning-light), 
+        var(--warning)
+    );
+    color: white;
+    border-color: var(--warning);
+}
+
+.glass-badge-info {
+    background: linear-gradient(135deg, 
+        var(--info-light), 
+        var(--info)
+    );
+    color: white;
+    border-color: var(--info);
+}
+
+.glass-badge-sales {
+    background: linear-gradient(135deg, 
+        var(--success-light), 
+        var(--success)
+    );
+    color: white;
+    border-color: var(--success);
+}
+
+.glass-badge-purchases {
+    background: linear-gradient(135deg, 
+        var(--info-light), 
+        var(--info)
+    );
+    color: white;
+    border-color: var(--info);
+}
+
+/* Dark Theme Adjustments */
+[data-theme="dark"] .glass-alert {
+    background: var(--glass-bg-dark);
+    border-color: var(--glass-border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .glass-alert:hover {
+    background: var(--glass-bg-darker);
+}
+
+[data-theme="dark"] .glass-badge {
+    background: var(--glass-bg-dark);
+    border-color: var(--glass-border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .glass-badge:hover {
+    background: var(--glass-bg-darker);
+}
+
+/* RTL Support */
+[dir="rtl"] .glass-alert {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .glass-alert-dismissible {
+    padding-right: var(--spacing-md);
+    padding-left: calc(var(--spacing-md) + 30px);
+}
+
+[dir="rtl"] .glass-alert-close {
+    right: auto;
+    left: var(--spacing-sm);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .glass-alert {
+        padding: var(--spacing-sm);
+        font-size: 0.9rem;
+    }
+    
+    .glass-alert i {
+        font-size: 1rem;
+    }
+    
+    .glass-badge {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+    }
+}

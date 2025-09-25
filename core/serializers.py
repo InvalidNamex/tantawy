@@ -151,6 +151,7 @@ class InvoiceMasterSerializer(serializers.ModelSerializer):
     returnStatus_display = serializers.CharField(source='get_returnStatus_display', read_only=True)
     customer_vendor_name = serializers.CharField(source='customerOrVendorID.customerVendorName', read_only=True)
     store_name = serializers.CharField(source='storeID.storeName', read_only=True)
+    agent_name = serializers.CharField(source='agentID.agentName', read_only=True)
     original_invoice_type = serializers.CharField(source='originalInvoiceID.get_invoiceType_display', read_only=True)
     
     # Nested invoice details
@@ -159,11 +160,12 @@ class InvoiceMasterSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvoiceMaster
         fields = ['id', 'customerOrVendorID', 'customer_vendor_name', 'storeID', 'store_name', 
-                 'invoiceType', 'invoiceType_display', 'notes', 'discountAmount', 'discountPercentage', 
-                 'taxAmount', 'taxPercentage', 'netTotal', 'paymentType', 'paymentType_display', 
-                 'status', 'status_display', 'totalPaid', 'returnStatus', 'returnStatus_display', 
-                 'originalInvoiceID', 'original_invoice_type', 'invoice_details', 'createdAt', 
-                 'updatedAt', 'deletedAt', 'createdBy', 'updatedBy', 'deletedBy', 'isDeleted']
+                 'agentID', 'agent_name', 'invoiceType', 'invoiceType_display', 'notes', 
+                 'discountAmount', 'discountPercentage', 'taxAmount', 'taxPercentage', 'netTotal', 
+                 'paymentType', 'paymentType_display', 'status', 'status_display', 'totalPaid', 
+                 'returnStatus', 'returnStatus_display', 'originalInvoiceID', 'original_invoice_type', 
+                 'invoice_details', 'createdAt', 'updatedAt', 'deletedAt', 'createdBy', 'updatedBy', 
+                 'deletedBy', 'isDeleted']
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -177,7 +179,7 @@ class AccountSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Account
-        fields = ['id', 'accountName', 'accountGroup', 'sign', 'notes', 'created_by_name', 
+        fields = ['id', 'accountName', 'accountGroup', 'sign', 'created_by_name', 
                  'updated_by_name', 'createdAt', 'updatedAt', 'deletedAt', 'createdBy', 
                  'updatedBy', 'deletedBy', 'isDeleted']
         read_only_fields = ['createdAt', 'updatedAt']
@@ -203,3 +205,57 @@ class TransactionSerializer(serializers.ModelSerializer):
                  'created_by_name', 'updated_by_name', 'createdAt', 'updatedAt', 'deletedAt', 
                  'createdBy', 'updatedBy', 'deletedBy', 'isDeleted']
         read_only_fields = ['createdAt', 'updatedAt']
+
+
+class AgentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Agent model with independent authentication.
+    Handles password hashing and validation for mobile app authentication.
+    """
+    
+    password = serializers.CharField(source='agentPassword', write_only=True, min_length=6,
+                                   help_text="Password for agent authentication (minimum 6 characters)")
+    created_by_name = serializers.CharField(source='createdBy.username', read_only=True)
+    updated_by_name = serializers.CharField(source='updatedBy.username', read_only=True)
+    
+    class Meta:
+        model = Agent
+        fields = ['id', 'agentName', 'agentUsername', 'agentPhone', 
+                 'isActive', 'password', 'created_by_name', 'updated_by_name',
+                 'createdAt', 'updatedAt', 'deletedAt', 'createdBy', 'updatedBy', 
+                 'deletedBy', 'isDeleted']
+        read_only_fields = ['createdAt', 'updatedAt']
+        extra_kwargs = {
+            'agentPassword': {'write_only': True},
+            'agentUsername': {'help_text': 'Unique username for agent login'},
+            'agentPhone': {'help_text': 'Agent phone number'},
+            'isActive': {'help_text': 'Whether the agent can login'},
+        }
+    
+    def create(self, validated_data):
+        """Create a new agent with properly hashed password."""
+        password = validated_data.pop('agentPassword', None)
+        agent = Agent.objects.create(**validated_data)
+        if password:
+            agent.set_password(password)
+            agent.save()
+        return agent
+    
+    def update(self, instance, validated_data):
+        """Update agent with password hashing if password is provided."""
+        password = validated_data.pop('agentPassword', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        if password:
+            instance.set_password(password)
+        
+        instance.save()
+        return instance
+    
+    def validate_agentUsername(self, value):
+        """Validate that username is unique."""
+        if Agent.objects.filter(agentUsername=value, isDeleted=False).exists():
+            if not self.instance or self.instance.agentUsername != value:
+                raise serializers.ValidationError("This username is already taken.")
+        return value

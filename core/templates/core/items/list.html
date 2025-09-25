@@ -25,7 +25,7 @@
         <p class="text-muted mb-0">عرض وإدارة جميع الأصناف في النظام</p>
     </div>
     <div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+        <button type="button" class="btn btn-primary" onclick="openAddModal()">
             <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
         </button>
     </div>
@@ -187,7 +187,7 @@
             </a>
             {% else %}
             <p class="text-muted">ابدأ بإضافة أول صنف في النظام</p>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+            <button type="button" class="btn btn-primary" onclick="openAddModal()">
                 <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
             </button>
             {% endif %}
@@ -242,126 +242,285 @@
 {% endif %}
 
 <!-- Add Item Modal -->
-<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="addItemModalLabel">
-                    <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addItemForm">
-                    {% csrf_token %}
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <!-- Item Name -->
-                            <div class="mb-3">
-                                <label for="itemName" class="form-label">
-                                    <i class="bi bi-box me-1"></i>
-                                    اسم الصنف <span class="text-danger">*</span>
-                                </label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="itemName" 
-                                       name="itemName" 
-                                       placeholder="أدخل اسم الصنف"
-                                       required 
-                                       maxlength="255">
-                                <div class="form-text">
-                                    <span id="nameCount">0</span>/255 حرف
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <!-- Item Sign -->
-                            <div class="mb-3">
-                                <label for="sign" class="form-label">
-                                    <i class="bi bi-tag me-1"></i>
-                                    الرمز <span class="text-muted">(اختياري)</span>
-                                </label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="sign" 
-                                       name="sign" 
-                                       placeholder="رمز الصنف"
-                                       maxlength="255">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <!-- Item Group -->
-                            <div class="mb-3">
-                                <label for="itemGroupId" class="form-label">
-                                    <i class="bi bi-collection me-1"></i>
-                                    مجموعة الصنف <span class="text-muted">(اختياري)</span>
-                                </label>
-                                <select class="form-select" id="itemGroupId" name="itemGroupId">
-                                    <option value="">اختر مجموعة الصنف</option>
-                                    {% for group in item_groups %}
-                                        <option value="{{ group.id }}">{{ group.itemsGroupName }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <!-- Price List -->
-                            <div class="mb-3">
-                                <label for="pricelistId" class="form-label">
-                                    <i class="bi bi-currency-dollar me-1"></i>
-                                    قائمة الأسعار <span class="text-muted">(اختياري)</span>
-                                </label>
-                                <select class="form-select" id="pricelistId" name="pricelistId">
-                                    <option value="">اختر قائمة الأسعار</option>
-                                    {% for pricelist in pricelists %}
-                                        <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Price -->
-                    <div class="mb-3">
-                        <label for="price" class="form-label">
-                            <i class="bi bi-cash me-1"></i>
-                            السعر <span class="text-muted">(اختياري)</span>
-                        </label>
-                        <div class="input-group">
-                            <input type="number" 
+<!-- Custom Add Item Modal -->
+<div id="customModal" class="custom-modal" style="display: none;">
+    <div class="custom-modal-backdrop" onclick="closeAddModal()"></div>
+    <div class="custom-modal-content custom-modal-large">
+        <div class="custom-modal-header">
+            <h5><i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد</h5>
+            <button type="button" class="custom-close-btn" onclick="closeAddModal()">×</button>
+        </div>
+        <form id="addItemForm" onsubmit="handleFormSubmit(event)">
+            {% csrf_token %}
+            <div class="custom-modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- Item Name -->
+                        <div class="form-group">
+                            <label for="itemName">
+                                <i class="bi bi-box me-1"></i>
+                                اسم الصنف <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
                                    class="form-control" 
-                                   id="price" 
-                                   name="price" 
-                                   placeholder="0.00"
-                                   step="0.01"
-                                   min="0">
-                            <span class="input-group-text">جنيه</span>
+                                   id="itemName" 
+                                   name="itemName" 
+                                   placeholder="أدخل اسم الصنف"
+                                   required 
+                                   maxlength="255">
+                            <small class="form-text text-muted">
+                                <span id="nameCount">0</span>/255 حرف
+                            </small>
                         </div>
                     </div>
-                    
-                    <!-- Error Display -->
-                    <div class="alert alert-danger d-none" id="errorAlert"></div>
-                </form>
+                    <div class="col-md-6">
+                        <!-- Item Sign -->
+                        <div class="form-group">
+                            <label for="sign">
+                                <i class="bi bi-tag me-1"></i>
+                                الرمز <span class="text-muted">(اختياري)</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="sign" 
+                                   name="sign" 
+                                   placeholder="رمز الصنف"
+                                   maxlength="255">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- Item Group -->
+                        <div class="form-group">
+                            <label for="itemGroupId">
+                                <i class="bi bi-collection me-1"></i>
+                                مجموعة الصنف <span class="text-muted">(اختياري)</span>
+                            </label>
+                            <select class="form-select" id="itemGroupId" name="itemGroupId">
+                                <option value="">اختر مجموعة الصنف</option>
+                                {% for group in item_groups %}
+                                    <option value="{{ group.id }}">{{ group.itemsGroupName }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <!-- Price List -->
+                        <div class="form-group">
+                            <label for="pricelistId">
+                                <i class="bi bi-currency-dollar me-1"></i>
+                                قائمة الأسعار <span class="text-muted">(اختياري)</span>
+                            </label>
+                            <select class="form-select" id="pricelistId" name="pricelistId">
+                                <option value="">اختر قائمة الأسعار</option>
+                                {% for pricelist in pricelists %}
+                                    <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Price -->
+                <div class="form-group">
+                    <label for="price">
+                        <i class="bi bi-cash me-1"></i>
+                        السعر <span class="text-muted">(اختياري)</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" 
+                               class="form-control" 
+                               id="price" 
+                               name="price" 
+                               placeholder="0.00"
+                               step="0.01"
+                               min="0">
+                        <span class="input-group-text">جنيه</span>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">
                     <i class="bi bi-x-circle me-2"></i>إلغاء
                 </button>
-                <button type="button" class="btn btn-primary" id="saveItemBtn">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
                     <i class="bi bi-check-circle me-2"></i>حفظ الصنف
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
+/* Custom Modal Styles */
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    overflow-y: auto;
+}
+
+.custom-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.custom-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    animation: modalSlideIn 0.3s ease-out;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-modal-large {
+    max-width: 800px;
+    max-height: 95vh;
+}
+
+[data-theme="dark"] .custom-modal-content {
+    background: rgba(30, 30, 30, 0.95);
+    color: #fff;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.custom-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .custom-modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.custom-modal-header h5 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.custom-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.custom-close-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .custom-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.custom-modal-body {
+    padding: 20px 24px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.custom-modal-footer {
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+[data-theme="dark"] .custom-modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Alert styles for messages */
+.custom-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 10000;
+    min-width: 300px;
+    animation: alertSlideIn 0.3s ease-out;
+}
+
+.custom-alert.success {
+    background: rgba(40, 167, 69, 0.9);
+    color: white;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.custom-alert.danger {
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+@keyframes alertSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Original table styles */
 .table th {
     background-color: var(--light-green);
     color: var(--dark-green);
@@ -384,19 +543,6 @@
 
 .badge {
     font-size: 0.75em;
-}
-
-.modal-content {
-    border: none;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-    border-bottom: none;
-}
-
-.modal-footer {
-    border-top: none;
 }
 
 .form-control:focus {
@@ -442,12 +588,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.querySelector('input[name="search"]');
     const sortSelect = document.querySelector('select[name="sort"]');
     const directionSelect = document.querySelector('select[name="direction"]');
-    const addItemModal = new bootstrap.Modal(document.getElementById('addItemModal'));
-    const addItemForm = document.getElementById('addItemForm');
-    const saveItemBtn = document.getElementById('saveItemBtn');
     const itemNameInput = document.getElementById('itemName');
     const nameCount = document.getElementById('nameCount');
-    const errorAlert = document.getElementById('errorAlert');
     
     // Auto-submit search form on sort/direction change
     if (sortSelect) {
@@ -477,110 +619,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Character count for item name
     function updateNameCount() {
-        const count = itemNameInput.value.length;
-        nameCount.textContent = count;
-        nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
+        if (itemNameInput && nameCount) {
+            const count = itemNameInput.value.length;
+            nameCount.textContent = count;
+            nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
+        }
     }
     
-    itemNameInput.addEventListener('input', updateNameCount);
-    
-    // Load form data when modal opens
-    document.getElementById('addItemModal').addEventListener('show.bs.modal', function() {
-        loadFormData();
-    });
-    
-    function loadFormData() {
-        fetch('{% url "core:items_add" %}', {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Populate item groups
-            const itemGroupSelect = document.getElementById('itemGroupId');
-            itemGroupSelect.innerHTML = '<option value="">اختر مجموعة الصنف</option>';
-            data.item_groups.forEach(group => {
-                itemGroupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
-            });
-            
-            // Populate price lists
-            const pricelistSelect = document.getElementById('pricelistId');
-            pricelistSelect.innerHTML = '<option value="">اختر قائمة الأسعار</option>';
-            data.pricelists.forEach(pricelist => {
-                pricelistSelect.innerHTML += `<option value="${pricelist.id}">${pricelist.name}</option>`;
-            });
-        })
-        .catch(error => {
-            console.error('Error loading form data:', error);
-            showError(['حدث خطأ أثناء تحميل البيانات']);
-        });
+    if (itemNameInput) {
+        itemNameInput.addEventListener('input', updateNameCount);
     }
-    
-    // Save item
-    saveItemBtn.addEventListener('click', function() {
-        const formData = new FormData(addItemForm);
-        
-        // Show loading state
-        this.disabled = true;
-        this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
-        
-        fetch('{% url "core:items_add" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message
-                const alert = document.createElement('div');
-                alert.className = 'alert alert-success alert-dismissible fade show';
-                alert.innerHTML = `
-                    <i class="bi bi-check-circle me-2"></i>${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.querySelector('.container').insertBefore(alert, document.querySelector('.d-flex'));
-                
-                // Close modal and reload page
-                addItemModal.hide();
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                showError(data.errors);
-            }
-        })
-        .catch(error => {
-            console.error('Error saving item:', error);
-            showError(['حدث خطأ أثناء حفظ الصنف']);
-        })
-        .finally(() => {
-            // Reset button state
-            this.disabled = false;
-            this.innerHTML = '<i class="bi bi-check-circle me-2"></i>حفظ الصنف';
-        });
-    });
-    
-    function showError(errors) {
-        errorAlert.innerHTML = '<ul class="mb-0">' + errors.map(error => `<li>${error}</li>`).join('') + '</ul>';
-        errorAlert.classList.remove('d-none');
-    }
-    
-    function hideError() {
-        errorAlert.classList.add('d-none');
-    }
-    
-    // Reset form when modal is hidden
-    document.getElementById('addItemModal').addEventListener('hidden.bs.modal', function() {
-        addItemForm.reset();
-        hideError();
-        updateNameCount();
-    });
     
     // Confirm delete actions
     document.querySelectorAll('a[href*="delete"]').forEach(link => {
@@ -590,6 +638,157 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+
+// Custom Modal Functions
+function openAddModal() {
+    const modal = document.getElementById('customModal');
+    const nameInput = document.getElementById('itemName');
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Load form data
+    loadFormData();
+    
+    // Focus on input after animation
+    setTimeout(() => {
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }, 300);
+}
+
+function closeAddModal() {
+    const modal = document.getElementById('customModal');
+    const form = document.getElementById('addItemForm');
+    
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    
+    // Reset form
+    if (form) {
+        form.reset();
+        // Update character count
+        const nameCount = document.getElementById('nameCount');
+        if (nameCount) {
+            nameCount.textContent = '0';
+            nameCount.style.color = 'inherit';
+        }
+    }
+}
+
+function loadFormData() {
+    fetch('{% url "core:items_add" %}', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Populate item groups
+        const itemGroupSelect = document.getElementById('itemGroupId');
+        itemGroupSelect.innerHTML = '<option value="">اختر مجموعة الصنف</option>';
+        data.item_groups.forEach(group => {
+            itemGroupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
+        });
+        
+        // Populate price lists
+        const pricelistSelect = document.getElementById('pricelistId');
+        pricelistSelect.innerHTML = '<option value="">اختر قائمة الأسعار</option>';
+        data.pricelists.forEach(pricelist => {
+            pricelistSelect.innerHTML += `<option value="${pricelist.id}">${pricelist.name}</option>`;
+        });
+    })
+    .catch(error => {
+        console.error('Error loading form data:', error);
+        showCustomAlert('حدث خطأ أثناء تحميل البيانات', 'danger');
+    });
+}
+
+// Handle form submission
+function handleFormSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Prevent multiple submissions
+    if (submitBtn.disabled) {
+        return;
+    }
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+    
+    fetch('{% url "core:items_add" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            closeAddModal();
+            
+            // Show success message
+            showCustomAlert(data.message, 'success');
+            
+            // Refresh page after short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            if (data.errors && Array.isArray(data.errors)) {
+                data.errors.forEach(error => showCustomAlert(error, 'danger'));
+            } else {
+                showCustomAlert(data.error || 'حدث خطأ في حفظ الصنف', 'danger');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showCustomAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+// Custom alert function
+function showCustomAlert(message, type) {
+    const alert = document.createElement('div');
+    alert.className = `custom-alert ${type}`;
+    alert.textContent = message;
+    
+    document.body.appendChild(alert);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 3000);
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('customModal');
+        if (modal && modal.style.display === 'flex') {
+            closeAddModal();
+        }
+    }
 });
 </script>
 {% endblock %}

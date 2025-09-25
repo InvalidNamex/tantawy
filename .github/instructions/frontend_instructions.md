@@ -76,3 +76,10 @@ in each screen of the above a list of invoices sortable and filterable
 . Created By
 . Created On
 We can filter by Date picker from/to dates, invoice id, the user who created it (id, user name)
+
+# Agent management
+Check the agent table and the logic we've created for it
+1- create an Agent management tile in the dashboard.
+2- when the tile is clicked we're taking to Agent management page where a staff user can add, view, edit and delete Agents.
+3- a staff can set the password for the agent as this is ERP system and that Agents don't create their own accounts.
+4- when agent name is tapped for view, display all transactions made by him in table transactions if his id exists in agentuserid_id

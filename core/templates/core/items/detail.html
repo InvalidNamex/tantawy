@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const priceId = row.dataset.priceId;
             const newPrice = row.querySelector('.price-input').value;
 
-            fetch(`/core/items/${itemId}/price/${priceId}/`, {
+            fetch(`/items/${itemId}/price/${priceId}/`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const formData = new FormData(this);
         
-        fetch(`/core/items/${itemId}/add-price/`, {
+        fetch(`/items/${itemId}/add-price/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': formData.get('csrfmiddlewaretoken')
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const row = this.closest('tr');
                 const priceId = row.dataset.priceId;
 
-                fetch(`/core/items/${itemId}/price/${priceId}/`, {
+                fetch(`/items/${itemId}/price/${priceId}/`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -573,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('mainInfoForm');
         const formData = new FormData(form);
         
-        fetch(`/core/items/${itemId}/update-main-info/`, {
+        fetch(`{% url 'core:items_update_main_info' item.id %}`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': formData.get('csrfmiddlewaretoken')

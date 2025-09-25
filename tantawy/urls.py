@@ -14,7 +14,7 @@ urlpatterns = [
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(), name='swagger-ui'),
     path('api/schema/redoc/', SpectacularRedocView.as_view(), name='redoc'),
     path('chaining/', include('smart_selects.urls')),
-    path('core/', include('core.urls')),
+    path('', include('core.urls')),  # Include core URLs at root level for consistent API structure
 ]
 
 if settings.DEBUG:
@@ -24,3 +24,4 @@ if settings.DEBUG:
     ] + urlpatterns
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

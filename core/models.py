@@ -5,6 +5,7 @@ Contains all database models with audit fields and proper relationships.
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password, check_password
 from .constants import *
 
 
@@ -169,6 +170,8 @@ class InvoiceMaster(BaseModel):
                                           help_text="Associated customer or vendor")
     storeID = models.ForeignKey('Store', on_delete=models.PROTECT, null=True, blank=True,
                                help_text="Store where invoice was processed")
+    agentID = models.ForeignKey('Agent', on_delete=models.PROTECT, null=True, blank=True,
+                               help_text="Agent who created this invoice", db_column='agentID')
     invoiceType = models.IntegerField(choices=INVOICE_TYPE_CHOICES, 
                                      help_text="Type: 1=Purchases, 2=Sales, 3=Return Purchases, 4=Return Sales")
     notes = models.TextField(blank=True, null=True, help_text="Invoice notes or comments")
@@ -307,3 +310,42 @@ class CustomerVendorPriceList(BaseModel):
         verbose_name_plural = "Customer/Vendor Price Lists"
         # Ensure unique combination of customer/vendor and price list
         unique_together = ['customerVendorID', 'priceListID']
+
+
+from django.contrib.auth.hashers import make_password, check_password
+
+
+class Agent(BaseModel):
+    """
+    Agent model for managing sales agents and representatives.
+    Independent authentication system for mobile app users.
+    """
+    agentName = models.CharField(max_length=255, 
+                                help_text="Display name for the agent")
+    agentUsername = models.CharField(max_length=150, unique=True,
+                                   help_text="Unique username for agent login")
+    agentPassword = models.CharField(max_length=128,
+                                   help_text="Hashed password for agent authentication")
+    agentPhone = models.CharField(max_length=20, blank=True, null=True,
+                                help_text="Agent phone number")
+    storeID = models.ForeignKey('Store', on_delete=models.PROTECT, null=True, blank=True,
+                               help_text="Store assigned to this agent", db_column='storeID')
+    isActive = models.BooleanField(default=True,
+                                 help_text="Whether the agent can login")
+    
+    def set_password(self, raw_password):
+        """Set password with Django's password hashing."""
+        self.agentPassword = make_password(raw_password)
+    
+    def check_password(self, raw_password):
+        """Check password against stored hash."""
+        return check_password(raw_password, self.agentPassword)
+    
+    def __str__(self):
+        return f"{self.agentName} ({self.agentUsername})"
+    
+    class Meta:
+        ordering = ['agentName']
+        db_table = 'agents'
+        verbose_name = "Agent"
+        verbose_name_plural = "Agents"

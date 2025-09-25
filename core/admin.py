@@ -107,16 +107,16 @@ class CustomerVendorAdmin(admin.ModelAdmin):
 class InvoiceMasterAdmin(admin.ModelAdmin):
     """Admin interface for InvoiceMaster model with comprehensive filtering and inline invoice details."""
     list_display = ['id', 'get_invoice_type_display', 'customerOrVendorID', 'storeID', 
-                   'get_status_display', 'netTotal', 'createdAt', 'isDeleted']
-    list_filter = ['isDeleted', 'invoiceType', 'status', 'paymentType', 'returnStatus', 'createdAt']
-    search_fields = ['customerOrVendorID__customerVendorName', 'storeID__storeName', 'notes']
+                   'agentID', 'get_status_display', 'netTotal', 'createdAt', 'isDeleted']
+    list_filter = ['isDeleted', 'invoiceType', 'status', 'paymentType', 'returnStatus', 'agentID', 'createdAt']
+    search_fields = ['customerOrVendorID__customerVendorName', 'storeID__storeName', 'agentID__agentName', 'notes']
     readonly_fields = ['createdAt', 'updatedAt']
-    raw_id_fields = ['customerOrVendorID', 'storeID', 'originalInvoiceID']
+    raw_id_fields = ['customerOrVendorID', 'storeID', 'agentID', 'originalInvoiceID']
     inlines = [InvoiceDetailInline]
     
     fieldsets = (
         ('Invoice Information', {
-            'fields': ('invoiceType', 'customerOrVendorID', 'storeID', 'originalInvoiceID', 'notes')
+            'fields': ('invoiceType', 'customerOrVendorID', 'storeID', 'agentID', 'originalInvoiceID', 'notes')
         }),
         ('Financial Details', {
             'fields': ('discountAmount', 'discountPercentage', 'taxAmount', 'taxPercentage', 'netTotal')
@@ -226,3 +226,125 @@ class TransactionAdmin(admin.ModelAdmin):
         """Display human-readable transaction type."""
         return obj.get_type_display() if obj.type else '-'
     get_type_display.short_description = 'Transaction Type'
+
+
+from django import forms
+from django.contrib import admin
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.core.exceptions import ValidationError
+
+
+class AgentCreationForm(forms.ModelForm):
+    """A form for creating new agents with password."""
+    password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
+    password2 = forms.CharField(label='Password confirmation', widget=forms.PasswordInput)
+
+    class Meta:
+        model = Agent
+        fields = ('agentName', 'agentUsername', 'agentPhone', 'isActive')
+
+    def clean_password2(self):
+        # Check that the two password entries match
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("Passwords don't match")
+        return password2
+
+    def save(self, commit=True):
+        # Save the provided password in hashed format
+        agent = super().save(commit=False)
+        agent.set_password(self.cleaned_data["password1"])
+        if commit:
+            agent.save()
+        return agent
+
+
+class AgentChangeForm(forms.ModelForm):
+    """A form for updating agents. Includes all the fields on
+    the agent, but replaces the password field with admin's
+    disabled password hash display field.
+    """
+    password = ReadOnlyPasswordHashField(label="Password", 
+                                       help_text="Raw passwords are not stored, so there is no way to see this "
+                                               "agent's password, but you can change the password using "
+                                               "<a href=\"../password/\">this form</a>.")
+
+    class Meta:
+        model = Agent
+        fields = ('agentName', 'agentUsername', 'agentPhone', 'isActive', 'password')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['password'].initial = self.instance.agentPassword
+
+    def clean_password(self):
+        # Regardless of what the user provides, return the initial value.
+        # This is done here, rather than on the field, because the
+        # field does not have access to the initial value
+        return self.initial.get("password")
+
+
+@admin.register(Agent)
+class AgentAdmin(admin.ModelAdmin):
+    """Admin interface for Agent model with independent authentication."""
+    form = AgentChangeForm
+    add_form = AgentCreationForm
+    
+    list_display = ['id', 'agentName', 'agentUsername', 'isActive', 'createdAt', 'isDeleted']
+    list_filter = ['isDeleted', 'isActive', 'createdAt']
+    search_fields = ['agentName', 'agentUsername']
+    readonly_fields = ['createdAt', 'updatedAt']
+    ordering = ['agentName']
+    
+    fieldsets = (
+        ('Agent Information', {
+            'fields': ('agentName', 'agentUsername', 'agentPhone', 'isActive')
+        }),
+        ('Authentication', {
+            'fields': ('password',),
+            'classes': ('collapse',),
+            'description': 'Password is automatically hashed. Use the change password form to update.'
+        }),
+        ('Audit Information', {
+            'fields': ('createdAt', 'updatedAt', 'deletedAt', 'isDeleted'),
+            'classes': ('collapse',)
+        }),
+        ('User Tracking', {
+            'fields': ('createdBy', 'updatedBy', 'deletedBy'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    add_fieldsets = (
+        ('Agent Information', {
+            'fields': ('agentName', 'agentUsername', 'agentPhone', 'isActive')
+        }),
+        ('Authentication', {
+            'fields': ('password1', 'password2'),
+            'description': 'Enter a secure password for the agent.'
+        }),
+    )
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Use special form during agent creation
+        """
+        defaults = {}
+        if obj is None:
+            defaults['form'] = self.add_form
+        defaults.update(kwargs)
+        return super().get_form(request, obj, **defaults)
+    
+    def get_fieldsets(self, request, obj=None):
+        if not obj:
+            return self.add_fieldsets
+        return super().get_fieldsets(request, obj)
+
+    def save_model(self, request, obj, form, change):
+        """Override save to handle password hashing and audit fields."""
+        if not change:  # Creating new agent
+            obj.createdBy = request.user
+        obj.updatedBy = request.user
+        super().save_model(request, obj, form, change)

@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إدارة المستخدمين{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-people"></i> إدارة المستخدمين
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+    
+    .user-card:hover {
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.2);
+        border-color: #28a745;
+        transform: translateY(-2px);
+    }
+    
+    .user-status-active {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .user-status-inactive {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    
+    .search-container {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(40, 167, 69, 0.3);
+    }
+    
+    .stats-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-success-custom {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        border-radius: 25px;
+        padding: 10px 25px;
+        color: white;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-success-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+
+    /* Additional glassmorphism styles for better background integration */
+    .container-fluid {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border-radius: 15px;
+        margin: 20px;
+        padding: 30px;
+    }
+
+    .form-control {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    .table {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border: none;
+    }
+
+    .table td {
+        background: rgba(255, 255, 255, 0.7);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .btn-outline-primary,
+    .btn-outline-success,
+    .btn-outline-danger {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    .pagination {
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 15px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .page-link {
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .page-link:hover {
+        background: #28a745;
+        border-color: #28a745;
+        color: white;
+    }
+
+    /* Floating Back Button */
+    .floating-back-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        border-radius: 50px;
+        padding: 15px 25px;
+        color: white;
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .floating-back-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(40, 167, 69, 0.6);
+        color: white;
+        text-decoration: none;
+    }
+
+    .floating-back-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 text-dark mb-1">
+                        <i class="bi bi-people-fill text-success me-2"></i>
+                        إدارة المستخدمين
+                    </h1>
+                    <p class="text-muted mb-0">إدارة وتحكم في جميع مستخدمي النظام</p>
+                </div>
+                {% if user.is_superuser %}
+                <a href="{% url 'authentication:user_create' %}" class="btn btn-success-custom">
+                    <i class="bi bi-person-plus-fill me-2"></i>
+                    إضافة مستخدم جديد
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <h4 class="text-success mb-1">{{ total_users }}</h4>
+                        <p class="text-muted mb-0">إجمالي المستخدمين</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-container">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-8">
+                        <label for="search" class="form-label text-white fw-bold">البحث في المستخدمين</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="search" 
+                               name="search" 
+                               value="{{ search_query }}"
+                               placeholder="ابحث باسم المستخدم، الاسم الأول، أو الاسم الأخير">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-light fw-bold w-100">
+                            <i class="bi bi-search me-2"></i>
+                            بحث
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Users List -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-ul text-success me-2"></i>
+                        قائمة المستخدمين
+                        {% if search_query %}
+                        <small class="text-muted">(نتائج البحث عن: "{{ search_query }}")</small>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>اسم المستخدم</th>
+                                    <th>الاسم الكامل</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الانضمام</th>
+                                    <th class="text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user_item in users %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-dark">{{ user_item.username }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if user_item.first_name or user_item.last_name %}
+                                            {{ user_item.first_name }} {{ user_item.last_name }}
+                                        {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user_item.is_active %}
+                                            <span class="badge bg-success">مفعل</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">غير مفعل</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ user_item.date_joined|date:"Y-m-d H:i" }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'authentication:user_detail' user_item.id %}" 
+                                               class="btn btn-sm btn-outline-info"
+                                               title="عرض التفاصيل">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if user.is_superuser and not user_item.is_superuser %}
+                                            <a href="{% url 'authentication:user_edit' user_item.id %}" 
+                                               class="btn btn-sm btn-outline-warning"
+                                               title="تعديل">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% if user_item != user %}
+                                            <a href="{% url 'authentication:user_delete' user_item.id %}" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               title="حذف"
+                                               onclick="return confirm('هل أنت متأكد من رغبتك في حذف هذا المستخدم؟')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                            {% endif %}
+                                            {% elif user_item.is_superuser %}
+                                            <span class="badge bg-secondary" title="حساب مدير عام - لا يمكن تعديله">
+                                                <i class="bi bi-shield-lock"></i>
+                                                محمي
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if users.has_other_pages %}
+                    <div class="card-footer bg-light">
+                        <nav aria-label="صفحات المستخدمين">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if users.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ users.previous_page_number }}">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in users.paginator.page_range %}
+                                    {% if page_num == users.number %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% elif page_num > users.number|add:'-3' and page_num < users.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_num }}">{{ page_num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if users.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ users.next_page_number }}">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-people display-1 text-muted"></i>
+                        <h4 class="text-muted mt-3">لا توجد مستخدمين</h4>
+                        {% if search_query %}
+                        <p class="text-muted">لم يتم العثور على نتائج للبحث عن "{{ search_query }}"</p>
+                        <a href="{% url 'authentication:users_list' %}" class="btn btn-outline-secondary">عرض جميع المستخدمين</a>
+                        {% else %}
+                        <p class="text-muted">ابدأ بإضافة مستخدمين جدد للنظام</p>
+                        {% if user.is_superuser %}
+                        <a href="{% url 'authentication:user_create' %}" class="btn btn-success-custom">
+                            <i class="bi bi-person-plus-fill me-2"></i>
+                            إضافة مستخدم جديد
+                        </a>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

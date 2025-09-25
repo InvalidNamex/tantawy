@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إدارة المناديب - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-people"></i> إدارة المناديب
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card-primary mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="text-white mb-2">
+                        <i class="bi bi-people me-2"></i>
+                        إدارة المناديب
+                    </h1>
+                    <p class="text-white mb-0">
+                        إضافة وتعديل وحذف المناديب في النظام
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    {% if perms.core.add_agent %}
+                    <a href="{% url 'authentication:agent_create' %}" class="glass-btn-success glass-btn">
+                        <i class="bi bi-plus-circle me-1"></i> إضافة مندوب جديد
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="glass-card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">البحث</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               placeholder="البحث بالاسم أو اسم المستخدم..." 
+                               value="{{ request.GET.search }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">الحالة</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">جميع الحالات</option>
+                            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>نشط</option>
+                            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>غير نشط</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="glass-btn-primary glass-btn me-2">
+                            <i class="bi bi-search me-1"></i> بحث
+                        </button>
+                        <a href="{% url 'authentication:agents_manage' %}" class="glass-btn glass-btn">
+                            <i class="bi bi-arrow-clockwise me-1"></i> إعادة تعيين
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agents List -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list me-2"></i> قائمة المناديب
+                    <span class="badge bg-primary ms-2">{{ agents.count }} مندوب</span>
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                {% if agents %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>رقم التعريف</th>
+                                <th>اسم المندوب</th>
+                                <th>اسم المستخدم</th>
+                                <th>رقم الهاتف</th>
+                                <th>الحالة</th>
+                                <th>أنشأه</th>
+                                <th>آخر تحديث</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for agent in agents %}
+                            <tr>
+                                <td>{{ agent.id }}</td>
+                                <td>
+                                    <a href="{% url 'authentication:agent_detail' agent.id %}" 
+                                       class="text-decoration-none fw-bold">
+                                        {{ agent.agentName }}
+                                    </a>
+                                </td>
+                                <td>{{ agent.agentUsername }}</td>
+                                <td>{{ agent.agentPhone|default:"-" }}</td>
+                                <td>
+                                    {% if agent.isActive %}
+                                        <span class="badge bg-success">نشط</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">غير نشط</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ agent.createdBy.username|default:"-" }}</td>
+                                <td>{{ agent.updatedAt|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'authentication:agent_detail' agent.id %}" 
+                                           class="btn btn-sm glass-btn-info" title="عرض التفاصيل">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if perms.core.change_agent %}
+                                        <a href="{% url 'authentication:agent_edit' agent.id %}" 
+                                           class="btn btn-sm glass-btn-warning" title="تعديل">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if perms.core.delete_agent %}
+                                        <a href="{% url 'authentication:agent_delete' agent.id %}" 
+                                           class="btn btn-sm glass-btn-danger" title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-3">لا توجد مناديب</h5>
+                    <p class="text-muted">لم يتم العثور على أي مناديب في النظام</p>
+                    {% if perms.core.add_agent %}
+                    <a href="{% url 'authentication:agent_create' %}" class="glass-btn-primary glass-btn">
+                        <i class="bi bi-plus-circle me-1"></i> إضافة مندوب جديد
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

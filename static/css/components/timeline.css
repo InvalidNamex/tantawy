@@ -1,0 +1,270 @@
+/* Glass Timeline Components */
+
+.glass-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.glass-timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    transition: var(--transition-base);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideInUp 0.6s ease-out forwards;
+}
+
+.glass-timeline-item:hover {
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(15px);
+    transform: translateY(-2px);
+}
+
+.glass-timeline-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.glass-timeline-link:hover {
+    color: inherit;
+    background: var(--glass-bg-light);
+}
+
+.glass-timeline-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    transition: var(--transition-base);
+}
+
+.glass-timeline-icon i {
+    color: inherit;
+}
+
+.glass-icon-primary {
+    background: linear-gradient(135deg, 
+        var(--primary-green-light), 
+        var(--primary-green)
+    );
+    color: white;
+    border-color: var(--primary-green);
+}
+
+.glass-icon-success {
+    background: linear-gradient(135deg, 
+        var(--success-light), 
+        var(--success)
+    );
+    color: white;
+    border-color: var(--success);
+}
+
+.glass-icon-info {
+    background: linear-gradient(135deg, 
+        var(--info-light), 
+        var(--info)
+    );
+    color: white;
+    border-color: var(--info);
+}
+
+.glass-icon-warning {
+    background: linear-gradient(135deg, 
+        var(--warning-light), 
+        var(--warning)
+    );
+    color: white;
+    border-color: var(--warning);
+}
+
+.glass-timeline-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.glass-timeline-content .fw-semibold {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.glass-timeline-content small {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Tips List Components */
+.glass-tips-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.glass-tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    transition: var(--transition-base);
+    opacity: 0;
+    transform: translateX(20px);
+    animation: slideInRight 0.6s ease-out forwards;
+}
+
+.glass-tip-item:hover {
+    transform: translateY(-2px);
+}
+
+.glass-tip-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, 
+        var(--warning-light), 
+        var(--warning)
+    );
+    color: white;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.glass-tip-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.glass-tip-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.glass-tip-content small {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Animation Delays */
+.glass-animation-delay-1 {
+    animation-delay: 0.1s;
+}
+
+.glass-animation-delay-2 {
+    animation-delay: 0.2s;
+}
+
+.glass-animation-delay-3 {
+    animation-delay: 0.3s;
+}
+
+.glass-animation-delay-4 {
+    animation-delay: 0.4s;
+}
+
+.glass-animation-delay-5 {
+    animation-delay: 0.5s;
+}
+
+.glass-animation-delay-6 {
+    animation-delay: 0.6s;
+}
+
+/* Keyframe Animations */
+@keyframes slideInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Dark Theme Adjustments */
+[data-theme="dark"] .glass-timeline-item:hover,
+[data-theme="dark"] .glass-tip-item:hover {
+    background: var(--glass-bg-dark);
+}
+
+[data-theme="dark"] .glass-timeline-icon {
+    background: var(--glass-bg-dark);
+    border-color: var(--glass-border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .glass-tip-item {
+    background: var(--glass-bg-dark);
+    border-color: var(--glass-border);
+}
+
+/* RTL Support */
+[dir="rtl"] .glass-timeline-item,
+[dir="rtl"] .glass-tip-item {
+    flex-direction: row-reverse;
+}
+
+[dir="rtl"] .glass-tip-item {
+    transform: translateX(-20px);
+}
+
+[dir="rtl"] .glass-animation-delay-1,
+[dir="rtl"] .glass-animation-delay-2,
+[dir="rtl"] .glass-animation-delay-3 {
+    animation-name: slideInLeft;
+}
+
+@keyframes slideInLeft {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .glass-timeline-icon,
+    .glass-tip-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    .glass-timeline-item,
+    .glass-tip-item {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
+    }
+    
+    .glass-tip-content strong {
+        font-size: 0.9rem;
+    }
+    
+    .glass-tip-content small {
+        font-size: 0.8rem;
+    }
+}

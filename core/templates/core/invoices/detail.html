@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل الفاتورة {{ invoice.invoiceNumber }} - نظام إدارة الطنطاوي{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'core:invoices_main' %}">
+                <i class="bi bi-receipt"></i> إدارة الفواتير
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-file-text"></i> {{ invoice_number }}
+        </li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card-primary mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="text-white mb-2">
+                        <i class="bi bi-file-text me-2"></i>
+                        تفاصيل الفاتورة {{ invoice_number }}
+                    </h1>
+                    <p class="text-white mb-0">
+                        {{ invoice_type_label }} - {{ invoice.createdAt|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group">
+                        <button class="glass-btn-secondary glass-btn" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i> طباعة
+                        </button>
+                        <a href="{% url 'core:invoices_main' %}" class="glass-btn glass-btn">
+                            <i class="bi bi-arrow-left me-1"></i> رجوع
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Information -->
+<div class="row mb-4">
+    <!-- Invoice Header Info -->
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i> معلومات الفاتورة
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label class="info-label">رقم الفاتورة:</label>
+                        <span class="info-value">
+                            <code class="text-primary">{{ invoice_number }}</code>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">نوع الفاتورة:</label>
+                        <span class="info-value">
+                            <span class="badge bg-primary">{{ invoice_type_label }}</span>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">العميل/المورد:</label>
+                        <span class="info-value">{{ customer_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">المخزن:</label>
+                        <span class="info-value">{{ store_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">المندوب:</label>
+                        <span class="info-value">{{ agent_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">تاريخ الإنشاء:</label>
+                        <span class="info-value">{{ invoice.createdAt|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">أنشأه:</label>
+                        <span class="info-value">{{ created_by_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="col-lg-6">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-credit-card me-2"></i> معلومات الدفع
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label class="info-label">إجمالي الصافي:</label>
+                        <span class="info-value">
+                            <span class="fw-bold text-success">{{ invoice.netTotal }} ج.م</span>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">إجمالي المدفوع:</label>
+                        <span class="info-value">
+                            <span class="fw-bold">{{ invoice.totalPaid }} ج.م</span>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">المتبقي:</label>
+                        <span class="info-value">
+                            <span class="fw-bold {% if remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ remaining_amount|floatformat:2 }} ج.م
+                            </span>
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">حالة الدفع:</label>
+                        <span class="info-value">
+                            <span class="badge {% if payment_status == 'مدفوع' %}bg-success{% elif payment_status == 'غير مدفوع' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ payment_status }}
+                            </span>
+                        </span>
+                    </div>
+                    {% if invoice.notes %}
+                    <div class="info-item">
+                        <label class="info-label">ملاحظات:</label>
+                        <span class="info-value">{{ invoice.notes }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Items -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i> تفاصيل الأصناف
+                </h5>
+            </div>
+            <div class="glass-card-body">
+                {% if invoice_details %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="5%">#</th>
+                                <th width="30%">الصنف</th>
+                                <th width="15%">الكمية</th>
+                                <th width="15%">سعر الوحدة</th>
+                                <th width="15%">الإجمالي</th>
+                                <th width="20%">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in invoice_details_with_totals %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <div class="fw-bold">{{ item.detail.item.itemName }}</div>
+                                    <small class="text-muted">كود: {{ item.detail.item.barcode|default:"غير محدد" }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark">{{ item.detail.quantity|floatformat:2 }}</span>
+                                    <small class="text-muted d-block">{{ item.detail.item.mainUnitName|default:"وحدة" }}</small>
+                                </td>
+                                <td class="text-end">{{ item.detail.price|floatformat:2 }} ج.م</td>
+                                <td class="text-end">
+                                    <span class="fw-bold">{{ item.total|floatformat:2 }} ج.م</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ item.detail.notes|default:"-" }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">الإجمالي الفرعي:</th>
+                                <th class="text-end">{{ subtotal|floatformat:2 }} ج.م</th>
+                                <th></th>
+                            </tr>
+                            <tr>
+                                <th colspan="4" class="text-end">صافي المبلغ:</th>
+                                <th class="text-end text-success">{{ invoice.netTotal|floatformat:2 }} ج.م</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">لا توجد أصناف</h4>
+                    <p class="text-muted">لا توجد تفاصيل أصناف مرتبطة بهذه الفاتورة</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.info-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #6c757d;
+    flex: 0 0 40%;
+}
+
+.info-value {
+    flex: 1;
+    text-align: left;
+}
+
+@media print {
+    .glass-card-primary .btn-group,
+    .breadcrumb {
+        display: none !important;
+    }
+    
+    .glass-card {
+        border: 1px solid #dee2e6 !important;
+        background: white !important;
+    }
+}
+</style>
+{% endblock %}

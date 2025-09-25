@@ -5,8 +5,8 @@
 
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item active">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item active">
             <i class="bi bi-house"></i> الرئيسية
         </li>
     </ol>
@@ -14,227 +14,193 @@
 {% endblock %}
 
 {% block content %}
-<!-- Welcome Section -->
+<!-- Welcome Section with Glass Effect -->
 <div class="row">
     <div class="col-12">
-        <div class="card border-0 mb-4" style="background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);">
-            <div class="card-body text-white p-4">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h1 class="card-title mb-2">
-                            <i class="bi bi-house-door me-2"></i>
-                            مرحباً، {{ user.get_full_name|default:user.username }}!
-                        </h1>
-                        <p class="card-text mb-3">
-                            لوحة تحكم نظام إدارة الطنطاوي - مركزك الرئيسي لإدارة المخزون والمتاجر
-                        </p>
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-calendar me-2"></i>
-                            <span>آخر تسجيل دخول: 
-                                {% if user.last_login %}
-                                    {{ user.last_login|date:"j F Y - H:i" }}
-                                {% else %}
-                                    أول مرة
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <img src="{% static 'logo.png' %}" alt="شعار الطنطاوي" class="img-fluid" style="max-height: 100px; filter: brightness(0) invert(1);">
+        <div class="hero-section glass-card-primary mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="hero-title text-white mb-2">
+                        <i class="bi bi-house-door me-2"></i>
+                        مرحباً، {{ user.get_full_name|default:user.username }}!
+                    </h1>
+                    <p class="hero-subtitle text-white mb-3">
+                        لوحة تحكم نظام إدارة الطنطاوي - مركزك الرئيسي لإدارة المخزون والمتاجر
+                    </p>
+                    <div class="d-flex align-items-center text-white">
+                        <i class="bi bi-calendar me-2"></i>
+                        <span>آخر تسجيل دخول: 
+                            {% if user.last_login %}
+                                {{ user.last_login|date:"j F Y - H:i" }}
+                            {% else %}
+                                أول مرة
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
+                <div class="col-md-4 text-center">
+                    <img src="/media/logo.png" alt="شعار الطنطاوي" class="img-fluid" style="max-height: 100px; filter: brightness(0) invert(1);">
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Quick Stats Cards -->
-<div class="row">
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-collection display-4" style="color: var(--primary-green);"></i>
-                </div>
-                <h5 class="card-title">مجموعات الأصناف</h5>
-                <h2 class="text-primary mb-3">{{ items_groups_count }}</h2>
-                <a href="{% url 'core:itemsgroups' %}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+<!-- Quick Stats Cards with Glass Effects -->
+<div class="dashboard-stats">
+    <div class="glass-dashboard-card glass-slide-up">
+        <div class="card-icon">
+            <i class="bi bi-collection"></i>
         </div>
+        <h5 class="card-title">مجموعات الأصناف</h5>
+        <div class="card-value">{{ items_groups_count }}</div>
+        <p class="card-subtitle">إجمالي المجموعات المسجلة</p>
+        <a href="{% url 'core:itemsgroups' %}" class="glass-btn-primary glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-box display-4" style="color: var(--success-green);"></i>
-                </div>
-                <h5 class="card-title">الأصناف</h5>
-                <h2 class="text-success mb-3">{{ items_count }}</h2>
-                <a href="{% url 'core:items' %}" class="btn btn-outline-success btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.1s;">
+        <div class="card-icon">
+            <i class="bi bi-box"></i>
         </div>
+        <h5 class="card-title">الأصناف</h5>
+        <div class="card-value">{{ items_count }}</div>
+        <p class="card-subtitle">إجمالي الأصناف المتاحة</p>
+        <a href="{% url 'core:items' %}" class="glass-btn-success glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-person-check display-4" style="color: var(--hover-green);"></i>
-                </div>
-                <h5 class="card-title">العملاء</h5>
-                <h2 class="text-info mb-3">{{ customers_count }}</h2>
-                <a href="{% url 'core:customers' %}" class="btn btn-outline-info btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.2s;">
+        <div class="card-icon">
+            <i class="bi bi-person-check"></i>
         </div>
+        <h5 class="card-title">العملاء</h5>
+        <div class="card-value">{{ customers_count }}</div>
+        <p class="card-subtitle">عدد العملاء المسجلين</p>
+        <a href="{% url 'core:customers' %}" class="glass-btn-info glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-truck display-4" style="color: var(--primary-green);"></i>
-                </div>
-                <h5 class="card-title">الموردين</h5>
-                <h2 class="text-warning mb-3">{{ vendors_count }}</h2>
-                <a href="{% url 'core:vendors' %}" class="btn btn-outline-warning btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.3s;">
+        <div class="card-icon">
+            <i class="bi bi-truck"></i>
         </div>
+        <h5 class="card-title">الموردين</h5>
+        <div class="card-value">{{ vendors_count }}</div>
+        <p class="card-subtitle">عدد الموردين النشطين</p>
+        <a href="{% url 'core:vendors' %}" class="glass-btn-warning glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
 </div>
 
-<!-- Additional Stats Row -->
-<div class="row">
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-currency-dollar display-4" style="color: var(--hover-green);"></i>
-                </div>
-                <h5 class="card-title">قوائم الأسعار</h5>
-                <h2 class="text-info mb-3">{{ price_lists_count }}</h2>
-                <a href="{% url 'core:pricelists' %}" class="btn btn-outline-info btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+<!-- Additional Stats Row with Glass Effects -->
+<div class="dashboard-stats">
+    <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.4s;">
+        <div class="card-icon">
+            <i class="bi bi-currency-dollar"></i>
         </div>
+        <h5 class="card-title">قوائم الأسعار</h5>
+        <div class="card-value">{{ price_lists_count }}</div>
+        <p class="card-subtitle">قوائم الأسعار المتاحة</p>
+        <a href="{% url 'core:pricelists' %}" class="glass-btn-info glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-building display-4" style="color: var(--primary-green);"></i>
-                </div>
-                <h5 class="card-title">مجموعات المخازن</h5>
-                <h2 class="text-success mb-3">{{ store_groups_count }}</h2>
-                <a href="{% url 'core:storegroups' %}" class="btn btn-outline-success btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+    <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.5s;">
+        <div class="card-icon">
+            <i class="bi bi-building"></i>
         </div>
+        <h5 class="card-title">مجموعات المخازن</h5>
+        <div class="card-value">{{ store_groups_count }}</div>
+        <p class="card-subtitle">مجموعات المخازن النشطة</p>
+        <a href="{% url 'core:storegroups' %}" class="glass-btn-success glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-shop display-4" style="color: var(--dark-green);"></i>
-                </div>
-                <h5 class="card-title">المخازن</h5>
-                <h2 class="text-warning mb-3">{{ stores_count }}</h2>
-                <a href="{% url 'core:stores' %}" class="btn btn-outline-warning btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+    <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.6s;">
+        <div class="card-icon">
+            <i class="bi bi-shop"></i>
         </div>
+        <h5 class="card-title">المخازن</h5>
+        <div class="card-value">{{ stores_count }}</div>
+        <p class="card-subtitle">عدد المخازن النشطة</p>
+        <a href="{% url 'core:stores' %}" class="glass-btn-warning glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
     
-    <div class="col-md-3 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body">
-                <div class="mb-3">
-                    <i class="bi bi-receipt display-4" style="color: var(--success-green);"></i>
-                </div>
-                <h5 class="card-title">إجمالي الفواتير</h5>
-                <h2 class="text-primary mb-3">{{ total_invoices_count }}</h2>
-                <a href="{% url 'core:invoices_main' %}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-eye me-1"></i> عرض الكل
-                </a>
-            </div>
+    <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.7s;">
+        <div class="card-icon">
+            <i class="bi bi-receipt"></i>
         </div>
+        <h5 class="card-title">إجمالي الفواتير</h5>
+        <div class="card-value">{{ total_invoices_count }}</div>
+        <p class="card-subtitle">جميع الفواتير المسجلة</p>
+        <a href="{% url 'core:invoices_main' %}" class="glass-btn-primary glass-btn mt-3">
+            <i class="bi bi-eye me-1"></i> عرض الكل
+        </a>
     </div>
 </div>
 
-<!-- Invoice Management Section -->
+<!-- Invoice Management Section with Glass Effects -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
                     <i class="bi bi-receipt me-2"></i> إدارة الفواتير
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 text-center border-primary">
-                            <div class="card-body">
-                                <i class="bi bi-bag-fill display-6 text-primary mb-2"></i>
-                                <h6 class="card-title">فواتير الشراء</h6>
-                                <h4 class="text-primary">{{ purchase_invoices_count }}</h4>
-                                <a href="{% url 'core:invoices_purchase' %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-eye me-1"></i> عرض
-                                </a>
-                            </div>
+            <div class="glass-card-body">
+                <div class="glass-card-grid-2x2">
+                    <div class="glass-stats-card glass-card-primary">
+                        <div class="stats-icon">
+                            <i class="bi bi-bag-fill"></i>
                         </div>
+                        <div class="stats-number">{{ purchase_invoices_count }}</div>
+                        <p class="stats-label">فواتير الشراء</p>
+                        <a href="{% url 'core:invoices_purchase' %}" class="glass-btn-primary glass-btn mt-3">
+                            <i class="bi bi-eye me-1"></i> عرض
+                        </a>
                     </div>
                     
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 text-center border-success">
-                            <div class="card-body">
-                                <i class="bi bi-cart-fill display-6 text-success mb-2"></i>
-                                <h6 class="card-title">فواتير المبيعات</h6>
-                                <h4 class="text-success">{{ sales_invoices_count }}</h4>
-                                <a href="{% url 'core:invoices_sales' %}" class="btn btn-outline-success btn-sm">
-                                    <i class="bi bi-eye me-1"></i> عرض
-                                </a>
-                            </div>
+                    <div class="glass-stats-card glass-card-success">
+                        <div class="stats-icon bg-success">
+                            <i class="bi bi-cart-fill"></i>
                         </div>
+                        <div class="stats-number">{{ sales_invoices_count }}</div>
+                        <p class="stats-label">فواتير المبيعات</p>
+                        <a href="{% url 'core:invoices_sales' %}" class="glass-btn-success glass-btn mt-3">
+                            <i class="bi bi-eye me-1"></i> عرض
+                        </a>
                     </div>
                     
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 text-center border-warning">
-                            <div class="card-body">
-                                <i class="bi bi-arrow-return-left display-6 text-warning mb-2"></i>
-                                <h6 class="card-title">مرتجع الشراء</h6>
-                                <h4 class="text-warning">{{ return_purchase_invoices_count }}</h4>
-                                <a href="{% url 'core:invoices_return_purchase' %}" class="btn btn-outline-warning btn-sm">
-                                    <i class="bi bi-eye me-1"></i> عرض
-                                </a>
-                            </div>
+                    <div class="glass-stats-card glass-card-warning">
+                        <div class="stats-icon bg-warning">
+                            <i class="bi bi-arrow-return-left"></i>
                         </div>
+                        <div class="stats-number">{{ return_purchase_invoices_count }}</div>
+                        <p class="stats-label">مرتجع الشراء</p>
+                        <a href="{% url 'core:invoices_return_purchase' %}" class="glass-btn-warning glass-btn mt-3">
+                            <i class="bi bi-eye me-1"></i> عرض
+                        </a>
                     </div>
                     
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 text-center border-danger">
-                            <div class="card-body">
-                                <i class="bi bi-arrow-return-right display-6 text-danger mb-2"></i>
-                                <h6 class="card-title">مرتجع المبيعات</h6>
-                                <h4 class="text-danger">{{ return_sales_invoices_count }}</h4>
-                                <a href="{% url 'core:invoices_return_sales' %}" class="btn btn-outline-danger btn-sm">
-                                    <i class="bi bi-eye me-1"></i> عرض
-                                </a>
-                            </div>
+                    <div class="glass-stats-card glass-card-danger">
+                        <div class="stats-icon bg-danger">
+                            <i class="bi bi-arrow-return-right"></i>
                         </div>
+                        <div class="stats-number">{{ return_sales_invoices_count }}</div>
+                        <p class="stats-label">مرتجع المبيعات</p>
+                        <a href="{% url 'core:invoices_return_sales' %}" class="glass-btn-danger glass-btn mt-3">
+                            <i class="bi bi-eye me-1"></i> عرض
+                        </a>
                     </div>
                 </div>
             </div>
@@ -242,115 +208,101 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
+<!-- Quick Actions with Glass Effects -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
                     <i class="bi bi-lightning me-2"></i> إجراءات سريعة
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:itemsgroups' %}" class="btn btn-primary w-100 py-3">
-                            <i class="bi bi-collection me-2"></i>
-                            <div>إدارة مجموعات الأصناف</div>
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:items' %}" class="btn btn-secondary w-100 py-3">
-                            <i class="bi bi-box me-2"></i>
-                            <div>إدارة الأصناف</div>
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:customers' %}" class="btn btn-success w-100 py-3">
-                            <i class="bi bi-person-check me-2"></i>
-                            <div>إدارة العملاء</div>
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:vendors' %}" class="btn btn-info w-100 py-3">
-                            <i class="bi bi-truck me-2"></i>
-                            <div>إدارة الموردين</div>
-                        </a>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:invoices_main' %}" class="btn btn-warning w-100 py-3">
-                            <i class="bi bi-receipt me-2"></i>
-                            <div>إدارة الفواتير</div>
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:pricelists' %}" class="btn btn-outline-primary w-100 py-3">
-                            <i class="bi bi-currency-dollar me-2"></i>
-                            <div>إدارة قوائم الأسعار</div>
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:storegroups' %}" class="btn btn-outline-success w-100 py-3">
-                            <i class="bi bi-building me-2"></i>
-                            <div>إدارة مجموعات المخازن</div>
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'core:stores' %}" class="btn btn-outline-info w-100 py-3">
-                            <i class="bi bi-shop me-2"></i>
-                            <div>إدارة المخازن</div>
-                        </a>
-                    </div>
+            <div class="glass-card-body">
+                <div class="layout-grid-4">
+                    <a href="{% url 'core:itemsgroups' %}" class="glass-btn-primary glass-btn py-3 text-center d-block">
+                        <i class="bi bi-collection me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة مجموعات الأصناف</div>
+                    </a>
+                    <a href="{% url 'core:items' %}" class="glass-btn-secondary glass-btn py-3 text-center d-block">
+                        <i class="bi bi-box me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة الأصناف</div>
+                    </a>
+                    <a href="{% url 'core:customers' %}" class="glass-btn-success glass-btn py-3 text-center d-block">
+                        <i class="bi bi-person-check me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة العملاء</div>
+                    </a>
+                    <a href="{% url 'core:vendors' %}" class="glass-btn-info glass-btn py-3 text-center d-block">
+                        <i class="bi bi-truck me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة الموردين</div>
+                    </a>
+                    <a href="{% url 'core:invoices_main' %}" class="glass-btn-warning glass-btn py-3 text-center d-block">
+                        <i class="bi bi-receipt me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة الفواتير</div>
+                    </a>
+                    <a href="{% url 'core:pricelists' %}" class="glass-btn glass-btn py-3 text-center d-block">
+                        <i class="bi bi-currency-dollar me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة قوائم الأسعار</div>
+                    </a>
+                    <a href="{% url 'core:storegroups' %}" class="glass-btn glass-btn py-3 text-center d-block">
+                        <i class="bi bi-building me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة مجموعات المخازن</div>
+                    </a>
+                    <a href="{% url 'core:stores' %}" class="glass-btn glass-btn py-3 text-center d-block">
+                        <i class="bi bi-shop me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة المخازن</div>
+                    </a>
+                    <a href="{% url 'authentication:agents_manage' %}" class="glass-btn-primary glass-btn py-3 text-center d-block">
+                        <i class="bi bi-people me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة المناديب</div>
+                    </a>
+                    {% if user.is_staff %}
+                    <a href="{% url 'authentication:users_list' %}" class="glass-btn-danger glass-btn py-3 text-center d-block">
+                        <i class="bi bi-people me-2 d-block mb-2 fs-3"></i>
+                        <div>إدارة المستخدمين</div>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Recent Activity -->
+<!-- Recent Activity with Glass Effects -->
 <div class="row mt-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
                     <i class="bi bi-clock-history me-2"></i> النشاط الأخير
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="timeline">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="me-3">
-                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-person text-white"></i>
-                            </div>
+            <div class="glass-card-body">
+                <div class="glass-timeline">
+                    <div class="glass-timeline-item glass-animation-delay-1">
+                        <div class="glass-timeline-icon glass-icon-primary">
+                            <i class="bi bi-person"></i>
                         </div>
-                        <div>
+                        <div class="glass-timeline-content">
                             <div class="fw-semibold">تسجيل دخول</div>
                             <small class="text-muted">{{ user.last_login|date:"j F Y - H:i"|default:"الآن" }}</small>
                         </div>
                     </div>
                     
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="me-3">
-                            <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-currency-dollar text-white"></i>
-                            </div>
+                    <div class="glass-timeline-item glass-animation-delay-2">
+                        <div class="glass-timeline-icon glass-icon-success">
+                            <i class="bi bi-currency-dollar"></i>
                         </div>
-                        <div>
+                        <div class="glass-timeline-content">
                             <div class="fw-semibold">عرض قوائم الأسعار</div>
                             <small class="text-muted">{{ price_lists_count }} قائمة متاحة</small>
                         </div>
                     </div>
                     
-                    <a href="{% url 'core:items' %}" class="d-flex align-items-center text-decoration-none">
-                        <div class="me-3">
-                            <div class="rounded-circle bg-info d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-box text-white"></i>
-                            </div>
+                    <a href="{% url 'core:items' %}" class="glass-timeline-item glass-timeline-link glass-animation-delay-3">
+                        <div class="glass-timeline-icon glass-icon-info">
+                            <i class="bi bi-box"></i>
                         </div>
-                        <div>
+                        <div class="glass-timeline-content">
                             <div class="fw-semibold">إدارة الأصناف</div>
                             <small class="text-muted">{{ items_count }} صنف مسجل</small>
                         </div>
@@ -361,41 +313,41 @@
     </div>
     
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <h5 class="mb-0">
                     <i class="bi bi-info-circle me-2"></i> نصائح سريعة
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-lightbulb text-warning me-3 mt-1"></i>
-                            <div>
-                                <strong>إدارة قوائم الأسعار:</strong>
-                                <small class="d-block text-muted">يمكنك إنشاء قوائم أسعار متعددة لعملاء مختلفين</small>
-                            </div>
+            <div class="glass-card-body">
+                <div class="glass-tips-list">
+                    <div class="glass-tip-item glass-animation-delay-1">
+                        <div class="glass-tip-icon">
+                            <i class="bi bi-lightbulb"></i>
+                        </div>
+                        <div class="glass-tip-content">
+                            <strong>إدارة قوائم الأسعار:</strong>
+                            <small class="d-block text-muted">يمكنك إنشاء قوائم أسعار متعددة لعملاء مختلفين</small>
                         </div>
                     </div>
                     
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-lightbulb text-warning me-3 mt-1"></i>
-                            <div>
-                                <strong>البحث السريع:</strong>
-                                <small class="d-block text-muted">استخدم شريط البحث للعثور بسرعة على الأصناف والأسعار</small>
-                            </div>
+                    <div class="glass-tip-item glass-animation-delay-2">
+                        <div class="glass-tip-icon">
+                            <i class="bi bi-lightbulb"></i>
+                        </div>
+                        <div class="glass-tip-content">
+                            <strong>البحث السريع:</strong>
+                            <small class="d-block text-muted">استخدم شريط البحث للعثور بسرعة على الأصناف والأسعار</small>
                         </div>
                     </div>
                     
-                    <div class="list-group-item border-0 px-0">
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-lightbulb text-warning me-3 mt-1"></i>
-                            <div>
-                                <strong>الصلاحيات:</strong>
-                                <small class="d-block text-muted">تأكد من صلاحياتك قبل تعديل أو حذف البيانات</small>
-                            </div>
+                    <div class="glass-tip-item glass-animation-delay-3">
+                        <div class="glass-tip-icon">
+                            <i class="bi bi-lightbulb"></i>
+                        </div>
+                        <div class="glass-tip-content">
+                            <strong>الصلاحيات:</strong>
+                            <small class="d-block text-muted">تأكد من صلاحياتك قبل تعديل أو حذف البيانات</small>
                         </div>
                     </div>
                 </div>

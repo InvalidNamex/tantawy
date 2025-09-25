@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل المستخدم: {{ user_to_edit.username }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="glass-breadcrumb breadcrumb">
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:users_list' %}">
+                <i class="bi bi-people"></i> إدارة المستخدمين
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item">
+            <a href="{% url 'authentication:user_detail' user_to_edit.id %}">
+                <i class="bi bi-person"></i> {{ user_to_edit.username }}
+            </a>
+        </li>
+        <li class="glass-breadcrumb-item breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    .form-body {
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-control {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+    
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .btn-success-custom {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        border-radius: 25px;
+        padding: 12px 30px;
+        color: white;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-success-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    /* Additional glassmorphism styling */
+    .container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border-radius: 15px;
+        margin: 20px auto;
+        padding: 30px;
+    }
+
+    .user-info-card {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'authentication:dashboard' %}" class="text-success">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'authentication:users_list' %}" class="text-success">إدارة المستخدمين</a></li>
+                    <li class="breadcrumb-item active">تعديل: {{ user_to_edit.username }}</li>
+                </ol>
+            </nav>
+
+            <!-- User Info Card -->
+            <div class="user-info-card">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6 class="mb-1">معلومات المستخدم الحالية</h6>
+                        <p class="mb-0 text-muted">
+                            آخر تسجيل دخول: 
+                            {% if user_to_edit.last_login %}
+                                {{ user_to_edit.last_login|date:"Y-m-d H:i" }}
+                            {% else %}
+                                لم يسجل دخول مطلقاً
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        {% if user_to_edit.is_active %}
+                            <span class="badge bg-success">مفعل</span>
+                        {% else %}
+                            <span class="badge bg-danger">غير مفعل</span>
+                        {% endif %}
+                        {% if user_to_edit.is_superuser %}
+                            <span class="badge bg-primary">مدير النظام</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <!-- Header -->
+                <div class="form-header">
+                    <h2 class="mb-1">
+                        <i class="bi bi-person-gear me-2"></i>
+                        تعديل المستخدم
+                    </h2>
+                    <p class="mb-0 opacity-75">تحديث معلومات {{ user_to_edit.username }}</p>
+                </div>
+
+                <!-- Form -->
+                <div class="form-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- Username -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label required-field">اسم المستخدم</label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.username.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">يجب أن يكون فريداً</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- First Name -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">الاسم الأول</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.first_name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">الاسم الأخير</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.last_name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Password Change Section -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-shield-lock me-2"></i>
+                                    تغيير كلمة المرور (اختياري)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- New Password -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.password.id_for_label }}" class="form-label">كلمة المرور الجديدة</label>
+                                        {{ form.password }}
+                                        {% if form.password.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.password.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">اتركها فارغة إذا كنت لا تريد تغييرها</div>
+                                    </div>
+
+                                    <!-- Confirm New Password -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.password_confirm.id_for_label }}" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                                        {{ form.password_confirm }}
+                                        {% if form.password_confirm.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.password_confirm.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Permissions -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">صلاحيات المستخدم</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" 
+                                                           type="checkbox" 
+                                                           id="is_active" 
+                                                           name="is_active" 
+                                                           {% if user_to_edit.is_active %}checked{% endif %}>
+                                                    <label class="form-check-label" for="is_active">
+                                                        <strong>حساب مفعل</strong>
+                                                        <small class="d-block text-muted">السماح للمستخدم بتسجيل الدخول</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <a href="{% url 'authentication:users_list' %}" class="btn btn-outline-secondary">
+                                            <i class="bi bi-arrow-right me-2"></i>
+                                            إلغاء
+                                        </a>
+                                        <a href="{% url 'authentication:user_detail' user_to_edit.id %}" class="btn btn-outline-info ms-2">
+                                            <i class="bi bi-eye me-2"></i>
+                                            عرض التفاصيل
+                                        </a>
+                                    </div>
+                                    <button type="submit" class="btn btn-success-custom">
+                                        <i class="bi bi-check-lg me-2"></i>
+                                        حفظ التغييرات
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password confirmation validation
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('password_confirm');
+    
+    function validatePassword() {
+        if (password.value && password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('كلمة المرور غير متطابقة');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    }
+    
+    password.addEventListener('change', validatePassword);
+    confirmPassword.addEventListener('keyup', validatePassword);
+});
+</script>
+{% endblock %}

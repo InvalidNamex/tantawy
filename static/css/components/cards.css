@@ -1,0 +1,466 @@
+/* ===================================================================
+   Card Components - Glassmorphism Design
+   Tantawy Management System
+   ================================================================= */
+
+/* Base Glass Card */
+.glass-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--glass-border-radius);
+  box-shadow: var(--shadow-glass);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+  transition: var(--transition-glass);
+  position: relative;
+  overflow: hidden;
+}
+
+@supports (backdrop-filter: blur(10px)) {
+  .glass-card {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--primary-green), 
+    transparent
+  );
+  opacity: 0.5;
+}
+
+.glass-card:hover {
+  background: var(--bg-glass-hover);
+  box-shadow: var(--shadow-glass-hover);
+  transform: translateY(-4px);
+}
+
+/* Dashboard Cards */
+.glass-dashboard-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--glass-border-radius);
+  box-shadow: var(--shadow-glass);
+  padding: var(--space-xl);
+  transition: var(--transition-glass);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@supports (backdrop-filter: blur(10px)) {
+  .glass-dashboard-card {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+}
+
+.glass-dashboard-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--primary-green), 
+    transparent
+  );
+  opacity: 0.5;
+}
+
+.glass-dashboard-card:hover {
+  background: var(--bg-glass-hover);
+  box-shadow: var(--shadow-glass-hover);
+  transform: translateY(-4px);
+}
+
+.glass-dashboard-card .card-icon {
+  font-size: 3rem;
+  color: var(--primary-green);
+  margin-bottom: var(--space-md);
+  filter: drop-shadow(0 2px 4px rgba(39, 174, 96, 0.3));
+}
+
+.glass-dashboard-card .card-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-size-lg);
+}
+
+.glass-dashboard-card .card-value {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: var(--space-md);
+  line-height: 1;
+}
+
+.glass-dashboard-card .card-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* Card Header */
+.glass-card-header {
+  background: linear-gradient(135deg, 
+    var(--primary-green), 
+    var(--light-green)
+  );
+  color: var(--text-inverse);
+  padding: var(--space-md) var(--space-lg);
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) var(--space-lg) calc(-1 * var(--space-lg));
+  border-radius: var(--glass-border-radius) var(--glass-border-radius) 0 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glass-card-header h1,
+.glass-card-header h2,
+.glass-card-header h3,
+.glass-card-header h4,
+.glass-card-header h5,
+.glass-card-header h6 {
+  color: var(--text-inverse);
+  margin: 0;
+}
+
+/* Card Body */
+.glass-card-body {
+  padding: var(--space-lg);
+  flex: 1;
+}
+
+.glass-card.no-padding .glass-card-body {
+  padding: 0;
+}
+
+/* Card Footer */
+.glass-card-footer {
+  background: var(--bg-glass-hover);
+  padding: var(--space-md) var(--space-lg);
+  margin: var(--space-lg) calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg));
+  border-radius: 0 0 var(--glass-border-radius) var(--glass-border-radius);
+  border-top: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Card Variants */
+.glass-card-primary {
+  border-color: var(--primary-green);
+}
+
+.glass-card-primary::before {
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--primary-green), 
+    transparent
+  );
+  opacity: 1;
+  height: 2px;
+}
+
+.glass-card-success {
+  border-color: var(--success-green);
+}
+
+.glass-card-success::before {
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--success-green), 
+    transparent
+  );
+  opacity: 1;
+  height: 2px;
+}
+
+.glass-card-info {
+  border-color: #3498db;
+}
+
+.glass-card-info::before {
+  background: linear-gradient(90deg, 
+    transparent, 
+    #3498db, 
+    transparent
+  );
+  opacity: 1;
+  height: 2px;
+}
+
+.glass-card-warning {
+  border-color: #f39c12;
+}
+
+.glass-card-warning::before {
+  background: linear-gradient(90deg, 
+    transparent, 
+    #f39c12, 
+    transparent
+  );
+  opacity: 1;
+  height: 2px;
+}
+
+.glass-card-danger {
+  border-color: #e74c3c;
+}
+
+.glass-card-danger::before {
+  background: linear-gradient(90deg, 
+    transparent, 
+    #e74c3c, 
+    transparent
+  );
+  opacity: 1;
+  height: 2px;
+}
+
+/* Statistics Card */
+.glass-stats-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--glass-border-radius);
+  padding: var(--space-lg);
+  text-align: center;
+  transition: var(--transition-glass);
+  position: relative;
+  overflow: hidden;
+}
+
+@supports (backdrop-filter: blur(10px)) {
+  .glass-stats-card {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+}
+
+.glass-stats-card:hover {
+  background: var(--bg-glass-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass-hover);
+}
+
+.glass-stats-card .stats-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--primary-green), var(--light-green));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-md);
+  color: var(--text-inverse);
+  font-size: 1.5rem;
+}
+
+.glass-stats-card .stats-number {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.glass-stats-card .stats-label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* Image Card */
+.glass-image-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--glass-border-radius);
+  overflow: hidden;
+  transition: var(--transition-glass);
+}
+
+@supports (backdrop-filter: blur(10px)) {
+  .glass-image-card {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+}
+
+.glass-image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass-hover);
+}
+
+.glass-image-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--glass-border-radius) var(--glass-border-radius) 0 0;
+}
+
+.glass-image-card .card-content {
+  padding: var(--space-lg);
+}
+
+/* Profile Card */
+.glass-profile-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--glass-border-radius);
+  padding: var(--space-xl);
+  text-align: center;
+  transition: var(--transition-glass);
+  position: relative;
+}
+
+@supports (backdrop-filter: blur(10px)) {
+  .glass-profile-card {
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+}
+
+.glass-profile-card:hover {
+  background: var(--bg-glass-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass-hover);
+}
+
+.glass-profile-card .profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto var(--space-md);
+  border: 3px solid var(--primary-green);
+  object-fit: cover;
+}
+
+.glass-profile-card .profile-name {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.glass-profile-card .profile-title {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* Card Grid */
+.glass-card-grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.glass-card-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.glass-card-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.glass-card-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.glass-card-grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: var(--space-lg);
+}
+
+/* Responsive Grid */
+@media (max-width: 768px) {
+  .glass-card-grid,
+  .glass-card-grid-2,
+  .glass-card-grid-3,
+  .glass-card-grid-4,
+  .glass-card-grid-2x2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  
+  .glass-dashboard-card {
+    min-height: 120px;
+  }
+  
+  .glass-dashboard-card .card-icon {
+    font-size: 2rem;
+  }
+  
+  .glass-dashboard-card .card-value {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+/* RTL Support */
+[dir="rtl"] .glass-card {
+  box-shadow: -8px 8px 32px rgba(31, 38, 135, 0.37);
+}
+
+[dir="rtl"] .glass-card:hover {
+  box-shadow: -12px 12px 40px rgba(31, 38, 135, 0.45);
+}
+
+[data-theme="dark"][dir="rtl"] .glass-card {
+  box-shadow: -8px 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"][dir="rtl"] .glass-card:hover {
+  box-shadow: -12px 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .glass-dashboard-card,
+  .glass-stats-card,
+  .glass-image-card,
+  .glass-profile-card {
+    transition: none;
+    transform: none;
+  }
+  
+  .glass-card:hover,
+  .glass-dashboard-card:hover,
+  .glass-stats-card:hover,
+  .glass-image-card:hover,
+  .glass-profile-card:hover {
+    transform: none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .glass-card,
+  .glass-dashboard-card,
+  .glass-stats-card,
+  .glass-image-card,
+  .glass-profile-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-strong);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

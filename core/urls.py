@@ -10,6 +10,7 @@ urlpatterns = [
     
     # Invoice Management URLs (Template-based for frontend)
     path('invoices/', views.invoices_main_view, name='invoices_main'),
+    path('invoices/<int:invoice_id>/', views.invoice_detail_view, name='invoice_detail'),
     path('invoices/purchase/', views.invoices_purchase_view, name='invoices_purchase'),
     path('invoices/sales/', views.invoices_sales_view, name='invoices_sales'),
     path('invoices/return-purchase/', views.invoices_return_purchase_view, name='invoices_return_purchase'),
@@ -115,8 +116,25 @@ urlpatterns = [
     path('api/transactions/<int:id>/', views.transaction_detail, name='transaction_detail'),
     path('api/transactions/create/', views.transaction_create, name='transaction_create'),
     
+    # Agent URLs (API)
+    path('api/agents/', views.agent_list, name='agent_list'),
+    path('api/agents/<int:id>/', views.agent_detail, name='agent_detail'),
+    path('api/agents/create/', views.agent_create, name='agent_create'),
+    path('api/agents/<int:id>/update/', views.agent_update, name='agent_update'),
+    path('api/agents/<int:id>/delete/', views.agent_delete, name='agent_delete'),
+    
+    # Agent Authentication URLs (API for mobile app)
+    path('api/agents/login/', views.agent_login, name='agent_login'),
+    path('api/agents/logout/', views.agent_logout, name='agent_logout'),
+    path('api/agents/verify-token/', views.agent_verify_token, name='agent_verify_token'),
+    
+    # Voucher URLs (API for agents)
+    path('api/vouchers/', views.create_voucher, name='create_voucher'),
+    path('api/vouchers/list/', views.get_vouchers, name='get_vouchers'),
+    
     # Invoice API URLs
     path('api/invoices/create/', invoice_api.create_invoice_api, name='create_invoice_api'),
+    path('api/invoices/batch-create/', invoice_api.batch_create_invoices_api, name='batch_create_invoices_api'),
     path('api/invoices/<int:invoice_id>/available-returns/', invoice_api.get_available_returns_api, name='get_available_returns_api'),
     path('api/invoices/type/<int:invoice_type>/', invoice_api.get_invoices_by_type_api, name='get_invoices_by_type_api'),
     path('api/invoices/<int:invoice_id>/detail/', invoice_api.get_invoice_detail_api, name='get_invoice_detail_api'),

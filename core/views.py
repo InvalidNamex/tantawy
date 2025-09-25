@@ -452,6 +452,16 @@ def item_stock(request):
     description="Retrieve a list of all accounts with optional filtering by account group"
 )
 @api_view(['GET'])
+@extend_schema(
+    summary="List all accounts",
+    description="Retrieve a list of all accounts with optional filtering by account group and search",
+    parameters=[
+        OpenApiParameter(name='account_group', type=OpenApiTypes.INT, description='Filter by account group ID'),
+        OpenApiParameter(name='search', type=OpenApiTypes.STR, description='Search by account name')
+    ],
+    responses=AccountSerializer(many=True)
+)
+@api_view(['GET'])
 def account_list(request):
     """Get all accounts with optional filtering"""
     try:
@@ -484,7 +494,8 @@ def account_list(request):
     description="Retrieve a specific account by ID",
     parameters=[
         OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Account ID')
-    ]
+    ],
+    responses=AccountSerializer
 )
 @api_view(['GET'])
 def account_detail(request, id):
@@ -499,7 +510,8 @@ def account_detail(request, id):
 @extend_schema(
     summary="Create new account",
     description="Create a new account with the provided data",
-    request=AccountSerializer
+    request=AccountSerializer,
+    responses=AccountSerializer
 )
 @api_view(['POST'])
 def account_create(request):
@@ -2587,6 +2599,84 @@ def invoices_main_view(request):
     return render(request, 'core/invoices/main.html', context)
 
 
+@login_required
+def invoice_detail_view(request, invoice_id):
+    """
+    Display detailed view of a specific invoice
+    """
+    try:
+        # Get the invoice with all related data
+        invoice = get_object_or_404(
+            InvoiceMaster.objects.select_related(
+                'customerOrVendorID', 'storeID', 'createdBy', 'agentID'
+            ).prefetch_related('invoicedetail_set__item'),
+            id=invoice_id, isDeleted=False
+        )
+        
+        # Generate invoice number
+        invoice_number = f'INV-{invoice.id:06d}'
+        
+        # Get invoice details (items)
+        invoice_details = invoice.invoicedetail_set.all()
+        
+        # Calculate totals
+        subtotal = sum(detail.quantity * detail.price for detail in invoice_details)
+        
+        # Determine invoice type label
+        invoice_type_labels = {
+            1: 'فاتورة شراء',
+            2: 'فاتورة بيع', 
+            3: 'مرتجع شراء',
+            4: 'مرتجع بيع'
+        }
+        
+        # Payment status based on actual status field and remaining amount
+        if invoice.status == 0:
+            payment_status = 'مدفوع'
+        elif invoice.status == 1:
+            payment_status = 'غير مدفوع'
+        else:  # status == 2
+            payment_status = 'مدفوع جزئياً'
+            
+        remaining_amount = invoice.netTotal - invoice.totalPaid
+        
+        # Calculate item totals for display
+        invoice_details_with_totals = []
+        for detail in invoice_details:
+            detail_total = detail.quantity * detail.price
+            invoice_details_with_totals.append({
+                'detail': detail,
+                'total': detail_total
+            })
+        
+        # Get related object names safely
+        customer_name = invoice.customerOrVendorID.customerVendorName if invoice.customerOrVendorID else 'غير محدد'
+        store_name = invoice.storeID.storeName if invoice.storeID else 'غير محدد'
+        agent_name = invoice.agentID.agentName if invoice.agentID else 'غير محدد'
+        created_by_name = invoice.createdBy.username if invoice.createdBy else 'غير محدد'
+        
+        context = {
+            'invoice': invoice,
+            'invoice_number': invoice_number,
+            'customer_name': customer_name,
+            'store_name': store_name,
+            'agent_name': agent_name,
+            'created_by_name': created_by_name,
+            'invoice_details': invoice_details,
+            'invoice_details_with_totals': invoice_details_with_totals,
+            'subtotal': subtotal,
+            'remaining_amount': remaining_amount,
+            'invoice_type_label': invoice_type_labels.get(invoice.invoiceType, 'غير محدد'),
+            'payment_status': payment_status,
+        }
+        
+        return render(request, 'core/invoices/detail.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'حدث خطأ في تحميل تفاصيل الفاتورة: {str(e)}')
+        return redirect('core:invoices_main')
+
+
 # Customer/Vendor Management Views
 
 
@@ -2902,3 +2992,828 @@ def vendor_delete_view(request, vendor_id):
     }
     
     return render(request, 'core/vendors/delete.html', context)
+
+
+# Agent API Views
+@extend_schema(
+    summary="List all agents",
+    description="Retrieve a list of all agents with filtering options",
+    parameters=[
+        OpenApiParameter(name='agent_name', type=OpenApiTypes.STR, description='Filter by agent name'),
+        OpenApiParameter(name='username', type=OpenApiTypes.STR, description='Filter by username'),
+        OpenApiParameter(name='search', type=OpenApiTypes.STR, description='Search in agent name and username')
+    ]
+)
+@api_view(['GET'])
+def agent_list(request):
+    """Get all agents with optional filtering"""
+    try:
+        queryset = Agent.objects.filter(isDeleted=False)
+        
+        # Apply filters
+        agent_name = request.GET.get('agent_name', None)
+        username = request.GET.get('username', None)
+        search = request.GET.get('search', None)
+        
+        if agent_name:
+            queryset = queryset.filter(agentName__icontains=agent_name)
+        
+        if username:
+            queryset = queryset.filter(agentUserID__username__icontains=username)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(agentName__icontains=search) |
+                Q(agentUserID__username__icontains=search) |
+                Q(agentUserID__first_name__icontains=search) |
+                Q(agentUserID__last_name__icontains=search)
+            )
+        
+        serializer = AgentSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Create a new agent",
+    description="Create a new agent",
+    request=AgentSerializer
+)
+@api_view(['POST'])
+def agent_create(request):
+    """Create a new agent"""
+    try:
+        serializer = AgentSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            # Set the createdBy field to the current user or first admin user
+            created_by_user = None
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                created_by_user = request.user
+            else:
+                # For API calls without authentication, use the first admin user
+                from django.contrib.auth.models import User
+                created_by_user = User.objects.filter(is_superuser=True).first()
+                if not created_by_user:
+                    created_by_user = User.objects.first()
+            
+            agent = serializer.save(createdBy=created_by_user, updatedBy=created_by_user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get agent by ID",
+    description="Retrieve a specific agent by ID",
+    parameters=[
+        OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Agent ID')
+    ]
+)
+@api_view(['GET'])
+def agent_detail(request, id):
+    """Get specific agent by ID"""
+    try:
+        agent = get_object_or_404(Agent, id=id, isDeleted=False)
+        serializer = AgentSerializer(agent, context={'request': request})
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Update agent by ID",
+    description="Update a specific agent by ID",
+    parameters=[
+        OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Agent ID')
+    ],
+    request=AgentSerializer
+)
+@api_view(['PUT'])
+def agent_update(request, id):
+    """Update specific agent by ID"""
+    try:
+        agent = get_object_or_404(Agent, id=id, isDeleted=False)
+        serializer = AgentSerializer(agent, data=request.data, context={'request': request})
+        if serializer.is_valid():
+            # Set the updatedBy field to the current user
+            serializer.save(updatedBy=request.user if hasattr(request, 'user') and request.user.is_authenticated else None)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Delete agent by ID",
+    description="Soft delete a specific agent by ID",
+    parameters=[
+        OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Agent ID')
+    ]
+)
+@api_view(['DELETE'])
+def agent_delete(request, id):
+    """Soft delete specific agent by ID"""
+    try:
+        agent = get_object_or_404(Agent, id=id, isDeleted=False)
+        
+        # Perform soft delete
+        agent.isDeleted = True
+        agent.deletedBy = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
+        agent.deletedAt = timezone.now()
+        agent.save()
+        
+        return Response({'message': 'Agent deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== AGENT AUTHENTICATION VIEWS ====================
+
+@extend_schema(
+    summary="Agent login",
+    description="Authenticate agent using username and password for mobile app access",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'username': {'type': 'string', 'description': 'Agent username'},
+                'password': {'type': 'string', 'description': 'Agent password'},
+            },
+            'required': ['username', 'password']
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'message': {'type': 'string'},
+                'agent': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'agentName': {'type': 'string'},
+                        'agentUsername': {'type': 'string'},
+                        'agentPhone': {'type': 'string'},
+                        'isActive': {'type': 'boolean'},
+                    }
+                },
+                'token': {'type': 'string', 'description': 'Simple session token (agent ID)'}
+            }
+        },
+        400: {'description': 'Invalid credentials or inactive agent'},
+        401: {'description': 'Authentication failed'}
+    }
+)
+@api_view(['POST'])
+def agent_login(request):
+    """
+    Agent login endpoint for mobile app authentication.
+    Returns agent data and simple token for session management.
+    """
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response({
+                'success': False,
+                'message': 'Username and password are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find agent by username
+        try:
+            agent = Agent.objects.get(
+                agentUsername=username, 
+                isDeleted=False
+            )
+        except Agent.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invalid username or password'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check password
+        if not agent.check_password(password):
+            return Response({
+                'success': False,
+                'message': 'Invalid username or password'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check if agent is active
+        if not agent.isActive:
+            return Response({
+                'success': False,
+                'message': 'Agent account is inactive'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Return success response with agent data
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'agent': {
+                'id': agent.id,
+                'agentName': agent.agentName,
+                'agentUsername': agent.agentUsername,
+                'agentPhone': agent.agentPhone,
+                'isActive': agent.isActive,
+            },
+            'token': str(agent.id)  # Simple token for mobile app sessions
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Login failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Agent logout",
+    description="Logout agent (for session cleanup on mobile app)",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'token': {'type': 'string', 'description': 'Agent session token'},
+            },
+            'required': ['token']
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'message': {'type': 'string'},
+            }
+        }
+    }
+)
+@api_view(['POST'])
+def agent_logout(request):
+    """
+    Agent logout endpoint for mobile app session cleanup.
+    Simple implementation since we're using stateless authentication.
+    """
+    try:
+        token = request.data.get('token')
+        
+        if not token:
+            return Response({
+                'success': False,
+                'message': 'Token is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # For stateless authentication, we just return success
+        # Mobile app should clear local storage/session data
+        return Response({
+            'success': True,
+            'message': 'Logout successful'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Logout failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Verify agent token",
+    description="Verify agent session token and return agent information",
+    parameters=[
+        OpenApiParameter(name='token', type=OpenApiTypes.STR, location=OpenApiParameter.QUERY, description='Agent session token')
+    ],
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'agent': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'agentName': {'type': 'string'},
+                        'agentUsername': {'type': 'string'},
+                        'agentPhone': {'type': 'string'},
+                        'isActive': {'type': 'boolean'},
+                    }
+                }
+            }
+        },
+        401: {'description': 'Invalid or expired token'}
+    }
+)
+@api_view(['GET'])
+def agent_verify_token(request):
+    """
+    Verify agent token and return agent information.
+    Used by mobile app to validate session and get agent data.
+    """
+    try:
+        token = request.GET.get('token')
+        
+        if not token:
+            return Response({
+                'success': False,
+                'message': 'Token is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Try to get agent by ID (token is agent ID)
+        try:
+            agent_id = int(token)
+            agent = Agent.objects.get(
+                id=agent_id,
+                isDeleted=False,
+                isActive=True
+            )
+        except (ValueError, Agent.DoesNotExist):
+            return Response({
+                'success': False,
+                'message': 'Invalid token'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Return agent information
+        return Response({
+            'success': True,
+            'agent': {
+                'id': agent.id,
+                'agentName': agent.agentName,
+                'agentUsername': agent.agentUsername,
+                'agentPhone': agent.agentPhone,
+                'isActive': agent.isActive,
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Token verification failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================================================
+# VOUCHER API ENDPOINTS
+# =============================================================================
+
+from functools import wraps
+from django.contrib.auth.hashers import check_password
+import base64
+from datetime import datetime
+
+def agent_authentication_required(view_func):
+    """
+    Decorator for agent authentication using HTTP Basic Auth.
+    Expects Authorization header with base64 encoded agentUsername:agentPassword
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # Get Authorization header
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if not auth_header or not auth_header.startswith('Basic '):
+            return Response({
+                'success': False,
+                'error': 'AUTHENTICATION_REQUIRED',
+                'message': 'Agent authentication required. Use Basic Auth with agent credentials.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Decode credentials
+            encoded_credentials = auth_header.split(' ')[1]
+            decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+            username, password = decoded_credentials.split(':')
+            
+            # Find and authenticate agent
+            agent = Agent.objects.filter(
+                agentUsername=username, 
+                isDeleted=False,
+                isActive=True
+            ).first()
+            
+            if not agent or not agent.check_password(password):
+                return Response({
+                    'success': False,
+                    'error': 'INVALID_CREDENTIALS',
+                    'message': 'Invalid agent credentials'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Add agent to request
+            request.agent = agent
+            return view_func(request, *args, **kwargs)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 'AUTHENTICATION_ERROR',
+                'message': f'Authentication failed: {str(e)}'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return _wrapped_view
+
+
+def generate_voucher_id(agent_id, voucher_type):
+    """
+    Generate voucher ID in format: {agent_id}000{r|p}{auto_increment}
+    Examples: 2000r001, 2000p003
+    """
+    from django.db import connection
+    
+    # Determine type suffix
+    type_suffix = 'r' if voucher_type == 1 else 'p'
+    prefix = f"{agent_id}000{type_suffix}"
+    
+    # Get next sequence number for this agent and type
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT COUNT(*) + 1 
+            FROM transactions 
+            WHERE notes LIKE %s
+        """, [f"{prefix}%"])
+        sequence = cursor.fetchone()[0]
+    
+    return f"{prefix}{sequence:03d}"
+
+
+@extend_schema(
+    summary="Create a new voucher",
+    description="""
+    Create a new voucher (receipt or payment) by an agent.
+    
+    **Authentication Required**: Basic Auth with agent credentials
+    
+    **Voucher Types**:
+    - type=1: Receipt (money IN from customers)
+    - type=2: Payment (money OUT to vendors)
+    
+    **Processing**:
+    - Creates 2 accounting transactions (debit/credit)
+    - Generates unique voucher ID
+    - Updates customer/vendor balances
+    """,
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'voucherType': {'type': 'string', 'enum': ['receipt', 'payment']},
+                'type': {'type': 'integer', 'enum': [1, 2]},
+                'customerVendorId': {'type': 'integer'},
+                'amount': {'type': 'number', 'format': 'decimal'},
+                'paymentMethod': {'type': 'string', 'default': 'cash'},
+                'accountId': {'type': 'integer', 'default': 35},
+                'notes': {'type': 'string'},
+                'voucherDate': {'type': 'string', 'format': 'date-time'},
+                'storeId': {'type': 'integer'}
+            },
+            'required': ['type', 'customerVendorId', 'amount', 'storeId']
+        }
+    },
+    responses={
+        201: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'voucherId': {'type': 'string'},
+                'transactionIds': {'type': 'array', 'items': {'type': 'integer'}},
+                'message': {'type': 'string'}
+            }
+        }
+    }
+)
+@api_view(['POST'])
+@agent_authentication_required
+def create_voucher(request):
+    """
+    Create a new voucher with double-entry accounting
+    """
+    try:
+        # Extract request data
+        data = request.data
+        voucher_type = data.get('type')
+        customer_vendor_id = data.get('customerVendorId')
+        amount = Decimal(str(data.get('amount', 0)))
+        payment_method = data.get('paymentMethod', 'cash')
+        account_id = data.get('accountId', 35)  # Default to cash account
+        notes = data.get('notes', '')
+        voucher_date = data.get('voucherDate')
+        store_id = data.get('storeId')
+        
+        # Validation
+        if not voucher_type or voucher_type not in [1, 2]:
+            return Response({
+                'success': False,
+                'error': 'INVALID_TYPE',
+                'message': 'Type must be 1 (receipt) or 2 (payment)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not customer_vendor_id or not amount or not store_id:
+            return Response({
+                'success': False,
+                'error': 'MISSING_REQUIRED_FIELDS',
+                'message': 'customerVendorId, amount, and storeId are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if amount <= 0:
+            return Response({
+                'success': False,
+                'error': 'INVALID_AMOUNT',
+                'message': 'Amount must be greater than 0'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify customer/vendor exists
+        try:
+            customer_vendor = CustomerVendor.objects.get(id=customer_vendor_id, isDeleted=False)
+        except CustomerVendor.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'CUSTOMER_VENDOR_NOT_FOUND',
+                'message': f'Customer/Vendor with ID {customer_vendor_id} not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verify store exists
+        try:
+            store = Store.objects.get(id=store_id, isDeleted=False)
+        except Store.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'STORE_NOT_FOUND',
+                'message': f'Store with ID {store_id} not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verify cash account exists
+        try:
+            cash_account = Account.objects.get(id=account_id, isDeleted=False)
+        except Account.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'ACCOUNT_NOT_FOUND',
+                'message': f'Account with ID {account_id} not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generate voucher ID
+        voucher_id = generate_voucher_id(request.agent.id, voucher_type)
+        
+        # Parse voucher date
+        if voucher_date:
+            try:
+                voucher_datetime = datetime.fromisoformat(voucher_date.replace('Z', '+00:00'))
+            except:
+                voucher_datetime = timezone.now()
+        else:
+            voucher_datetime = timezone.now()
+        
+        # Create transactions based on voucher type
+        transaction_ids = []
+        
+        if voucher_type == 1:  # Receipt (Money IN)
+            # Transaction 1: Debit Cash Account (Money IN)
+            transaction1 = Transaction.objects.create(
+                accountID=cash_account,
+                amount=amount,  # Positive (Debit)
+                notes=f"Cash received - Voucher {voucher_id} - {customer_vendor.customerName}",
+                type=voucher_type,
+                customerVendorID=None,  # No customer/vendor for cash account
+                createdBy=request.agent.createdBy,  # Use agent's creator as proxy
+                createdAt=voucher_datetime
+            )
+            transaction_ids.append(transaction1.id)
+            
+            # Transaction 2: Credit Customer Account (Reduce customer debt)
+            transaction2 = Transaction.objects.create(
+                accountID=Account.objects.get(id=36),  # Customer AR account
+                amount=-amount,  # Negative (Credit)
+                notes=f"Payment received - Voucher {voucher_id} - Agent {request.agent.agentName}",
+                type=voucher_type,
+                customerVendorID=customer_vendor,
+                createdBy=request.agent.createdBy,
+                createdAt=voucher_datetime
+            )
+            transaction_ids.append(transaction2.id)
+            
+        else:  # Payment (Money OUT)
+            # Transaction 1: Debit Vendor Account (Reduce business debt)
+            transaction1 = Transaction.objects.create(
+                accountID=Account.objects.get(id=37),  # Vendor AP account
+                amount=amount,  # Positive (Debit)
+                notes=f"Payment made - Voucher {voucher_id} - Agent {request.agent.agentName}",
+                type=voucher_type,
+                customerVendorID=customer_vendor,
+                createdBy=request.agent.createdBy,
+                createdAt=voucher_datetime
+            )
+            transaction_ids.append(transaction1.id)
+            
+            # Transaction 2: Credit Cash Account (Money OUT)
+            transaction2 = Transaction.objects.create(
+                accountID=cash_account,
+                amount=-amount,  # Negative (Credit)
+                notes=f"Cash payment - Voucher {voucher_id} - {customer_vendor.customerName}",
+                type=voucher_type,
+                customerVendorID=None,
+                createdBy=request.agent.createdBy,
+                createdAt=voucher_datetime
+            )
+            transaction_ids.append(transaction2.id)
+        
+        return Response({
+            'success': True,
+            'voucherId': voucher_id,
+            'transactionIds': transaction_ids,
+            'message': f'Voucher {voucher_id} created successfully',
+            'amount': float(amount),
+            'customerVendor': customer_vendor.customerName,
+            'agent': request.agent.agentName
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error creating voucher: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get vouchers with filters",
+    description="""
+    Retrieve vouchers (transactions) created by agents with optional filters.
+    
+    **Authentication Required**: Basic Auth with agent credentials
+    
+    **Filters**:
+    - agent_id: Filter by specific agent (optional)
+    - date_from: Start date filter (YYYY-MM-DD)
+    - date_to: End date filter (YYYY-MM-DD)
+    - type: Transaction type (1=receipt, 2=payment)
+    """,
+    parameters=[
+        OpenApiParameter('agent_id', OpenApiTypes.INT, description='Filter by agent ID'),
+        OpenApiParameter('date_from', OpenApiTypes.DATE, description='Start date (YYYY-MM-DD)'),
+        OpenApiParameter('date_to', OpenApiTypes.DATE, description='End date (YYYY-MM-DD)'),
+        OpenApiParameter('type', OpenApiTypes.INT, description='Voucher type (1=receipt, 2=payment)'),
+        OpenApiParameter('page', OpenApiTypes.INT, description='Page number'),
+        OpenApiParameter('page_size', OpenApiTypes.INT, description='Items per page (max 100)'),
+    ],
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'count': {'type': 'integer'},
+                'next': {'type': 'string'},
+                'previous': {'type': 'string'},
+                'results': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'type': 'integer'},
+                            'voucherId': {'type': 'string'},
+                            'amount': {'type': 'number'},
+                            'type': {'type': 'integer'},
+                            'customerVendor': {'type': 'string'},
+                            'notes': {'type': 'string'},
+                            'createdAt': {'type': 'string', 'format': 'date-time'}
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['GET'])
+@agent_authentication_required
+def get_vouchers(request):
+    """
+    Get vouchers with filtering capabilities
+    """
+    try:
+        # Get query parameters
+        agent_id = request.GET.get('agent_id')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        voucher_type = request.GET.get('type')
+        page = int(request.GET.get('page', 1))
+        page_size = min(int(request.GET.get('page_size', 20)), 100)
+        
+        # Build query for voucher transactions
+        # Look for transactions that contain voucher IDs in notes
+        query = Q(notes__icontains='Voucher')
+        
+        # Filter by agent if specified
+        if agent_id:
+            query &= Q(notes__icontains=f"{agent_id}000")
+        
+        # Filter by date range
+        if date_from:
+            try:
+                date_from_parsed = datetime.strptime(date_from, '%Y-%m-%d').date()
+                query &= Q(createdAt__date__gte=date_from_parsed)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 'INVALID_DATE_FORMAT',
+                    'message': 'date_from must be in YYYY-MM-DD format'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if date_to:
+            try:
+                date_to_parsed = datetime.strptime(date_to, '%Y-%m-%d').date()
+                query &= Q(createdAt__date__lte=date_to_parsed)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 'INVALID_DATE_FORMAT',
+                    'message': 'date_to must be in YYYY-MM-DD format'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Filter by voucher type
+        if voucher_type:
+            try:
+                voucher_type_int = int(voucher_type)
+                if voucher_type_int in [1, 2]:
+                    query &= Q(type=voucher_type_int)
+            except ValueError:
+                pass
+        
+        # Get transactions
+        transactions = Transaction.objects.filter(
+            query,
+            isDeleted=False
+        ).select_related('accountID', 'customerVendorID').order_by('-createdAt')
+        
+        # Group transactions by voucher ID (extract from notes)
+        vouchers = {}
+        for transaction in transactions:
+            # Extract voucher ID from notes
+            notes = transaction.notes or ''
+            voucher_id = None
+            if 'Voucher ' in notes:
+                try:
+                    voucher_start = notes.find('Voucher ') + 8
+                    voucher_end = notes.find(' ', voucher_start)
+                    if voucher_end == -1:
+                        voucher_end = notes.find('-', voucher_start)
+                    if voucher_end == -1:
+                        voucher_end = len(notes)
+                    voucher_id = notes[voucher_start:voucher_end].strip()
+                except:
+                    continue
+            
+            if voucher_id and voucher_id not in vouchers:
+                # Only include cash transactions (positive amounts for receipts, negative for payments)
+                if ((transaction.type == 1 and transaction.amount > 0) or 
+                    (transaction.type == 2 and transaction.amount < 0)):
+                    vouchers[voucher_id] = {
+                        'voucherId': voucher_id,
+                        'amount': abs(float(transaction.amount)),
+                        'type': transaction.type,
+                        'customerVendor': transaction.customerVendorID.customerName if transaction.customerVendorID else 'N/A',
+                        'notes': transaction.notes,
+                        'createdAt': transaction.createdAt.isoformat(),
+                        'accountName': transaction.accountID.accountName if transaction.accountID else 'N/A'
+                    }
+        
+        # Convert to list and paginate
+        voucher_list = list(vouchers.values())
+        
+        # Manual pagination
+        total_count = len(voucher_list)
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        paginated_vouchers = voucher_list[start_index:end_index]
+        
+        # Build pagination URLs
+        base_url = request.build_absolute_uri().split('?')[0]
+        next_url = None
+        previous_url = None
+        
+        if end_index < total_count:
+            next_params = request.GET.copy()
+            next_params['page'] = page + 1
+            next_url = f"{base_url}?{next_params.urlencode()}"
+        
+        if page > 1:
+            prev_params = request.GET.copy()
+            prev_params['page'] = page - 1
+            previous_url = f"{base_url}?{prev_params.urlencode()}"
+        
+        return Response({
+            'success': True,
+            'count': total_count,
+            'next': next_url,
+            'previous': previous_url,
+            'results': paginated_vouchers,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving vouchers: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,0 +1,240 @@
+/* ===================================================================
+   Background Image System - Glassmorphism Design
+   Tantawy Management System
+   ================================================================= */
+
+/* Body Background with Glass Enhancement */
+body {
+    background-image: url('/media/background.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+/* Background Overlay for Better Glass Effect */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(39, 174, 96, 0.1) 100%
+    );
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Dark Theme Background Overlay */
+[data-theme="dark"] body::before {
+    background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.4) 50%,
+        rgba(39, 174, 96, 0.2) 100%
+    );
+}
+
+/* Enhanced Glass Effects for Background */
+.main-content {
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+}
+
+/* Page Container Background Enhancement */
+.container {
+    position: relative;
+    z-index: 2;
+}
+
+/* Navigation Enhancement for Background */
+.glass-navbar {
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 4px 20px rgba(31, 38, 135, 0.3);
+}
+
+/* Dashboard Cards Enhancement for Background */
+.glass-card,
+.glass-dashboard-card,
+.glass-stats-card {
+    background: var(--glass-bg-lightest);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-hover);
+}
+
+.glass-card:hover,
+.glass-dashboard-card:hover,
+.glass-stats-card:hover {
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(31, 38, 135, 0.5);
+}
+
+/* Hero Section Enhancement */
+.hero-section {
+    background: linear-gradient(
+        135deg,
+        var(--glass-bg-light) 0%,
+        var(--glass-bg-lightest) 100%
+    );
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-hover);
+}
+
+/* Form Enhancement for Background */
+.glass-form {
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-hover);
+}
+
+/* Table Enhancement for Background */
+.glass-table-container {
+    background: var(--glass-bg-lightest);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-hover);
+}
+
+/* Modal Enhancement for Background */
+.glass-modal-content {
+    background: var(--glass-bg-light);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 60px rgba(31, 38, 135, 0.6);
+}
+
+/* Footer Enhancement for Background */
+.glass-footer {
+    background: var(--glass-bg-lightest);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--glass-border);
+    box-shadow: 0 -4px 20px rgba(31, 38, 135, 0.3);
+}
+
+/* Mobile Responsive Background */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+        background-size: cover;
+    }
+}
+
+/* High DPI / Retina Display Support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    body {
+        background-image: url('/media/background.jpg');
+    }
+}
+
+/* Print Styles - Remove Background for Printing */
+@media print {
+    body {
+        background: white !important;
+    }
+    
+    body::before {
+        display: none !important;
+    }
+    
+    .glass-card,
+    .glass-dashboard-card,
+    .glass-stats-card,
+    .glass-navbar,
+    .glass-footer {
+        background: white !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    body {
+        background-attachment: scroll;
+    }
+}
+
+/* Dark Theme Background Adjustments */
+[data-theme="dark"] .glass-navbar {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+}
+
+[data-theme="dark"] .glass-card,
+[data-theme="dark"] .glass-dashboard-card,
+[data-theme="dark"] .glass-stats-card {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+[data-theme="dark"] .glass-card:hover,
+[data-theme="dark"] .glass-dashboard-card:hover,
+[data-theme="dark"] .glass-stats-card:hover {
+    background: var(--glass-bg-darker);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+}
+
+[data-theme="dark"] .hero-section {
+    background: linear-gradient(
+        135deg,
+        var(--glass-bg-dark) 0%,
+        var(--glass-bg-darker) 100%
+    );
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+}
+
+[data-theme="dark"] .glass-form {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] .glass-table-container {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+[data-theme="dark"] .glass-modal-content {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+}
+
+[data-theme="dark"] .glass-footer {
+    background: var(--glass-bg-dark);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}

@@ -62,6 +62,12 @@ I will provide you with tables schema and I want you to create models, serialize
 - id (Primary Key, Auto-increment)
 - storeGroupName (String, max length 255)
 
+
+### 5️⃣ Stores Table
+**Table Name:** `stores`
+- id (Primary Key, Auto-increment)
+- storeName (String, max length 255)
+- storeGroup (String, max length 255)
 ---
 
 ## 🔧 Implementation Status
@@ -112,19 +118,20 @@ I will provide you with tables schema and I want you to create models, serialize
 9. Test all functionality ⏳ **PENDING** - Only basic test structure exists
 
 ### 🎯 Current Implementation Summary:
-- **Models**: All 9 tables implemented with proper audit fields (original 6 + 3 invoice tables)
-- **Migrations**: All migrations created and applied (0001_initial, 0002_add_invoice_models)
-- **Serializers**: Complete DRF serializers for all models including nested relationships
-- **Views**: Function-based views with drf-spectacular documentation for all endpoints
-- **URLs**: RESTful endpoint routing configured for all models
+- **Models**: All 10 tables implemented with proper audit fields (original 6 + 3 invoice tables + 1 agent table with custom auth)
+- **Migrations**: All migrations created and applied (0001_initial through 0011_agent_model_restructure)
+- **Serializers**: Complete DRF serializers for all models including nested relationships and secure password handling
+- **Views**: Function-based views with drf-spectacular documentation for all endpoints plus custom authentication endpoints
+- **URLs**: RESTful endpoint routing configured for all models including agent authentication endpoints
 - **Swagger**: Auto-generated API documentation available at `/api/schema/swagger-ui/`
-- **Authentication**: Complete login system with modern UI
+- **Authentication**: Complete login system with modern UI + independent agent authentication for mobile apps
   - Login page at `/login/` (also serves as index `/`)
   - Dashboard at `/dashboard/` for authenticated users
   - Automatic redirection based on authentication status
   - Session management and logout functionality
+  - **Agent Authentication System**: Independent mobile-ready authentication with token-based sessions
 - **Templates**: Bootstrap 5 with gradient design and responsive layout
-- **Tests**: Basic test file exists but no test cases implemented
+- **Tests**: Agent authentication system fully tested and verified working
 
 ### 📊 **NEW: Invoice Management System**
 - **CustomerVendor Model**: Supports customers, vendors, or both with proper type choices
@@ -143,6 +150,23 @@ I will provide you with tables schema and I want you to create models, serialize
   - Supports filtering by item and store
   - Equivalent to PostgreSQL itemStock view
 
+### 🏦 **NEW: Accounting System Implementation**
+- **Account Model**: Complete account management for the accounting system with:
+  - Account names and grouping
+  - Unique sign/code system
+  - Proper audit fields and user tracking
+- **Transaction Model**: Comprehensive transaction tracking with:
+  - Account relationships
+  - Transaction types: Purchase, Sales, Return Purchase, Return Sales
+  - Customer/Vendor associations
+  - Invoice connections
+  - Amount tracking with notes
+- **API Endpoints**: New accounting endpoints added:
+  - `/api/accounts/` - Account management with filtering and search
+  - `/api/transactions/` - Transaction management with comprehensive filtering
+- **Admin Interfaces**: Complete admin management for accounts and transactions
+- **Database Tables**: New `accounts` and `transactions` tables created and migrated
+
 ### 🔗 **API Endpoints Summary:**
 #### Original Tables:
 - `/api/items-groups/` - Items groups management
@@ -157,6 +181,16 @@ I will provide you with tables schema and I want you to create models, serialize
 - `/api/invoices/` - Invoice management with comprehensive filtering
 - `/api/invoice-details/` - Invoice line items with relationships
 - `/api/stock/` - Real-time stock calculations
+
+#### Accounting System:
+- `/api/accounts/` - Account management with filtering and search
+- `/api/transactions/` - Transaction management with comprehensive filtering
+
+#### Agent Management:
+- `/api/agents/` - Agent management with custom authentication system
+- `/core/api/agents/login/` - Agent login endpoint for mobile apps
+- `/core/api/agents/logout/` - Agent logout endpoint
+- `/core/api/agents/verify-token/` - Token verification endpoint
 
 ### 🔐 Authentication System Features:
 - **Index Page**: Root URL `/` redirects to login or dashboard based on auth status
@@ -208,5 +242,89 @@ I will provide you with tables schema and I want you to create models, serialize
 - **Admin Interfaces**: Complete admin management for accounts and transactions
 - **Database Tables**: New `accounts` and `transactions` tables created and migrated
 
+### 🆕 **NEW: Agent Management System** ✅ **COMPLETED**
+- **Agent Model**: Complete agent management system with independent authentication:
+  - `agentName` - Display name for the agent
+  - `agentUsername` - Unique username for agent login (independent from Django auth)
+  - `agentPassword` - Hashed password for agent authentication
+  - `agentEmail` - Agent email address (optional)
+  - `agentPhone` - Agent phone number (optional)
+  - `isActive` - Whether the agent can login
+  - All standard audit fields (createdAt, updatedAt, deletedAt, createdBy, updatedBy, deletedBy, isDeleted)
+  - Proper database table `agents` with optimized indexing
+- **Agent Serializer**: Comprehensive DRF serializer with:
+  - Password field handling with write-only configuration and validation
+  - Proper audit field handling
+  - Username uniqueness validation
+  - Password hashing on create/update operations
+- **Agent Views**: Complete CRUD API operations with:
+  - List agents with filtering (agent name, username, search)
+  - Create, read, update, and soft delete operations
+  - Comprehensive error handling and validation
+  - Swagger/OpenAPI documentation integration
+- **Agent URLs**: RESTful endpoint structure:
+  - `GET /api/agents/` - List all agents with filtering
+  - `GET /api/agents/<id>/` - Get specific agent details
+  - `POST /api/agents/create/` - Create new agent
+  - `PUT /api/agents/<id>/update/` - Update existing agent
+  - `DELETE /api/agents/<id>/delete/` - Soft delete agent
+- **Agent Admin**: Complete Django admin interface with:
+  - Custom forms for agent creation and editing
+  - Password management with proper hashing
+  - Search and filtering capabilities
+  - Proper fieldsets and organization
+- **Database Migration**: Successfully applied migration `0011_agent_model_restructure.py`
+- **Constants**: Added agent-related constants for future extensibility
+
+### 🆕 **NEW: Agent Custom Authentication System** ✅ **COMPLETED**
+- **Independent Authentication**: Complete separation from Django's auth_user system to avoid conflicts
+- **Mobile App Ready**: Custom authentication logic designed specifically for mobile app integration
+- **Secure Password Management**: 
+  - Password hashing using Django's secure `make_password()` function
+  - Password verification using `check_password()` method
+  - Write-only password fields in serializers for security
+- **Authentication API Endpoints**:
+  - `POST /core/api/agents/login/` - Agent login with username/password
+  - `POST /core/api/agents/logout/` - Agent logout (session cleanup)
+  - `GET /core/api/agents/verify-token/` - Token verification for session management
+- **Token-Based Sessions**: Simple token system using agent ID for stateless authentication
+- **Comprehensive Testing**: All authentication endpoints tested and validated:
+  - ✅ Agent creation via API
+  - ✅ Agent login with valid credentials
+  - ✅ Token verification system
+  - ✅ Agent logout functionality
+  - ✅ Invalid credentials rejection
+
+# Agent custom login logic.
+1. add password field in table agents.
+2. create custom login logic dedicated for agents only, as they will login via api using a mobile app and I don't want them to have users in auth_users. The reason behind that is that I will have different criteria and I don't want to conflict with auth_user django rules.
+3. adjust models, etc.. for agents create post requests for login in the api
+
+## ✅ **AGENT AUTHENTICATION IMPLEMENTATION COMPLETED**
+Successfully implemented complete agent custom authentication system:
+- **Agent Model Restructure**: Removed dependency on auth_user table, added independent authentication fields
+- **Password Security**: Implemented secure password hashing and verification
+- **API Endpoints**: Created three authentication endpoints for mobile app integration
+- **Database Migration**: Clean migration from old to new agent structure
+- **Admin Interface**: Updated with proper password management forms
+- **Comprehensive Testing**: All authentication flows tested and verified working
+- **Mobile Ready**: System ready for mobile app integration with token-based authentication
+
+Updates on Agents:
+adjust the table to include only the following fields, removing all other fields.
+id, createdAt, updatedAt, deletedAt, createdBy, updatedBy, deletedBy, isDeleted, isActive, agentName, agentUsername, agentPassword, agentPhone.
+
+Follow up:
+1- add agentID in invoiceMaster to know if the invoice was made by an agent.
+2- add sales invoice and return sales to this screen http://127.0.0.1:8000/agents/manage/3/
+3- rename قسائم الاستلام، قسائم الدفع to be سند قبض and سند الدفع
+4- remove اجمالي القسائم -معاملات هذا الاسبوع
 
 
+AGENT/STORE todo:
+1- create a storeID field in the agents table that is "storeID" not storeID_id
+2- in "http://127.0.0.1:8000/agents/manage/create/" add a dropdown menu that is searchable that lists stores so the user can select a store to bind it to an agent.
+3- similar to step 2 in "http://127.0.0.1:8000/agents/manage/5/edit/"
+add the dropdown menu searchable to change the store bound to an agent.
+4- in agent view "http://127.0.0.1:8000/agents/manage/5/"
+add the store that is bound to the agent in the section that has his username, id, etc..

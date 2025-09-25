@@ -163,7 +163,7 @@
                                         </td>
                                         <td>
                                             <span class="fw-bold text-success">
-                                                {{ invoice.netTotal|default:0|floatformat:2 }} ر.س
+                                                {{ invoice.netTotal|default:0|floatformat:2 }} ج.م
                                             </span>
                                         </td>
                                         <td>
@@ -210,14 +210,16 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button type="button" 
-                                                        class="btn btn-outline-primary" 
-                                                        title="عرض التفاصيل">
+                                                <a href="{% url 'core:invoice_detail' invoice.id %}" 
+                                                   class="btn btn-outline-primary" 
+                                                   title="عرض التفاصيل"
+                                                   target="_blank">
                                                     <i class="bi bi-eye"></i>
-                                                </button>
+                                                </a>
                                                 <button type="button" 
                                                         class="btn btn-outline-info" 
-                                                        title="طباعة">
+                                                        title="طباعة"
+                                                        onclick="printInvoice({{ invoice.id }})">
                                                     <i class="bi bi-printer"></i>
                                                 </button>
                                             </div>
@@ -283,4 +285,18 @@
         </div>
     </div>
 </div>
+
+<script>
+function printInvoice(invoiceId) {
+    // Open the invoice detail page in a new window for printing
+    const printWindow = window.open(`/invoices/${invoiceId}/`, '_blank');
+    
+    // Wait for the page to load then trigger print
+    printWindow.onload = function() {
+        setTimeout(function() {
+            printWindow.print();
+        }, 500);
+    };
+}
+</script>
 {% endblock %}
