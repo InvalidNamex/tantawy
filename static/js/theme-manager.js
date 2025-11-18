@@ -6,22 +6,14 @@
  * and system preference detection
  */
 
-// IMMEDIATE DEBUG: Script is loading
-console.log('=== THEME-MANAGER.JS SCRIPT LOADING ===');
-console.log('Current URL:', window.location.href);
-console.log('Document ready state:', document.readyState);
-
 class ThemeManager {
   constructor() {
-    console.log('=== THEME MANAGER INITIALIZING ===');
     this.storageKey = 'tantawy-theme';
     this.themeAttribute = 'data-theme';
     this.theme = this.getInitialTheme();
     this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
-    console.log('Initial theme:', this.theme);
     this.init();
-    console.log('=== THEME MANAGER READY ===');
   }
   
   /**
@@ -95,14 +87,6 @@ class ThemeManager {
     
     // Dispatch custom event for other components
     this.dispatchThemeChangeEvent(theme);
-    
-    // Log theme change for debugging
-    console.log(`Theme changed to: ${theme}`, {
-      documentAttribute: document.documentElement.getAttribute(this.themeAttribute),
-      bodyAttribute: document.body.getAttribute(this.themeAttribute),
-      bodyBackgroundColor: document.body.style.backgroundColor,
-      bodyColor: document.body.style.color
-    });
   }
   
   /**
@@ -138,26 +122,10 @@ class ThemeManager {
     // Theme toggle button
     const toggleBtn = document.getElementById('theme-toggle');
     
-    console.log('Theme Manager: Button found?', !!toggleBtn);
-    
     if (toggleBtn) {
-      // Add visual debugging to the button
-      toggleBtn.style.border = '2px solid red';
-      toggleBtn.title = `Debug: Current theme is ${this.theme}`;
-      
       toggleBtn.addEventListener('click', (e) => {
-        console.log('BUTTON CLICKED! Event:', e);
-        
-        // Visual feedback on click
-        toggleBtn.style.backgroundColor = 'yellow';
-        setTimeout(() => {
-          toggleBtn.style.backgroundColor = '';
-        }, 200);
-        
         this.toggleTheme();
       });
-    } else {
-      console.error('Theme toggle button NOT FOUND!');
     }
     
     // Keyboard shortcut (Ctrl/Cmd + Shift + T)
@@ -326,8 +294,6 @@ class ThemeManager {
     }
     
     document.body.appendChild(debugDiv);
-    
-    console.log('Debug indicator added to page');
   }
 
   /**
@@ -349,8 +315,6 @@ class ThemeManager {
     if (themeDisplay) {
       themeDisplay.textContent = this.theme;
     }
-    
-    console.log('Debug indicator updated');
   }
 }
 
@@ -431,8 +395,6 @@ if (typeof module !== 'undefined' && module.exports) {
 // Additional theme-related event listeners
 document.addEventListener('themechange', (e) => {
   // Handle theme change in other components
-  console.log(`Theme changed from ${e.detail.previousTheme} to ${e.detail.theme}`);
-  
   // Update any theme-dependent components here
   updateThemeDependentComponents(e.detail.theme);
 });
@@ -480,24 +442,5 @@ function updateThirdPartyTheme(theme) {
 
 // Initialize theme manager when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM Content Loaded - Initializing ThemeManager');
-  
-  // IMMEDIATE DEBUG: Test if we can find and modify the button
-  const testButton = document.getElementById('theme-toggle');
-  console.log('Button found in DOMContentLoaded:', !!testButton);
-  console.log('Button element:', testButton);
-  
-  if (testButton) {
-    testButton.style.backgroundColor = 'red';
-    testButton.style.color = 'white';
-    testButton.innerHTML = 'DEBUG BUTTON FOUND';
-    
-    // Add a direct click handler for testing
-    testButton.onclick = function() {
-      alert('BUTTON CLICKED - JavaScript is working!');
-      console.log('Direct onclick handler triggered');
-    };
-  }
-  
   window.themeManager = new ThemeManager();
 });

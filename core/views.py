@@ -13,13 +13,23 @@ from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.utils import timezone
 from decimal import Decimal
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+import logging
+import base64
+from functools import wraps
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 from .models import *
 from .serializers import *
+
+# Import agent transactions API from authentication
+from authentication.views import agent_transactions_filtered_api as agent_transactions_api
 
 # ItemsGroup Views
 @extend_schema(
@@ -252,6 +262,34 @@ def customervendor_detail(request, id):
         return Response(serializer.data)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@extend_schema(
+    summary="List customers only",
+    description="Retrieve a simple list of customers (type=1) for dropdown/select purposes"
+)
+@api_view(['GET'])
+@authentication_classes([])  # Disable DRF authentication
+@permission_classes([AllowAny])  # Allow any user
+def customers_api_list(request):
+    """Get simple list of customers for dropdowns"""
+    try:
+        # Filter only customers (type=1)
+        customers = CustomerVendor.objects.filter(
+            isDeleted=False, 
+            type=1  # 1 = Customer
+        ).values('id', 'customerVendorName')
+        
+        # Return in expected format for frontend
+        result = [{'id': c['id'], 'customerVendorName': c['customerVendorName']} for c in customers]
+        return Response({
+            'success': True,
+            'data': result
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 # InvoiceMaster Views
 @extend_schema(
@@ -1061,6 +1099,220 @@ def stores_delete_view(request, store_id):
 
 
 # =============================================
+# VISIT PLANS TEMPLATE-BASED VIEWS
+# =============================================
+
+@login_required
+def visitplans_manage_view(request):
+    """
+    Display and manage visit plans with filtering
+    """
+    # Get filter parameters
+    agent_id = request.GET.get('agent')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search_query = request.GET.get('search', '')
+    
+    # Base queryset
+    queryset = VisitPlan.objects.filter(isDeleted=False).select_related('agentID')
+    
+    # Apply filters
+    if agent_id:
+        queryset = queryset.filter(agentID=agent_id)
+    if date_from:
+        queryset = queryset.filter(dateFrom__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(dateTo__lte=date_to)
+    if search_query:
+        queryset = queryset.filter(
+            Q(agentID__agentName__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+    
+    # Order by date (most recent first)
+    queryset = queryset.order_by('-dateFrom')
+    
+    # Pagination
+    paginator = Paginator(queryset, 10)
+    page_number = request.GET.get('page')
+    visit_plans = paginator.get_page(page_number)
+    
+    # Get all agents for filter dropdown
+    agents = Agent.objects.filter(isDeleted=False, isActive=True).order_by('agentName')
+    
+    # Get customers for each plan
+    for plan in visit_plans:
+        if plan.customers and isinstance(plan.customers, list):
+            plan.customer_objects = CustomerVendor.objects.filter(
+                id__in=plan.customers,
+                isDeleted=False
+            )
+            plan.customer_count = len(plan.customers)
+        else:
+            plan.customer_objects = []
+            plan.customer_count = 0
+    
+    context = {
+        'visit_plans': visit_plans,
+        'agents': agents,
+        'selected_agent': agent_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'core/visitplans/manage.html', context)
+
+
+@login_required
+def visitplan_add_view(request):
+    """
+    Add new visit plan
+    """
+    if request.method == 'POST':
+        try:
+            agent_id = request.POST.get('agentID')
+            date_from = request.POST.get('dateFrom')
+            date_to = request.POST.get('dateTo')
+            notes = request.POST.get('notes', '')
+            customer_ids = request.POST.getlist('customers')  # Get list of selected customer IDs
+            is_active = request.POST.get('isActive') == 'true'  # Convert checkbox to boolean
+            
+            # Convert customer IDs to integers
+            customer_ids = [int(cid) for cid in customer_ids if cid]
+            
+            # Validate required fields
+            if not agent_id or not date_from or not date_to:
+                messages.error(request, 'يجب ملء جميع الحقول المطلوبة')
+                return redirect('core:visitplan_add')
+            
+            if not customer_ids:
+                messages.error(request, 'يجب اختيار عميل واحد على الأقل')
+                return redirect('core:visitplan_add')
+            
+            # Create visit plan
+            visit_plan = VisitPlan.objects.create(
+                agentID_id=agent_id,
+                dateFrom=date_from,
+                dateTo=date_to,
+                customers=customer_ids,  # Store as JSON array
+                notes=notes,
+                isActive=is_active,
+                createdBy=request.user,
+                updatedBy=request.user
+            )
+            
+            messages.success(request, 'تم إنشاء خطة الزيارة بنجاح')
+            return redirect('core:visitplans_manage')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء إنشاء خطة الزيارة: {str(e)}')
+            return redirect('core:visitplan_add')
+    
+    # GET request - show form
+    agents = Agent.objects.filter(isDeleted=False, isActive=True).order_by('agentName')
+    customers = CustomerVendor.objects.filter(isDeleted=False, type__in=[1, 3]).order_by('customerVendorName')
+    
+    from datetime import date
+    context = {
+        'agents': agents,
+        'customers': customers,
+        'today': date.today().isoformat(),
+    }
+    
+    return render(request, 'core/visitplans/add.html', context)
+
+
+@login_required
+def visitplan_edit_view(request, plan_id):
+    """
+    Edit existing visit plan
+    """
+    visit_plan = get_object_or_404(VisitPlan, id=plan_id, isDeleted=False)
+    
+    if request.method == 'POST':
+        try:
+            agent_id = request.POST.get('agentID')
+            date_from = request.POST.get('dateFrom')
+            date_to = request.POST.get('dateTo')
+            notes = request.POST.get('notes', '')
+            customer_ids = request.POST.getlist('customers')
+            is_active = request.POST.get('isActive') == 'true'  # Convert checkbox to boolean
+            
+            # Convert customer IDs to integers
+            customer_ids = [int(cid) for cid in customer_ids if cid]
+            
+            # Validate required fields
+            if not agent_id or not date_from or not date_to:
+                messages.error(request, 'يجب ملء جميع الحقول المطلوبة')
+                return redirect('core:visitplan_edit', plan_id=plan_id)
+            
+            if not customer_ids:
+                messages.error(request, 'يجب اختيار عميل واحد على الأقل')
+                return redirect('core:visitplan_edit', plan_id=plan_id)
+            
+            # Update visit plan
+            visit_plan.agentID_id = agent_id
+            visit_plan.dateFrom = date_from
+            visit_plan.dateTo = date_to
+            visit_plan.customers = customer_ids
+            visit_plan.notes = notes
+            visit_plan.isActive = is_active
+            visit_plan.updatedBy = request.user
+            visit_plan.save()
+            
+            messages.success(request, 'تم تحديث خطة الزيارة بنجاح')
+            return redirect('core:visitplans_manage')
+            
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء تحديث خطة الزيارة: {str(e)}')
+            return redirect('core:visitplan_edit', plan_id=plan_id)
+    
+    # GET request - show form
+    agents = Agent.objects.filter(isDeleted=False, isActive=True).order_by('agentName')
+    customers = CustomerVendor.objects.filter(isDeleted=False, type__in=[1, 3]).order_by('customerVendorName')
+    
+    from datetime import date
+    context = {
+        'visit_plan': visit_plan,
+        'agents': agents,
+        'customers': customers,
+        'selected_customers': visit_plan.customers if visit_plan.customers else [],
+        'today': date.today().isoformat(),
+    }
+    
+    return render(request, 'core/visitplans/edit.html', context)
+
+
+@login_required
+def visitplan_delete_view(request, plan_id):
+    """
+    Delete visit plan (soft delete)
+    """
+    visit_plan = get_object_or_404(VisitPlan, id=plan_id, isDeleted=False)
+    
+    if request.method == 'POST':
+        try:
+            # Soft delete
+            visit_plan.isDeleted = True
+            visit_plan.deletedBy = request.user
+            visit_plan.deletedAt = timezone.now()
+            visit_plan.save()
+            
+            messages.success(request, 'تم حذف خطة الزيارة بنجاح')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف خطة الزيارة: {str(e)}')
+        
+        return redirect('core:visitplans_manage')
+    
+    context = {
+        'visit_plan': visit_plan,
+    }
+    
+    return render(request, 'core/visitplans/delete.html', context)
+
+
+# =============================================
 # ITEMS TEMPLATE-BASED VIEWS
 # =============================================
 
@@ -1264,7 +1516,7 @@ def items_detail_view(request, item_id):
                 })
     except Exception as e:
         # If view doesn't exist or query fails, fall back to empty list
-        print(f"Error querying itemStock view: {e}")
+        logger.error(f"Error querying itemStock view: {e}")
         pass
     
     context = {
@@ -1619,7 +1871,7 @@ def items_delete_view(request, item_id):
             # More detailed error information for debugging
             import traceback
             error_details = traceback.format_exc()
-            print(f"Error deleting item {item.id}: {error_details}")  # For server logs
+            logger.error(f"Error deleting item {item.id}: {error_details}")
             messages.error(request, f'حدث خطأ أثناء حذف الصنف: {str(e)}')
             return redirect('core:items')
     
@@ -3355,6 +3607,479 @@ def agent_verify_token(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# ==================== STORE AUTHENTICATION VIEWS ====================
+
+@extend_schema(
+    summary="Store login",
+    description="Authenticate store using username and password",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'username': {'type': 'string', 'description': 'Store username'},
+                'password': {'type': 'string', 'description': 'Store password'},
+            },
+            'required': ['username', 'password']
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'message': {'type': 'string'},
+                'store': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'storeName': {'type': 'string'},
+                        'storeUsername': {'type': 'string'},
+                        'storeGroup': {'type': 'string'},
+                        'isActive': {'type': 'boolean'},
+                    }
+                },
+                'token': {'type': 'string', 'description': 'Simple session token (store ID)'}
+            }
+        },
+        400: {'description': 'Invalid credentials or inactive store'},
+        401: {'description': 'Authentication failed'}
+    }
+)
+@api_view(['POST'])
+def store_login(request):
+    """
+    Store login endpoint for authentication.
+    Returns user data and simple token for session management.
+    """
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response({
+                'success': False,
+                'message': 'Username and password are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find user by username
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invalid username or password'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check password
+        if not user.check_password(password):
+            return Response({
+                'success': False,
+                'message': 'Invalid username or password'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check if user is active
+        if not user.is_active:
+            return Response({
+                'success': False,
+                'message': 'User account is inactive'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Return success response with user data
+        return Response({
+            'success': True,
+            'message': 'Login successful',
+            'user': {
+                'id': user.id,
+                'first_name': user.first_name,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+            },
+            'token': str(user.id)  # Simple token for sessions
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Login failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get store agents",
+    description="Get list of active agents for stores",
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'agents': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'type': 'integer'},
+                            'agentName': {'type': 'string'},
+                            'storeID': {'type': 'integer'},
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['GET'])
+def store_agents(request):
+    """
+    Get list of active, non-deleted agents with their store information.
+    """
+    try:
+        agents = Agent.objects.filter(
+            isActive=True,
+            isDeleted=False
+        ).values('id', 'agentName', 'storeID')
+        
+        return Response({
+            'success': True,
+            'agents': list(agents)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Failed to retrieve agents: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def basic_auth_required(view_func):
+    """
+    Decorator for HTTP Basic Authentication.
+    Expects Authorization header with base64 encoded username:password
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        
+        if not auth_header.startswith('Basic '):
+            response = Response(
+                {'error': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            response['WWW-Authenticate'] = 'Basic realm="Login Required"'
+            return response
+        
+        try:
+            # Decode base64 credentials
+            auth_decoded = base64.b64decode(auth_header[6:]).decode('utf-8')
+            username, password = auth_decoded.split(':', 1)
+            
+            # Authenticate user
+            try:
+                user = User.objects.get(username=username)
+                if not user.check_password(password) or not user.is_active:
+                    raise ValueError('Invalid credentials')
+            except (User.DoesNotExist, ValueError):
+                response = Response(
+                    {'error': 'Invalid credentials'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+                response['WWW-Authenticate'] = 'Basic realm="Login Required"'
+                return response
+            
+            # Attach user to request
+            request.authenticated_user = user
+            return view_func(request, *args, **kwargs)
+            
+        except Exception as e:
+            response = Response(
+                {'error': 'Authentication failed'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            response['WWW-Authenticate'] = 'Basic realm="Login Required"'
+            return response
+    
+    return wrapper
+
+
+@extend_schema(
+    summary="Get stock levels from itemStock view",
+    description="Retrieve stock levels for items filtered by store. Requires HTTP Basic Authentication.",
+    parameters=[
+        OpenApiParameter(name='storeID', type=OpenApiTypes.INT, location=OpenApiParameter.QUERY, 
+                        description='Filter by store ID (optional, returns all if not provided)')
+    ],
+    responses={
+        200: {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'integer'},
+                    'itemName': {'type': 'string'},
+                    'storeID': {'type': 'integer'},
+                    'stock': {'type': 'number'},
+                }
+            }
+        },
+        401: {'description': 'Authentication required'}
+    }
+)
+@api_view(['GET'])
+@basic_auth_required
+def store_stock(request):
+    """
+    Get stock levels from itemStock view.
+    Filters by isDeleted=False and optionally by storeID.
+    """
+    try:
+        from django.db import connection
+        
+        store_id = request.GET.get('storeID')
+        
+        # Build SQL query
+        sql = '''
+            SELECT id, "itemName", "storeID", stock
+            FROM "itemStock"
+            WHERE "isDeleted" = FALSE
+        '''
+        
+        params = []
+        if store_id:
+            try:
+                sql += ' AND "storeID" = %s'
+                params.append(int(store_id))
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid storeID parameter'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Execute query
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            columns = [col[0] for col in cursor.description]
+            results = [
+                dict(zip(columns, row))
+                for row in cursor.fetchall()
+            ]
+        
+        return Response({
+            'success': True,
+            'data': results
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Failed to retrieve stock: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Update stock via invoices",
+    description="Create invoices for stock updates without customer/vendor. Requires HTTP Basic Authentication.",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'invoices': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'invoiceType': {'type': 'integer', 'description': '1=Purchase, 2=Sales, 3=Return Purchase, 4=Return Sales'},
+                            'storeId': {'type': 'integer'},
+                            'returnStatus': {'type': 'integer'},
+                            'invoiceDetails': {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'item': {'type': 'integer'},
+                                        'quantity': {'type': 'number'},
+                                    }
+                                }
+                            }
+                        },
+                        'required': ['invoiceType', 'storeId', 'invoiceDetails']
+                    }
+                }
+            },
+            'example': {
+                'invoices': [
+                    {
+                        'invoiceType': 1,
+                        'storeId': 5,
+                        'returnStatus': 1,
+                        'invoiceDetails': [
+                            {'item': 2, 'quantity': 10.0},
+                            {'item': 5, 'quantity': 20.0}
+                        ]
+                    }
+                ]
+            }
+        }
+    },
+    responses={
+        201: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'message': {'type': 'string'},
+                'data': {
+                    'type': 'object',
+                    'properties': {
+                        'totalInvoices': {'type': 'integer'},
+                        'createdInvoices': {'type': 'array'}
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['POST'])
+@basic_auth_required
+def store_update_stock(request):
+    """
+    Create invoices for stock updates.
+    Sets default values: customerOrVendorID=null, status=0, paymentType=1, 
+    notes='Stock Deposit', agentID=null, all amounts=0
+    """
+    try:
+        from django.db import transaction as db_transaction
+        
+        invoices_data = request.data.get('invoices', [])
+        
+        if not invoices_data:
+            return Response({
+                'success': False,
+                'error': 'NO_INVOICES',
+                'message': 'No invoices provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(invoices_data) > 100:
+            return Response({
+                'success': False,
+                'error': 'BATCH_SIZE_EXCEEDED',
+                'message': 'Batch size limited to 100 invoices maximum'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate all invoices
+        validation_errors = []
+        for idx, invoice_data in enumerate(invoices_data):
+            invoice_type = invoice_data.get('invoiceType')
+            store_id = invoice_data.get('storeId')
+            invoice_details = invoice_data.get('invoiceDetails', [])
+            
+            if not invoice_type or invoice_type not in [1, 2, 3, 4]:
+                validation_errors.append(f"Invoice {idx + 1}: Invalid or missing invoiceType")
+                continue
+            
+            if not store_id:
+                validation_errors.append(f"Invoice {idx + 1}: Missing storeId")
+                continue
+            
+            try:
+                Store.objects.get(id=store_id, isDeleted=False)
+            except Store.DoesNotExist:
+                validation_errors.append(f"Invoice {idx + 1}: Store not found")
+                continue
+            
+            if not invoice_details:
+                validation_errors.append(f"Invoice {idx + 1}: Must have at least one line item")
+                continue
+            
+            for detail_idx, detail in enumerate(invoice_details):
+                if not detail.get('item') or not detail.get('quantity'):
+                    validation_errors.append(f"Invoice {idx + 1}, Item {detail_idx + 1}: Missing item or quantity")
+                    continue
+                
+                try:
+                    Item.objects.get(id=detail['item'], isDeleted=False)
+                except Item.DoesNotExist:
+                    validation_errors.append(f"Invoice {idx + 1}, Item {detail_idx + 1}: Item not found")
+        
+        if validation_errors:
+            return Response({
+                'success': False,
+                'error': 'VALIDATION_ERROR',
+                'message': 'Validation failed',
+                'errors': validation_errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get authenticated user for audit fields
+        audit_user = request.authenticated_user
+        
+        # Process all invoices in transaction
+        created_invoices = []
+        
+        with db_transaction.atomic():
+            for idx, invoice_data in enumerate(invoices_data):
+                try:
+                    # Create Invoice Master with default values
+                    invoice_master = InvoiceMaster.objects.create(
+                        invoiceType=invoice_data['invoiceType'],
+                        customerOrVendorID=None,  # Always null
+                        storeID_id=invoice_data['storeId'],
+                        agentID=None,  # Always null
+                        paymentType=1,  # Always cash
+                        notes='Stock Deposit',  # Default notes
+                        discountAmount=Decimal('0'),
+                        discountPercentage=Decimal('0'),
+                        taxAmount=Decimal('0'),
+                        taxPercentage=Decimal('0'),
+                        netTotal=Decimal('0'),
+                        status=0,  # Always 0
+                        totalPaid=Decimal('0'),
+                        returnStatus=invoice_data.get('returnStatus', 1),
+                        originalInvoiceID=None,
+                        createdBy=audit_user,
+                        updatedBy=audit_user
+                    )
+                    
+                    # Create Invoice Details
+                    for detail in invoice_data['invoiceDetails']:
+                        InvoiceDetail.objects.create(
+                            invoiceMasterID=invoice_master,
+                            item_id=detail['item'],
+                            quantity=Decimal(str(detail['quantity'])),
+                            price=Decimal('0'),  # Always 0
+                            storeID_id=invoice_data['storeId'],
+                            notes='',  # Blank notes
+                            discountAmount=Decimal('0'),
+                            discountPercentage=Decimal('0'),
+                            taxAmount=Decimal('0'),
+                            taxPercentage=Decimal('0'),
+                            createdBy=audit_user,
+                            updatedBy=audit_user
+                        )
+                    
+                    created_invoices.append({
+                        'invoiceId': invoice_master.id,
+                        'invoiceType': invoice_master.invoiceType,
+                        'storeId': invoice_master.storeID_id,
+                        'itemCount': len(invoice_data['invoiceDetails'])
+                    })
+                    
+                except Exception as e:
+                    raise Exception(f"Error processing invoice {idx + 1}: {str(e)}")
+        
+        return Response({
+            'success': True,
+            'message': f'{len(created_invoices)} invoices created successfully',
+            'data': {
+                'totalInvoices': len(created_invoices),
+                'createdInvoices': created_invoices
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Batch processing failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # =============================================================================
 # VOUCHER API ENDPOINTS
 # =============================================================================
@@ -3363,6 +4088,43 @@ from functools import wraps
 from django.contrib.auth.hashers import check_password
 import base64
 from datetime import datetime
+import pytz
+
+def parse_datetime_with_timezone(date_string, user_timezone=None):
+    """
+    Parse datetime string and convert to timezone-aware datetime.
+    
+    Args:
+        date_string: ISO format datetime string (e.g., "2025-11-15T14:30:00")
+        user_timezone: Timezone string (e.g., "Africa/Cairo", "America/New_York")
+                      If None, defaults to settings.TIME_ZONE
+    
+    Returns:
+        Timezone-aware datetime object
+    """
+    if not date_string:
+        return timezone.now()
+    
+    try:
+        # Parse the datetime string
+        dt = datetime.fromisoformat(date_string.replace('Z', '+00:00'))
+        
+        # If datetime is naive (no timezone info), assume it's in user's timezone
+        if dt.tzinfo is None:
+            if user_timezone:
+                try:
+                    tz = pytz.timezone(user_timezone)
+                    dt = tz.localize(dt)
+                except:
+                    # Invalid timezone, use default
+                    dt = timezone.make_aware(dt)
+            else:
+                # Use Django's default timezone
+                dt = timezone.make_aware(dt)
+        
+        return dt
+    except:
+        return timezone.now()
 
 def agent_authentication_required(view_func):
     """
@@ -3483,6 +4245,8 @@ def generate_voucher_id(agent_id, voucher_type):
     }
 )
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
 @agent_authentication_required
 def create_voucher(request):
     """
@@ -3508,11 +4272,11 @@ def create_voucher(request):
                 'message': 'Type must be 1 (receipt) or 2 (payment)'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        if not customer_vendor_id or not amount or not store_id:
+        if not amount or not store_id:
             return Response({
                 'success': False,
                 'error': 'MISSING_REQUIRED_FIELDS',
-                'message': 'customerVendorId, amount, and storeId are required'
+                'message': 'amount and storeId are required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if amount <= 0:
@@ -3522,15 +4286,17 @@ def create_voucher(request):
                 'message': 'Amount must be greater than 0'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Verify customer/vendor exists
-        try:
-            customer_vendor = CustomerVendor.objects.get(id=customer_vendor_id, isDeleted=False)
-        except CustomerVendor.DoesNotExist:
-            return Response({
-                'success': False,
-                'error': 'CUSTOMER_VENDOR_NOT_FOUND',
-                'message': f'Customer/Vendor with ID {customer_vendor_id} not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+        # Verify customer/vendor exists (optional)
+        customer_vendor = None
+        if customer_vendor_id:
+            try:
+                customer_vendor = CustomerVendor.objects.get(id=customer_vendor_id, isDeleted=False)
+            except CustomerVendor.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'error': 'CUSTOMER_VENDOR_NOT_FOUND',
+                    'message': f'Customer/Vendor with ID {customer_vendor_id} not found'
+                }, status=status.HTTP_404_NOT_FOUND)
         
         # Verify store exists
         try:
@@ -3555,26 +4321,25 @@ def create_voucher(request):
         # Generate voucher ID
         voucher_id = generate_voucher_id(request.agent.id, voucher_type)
         
-        # Parse voucher date
-        if voucher_date:
-            try:
-                voucher_datetime = datetime.fromisoformat(voucher_date.replace('Z', '+00:00'))
-            except:
-                voucher_datetime = timezone.now()
-        else:
-            voucher_datetime = timezone.now()
+        # Get user timezone from request header (optional)
+        user_timezone = request.META.get('HTTP_X_TIMEZONE', None)
+        
+        # Parse voucher date with user timezone support
+        voucher_datetime = parse_datetime_with_timezone(voucher_date, user_timezone)
         
         # Create transactions based on voucher type
         transaction_ids = []
+        customer_name = customer_vendor.customerVendorName if customer_vendor else "General Expense"
         
         if voucher_type == 1:  # Receipt (Money IN)
             # Transaction 1: Debit Cash Account (Money IN)
             transaction1 = Transaction.objects.create(
                 accountID=cash_account,
                 amount=amount,  # Positive (Debit)
-                notes=f"Cash received - Voucher {voucher_id} - {customer_vendor.customerName}",
+                notes=notes if notes else f"Cash received - Voucher {voucher_id} - {customer_name}",
                 type=voucher_type,
-                customerVendorID=None,  # No customer/vendor for cash account
+                customerVendorID=customer_vendor,  # Link customer to cash transaction
+                agentID=request.agent,
                 createdBy=request.agent.createdBy,  # Use agent's creator as proxy
                 createdAt=voucher_datetime
             )
@@ -3584,9 +4349,10 @@ def create_voucher(request):
             transaction2 = Transaction.objects.create(
                 accountID=Account.objects.get(id=36),  # Customer AR account
                 amount=-amount,  # Negative (Credit)
-                notes=f"Payment received - Voucher {voucher_id} - Agent {request.agent.agentName}",
+                notes=notes if notes else f"Payment received - Voucher {voucher_id} - Agent {request.agent.agentName}",
                 type=voucher_type,
                 customerVendorID=customer_vendor,
+                agentID=request.agent,
                 createdBy=request.agent.createdBy,
                 createdAt=voucher_datetime
             )
@@ -3597,9 +4363,10 @@ def create_voucher(request):
             transaction1 = Transaction.objects.create(
                 accountID=Account.objects.get(id=37),  # Vendor AP account
                 amount=amount,  # Positive (Debit)
-                notes=f"Payment made - Voucher {voucher_id} - Agent {request.agent.agentName}",
+                notes=notes if notes else f"Payment made - Voucher {voucher_id} - {customer_name}",
                 type=voucher_type,
                 customerVendorID=customer_vendor,
+                agentID=request.agent,
                 createdBy=request.agent.createdBy,
                 createdAt=voucher_datetime
             )
@@ -3609,9 +4376,10 @@ def create_voucher(request):
             transaction2 = Transaction.objects.create(
                 accountID=cash_account,
                 amount=-amount,  # Negative (Credit)
-                notes=f"Cash payment - Voucher {voucher_id} - {customer_vendor.customerName}",
+                notes=notes if notes else f"Cash payment - Voucher {voucher_id} - {customer_name}",
                 type=voucher_type,
-                customerVendorID=None,
+                customerVendorID=customer_vendor,  # Link customer to cash transaction
+                agentID=request.agent,
                 createdBy=request.agent.createdBy,
                 createdAt=voucher_datetime
             )
@@ -3623,7 +4391,7 @@ def create_voucher(request):
             'transactionIds': transaction_ids,
             'message': f'Voucher {voucher_id} created successfully',
             'amount': float(amount),
-            'customerVendor': customer_vendor.customerName,
+            'customerVendor': customer_name,
             'agent': request.agent.agentName
         }, status=status.HTTP_201_CREATED)
         
@@ -3632,6 +4400,178 @@ def create_voucher(request):
             'success': False,
             'error': 'PROCESSING_ERROR',
             'message': f'Error creating voucher: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Batch create vouchers",
+    description="""
+    Create multiple vouchers in a single batch operation.
+    
+    **Authentication Required**: Basic Auth with agent credentials
+    
+    **Processing**:
+    - All vouchers processed in atomic transaction
+    - If any voucher fails, entire batch is rolled back
+    - Maximum 100 vouchers per batch
+    """,
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'vouchers': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'type': {'type': 'integer', 'enum': [1, 2]},
+                            'customerVendorId': {'type': 'integer'},
+                            'amount': {'type': 'number'},
+                            'storeId': {'type': 'integer'},
+                            'notes': {'type': 'string'},
+                            'voucherDate': {'type': 'string', 'format': 'date-time'}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    responses={
+        201: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'message': {'type': 'string'},
+                'data': {
+                    'type': 'object',
+                    'properties': {
+                        'totalVouchers': {'type': 'integer'},
+                        'createdVouchers': {'type': 'array'},
+                        'totalAmount': {'type': 'number'}
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@agent_authentication_required
+def batch_create_vouchers(request):
+    """Create multiple vouchers in a single batch operation"""
+    from django.db import transaction as db_transaction
+    
+    try:
+        vouchers_data = request.data.get('vouchers', [])
+        
+        if not vouchers_data:
+            return Response({
+                'success': False,
+                'error': 'NO_VOUCHERS',
+                'message': 'No vouchers provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(vouchers_data) > 100:
+            return Response({
+                'success': False,
+                'error': 'BATCH_SIZE_EXCEEDED',
+                'message': 'Maximum 100 vouchers per batch'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        created_vouchers = []
+        total_amount = Decimal('0')
+        
+        with db_transaction.atomic():
+            for idx, voucher_data in enumerate(vouchers_data):
+                voucher_type = voucher_data.get('type')
+                customer_vendor_id = voucher_data.get('customerVendorId')
+                amount = Decimal(str(voucher_data.get('amount', 0)))
+                store_id = voucher_data.get('storeId')
+                notes = voucher_data.get('notes', '')
+                voucher_date = voucher_data.get('voucherDate')
+                account_id = voucher_data.get('accountId', 35)
+                
+                # Validation
+                if not voucher_type or voucher_type not in [1, 2]:
+                    raise Exception(f"Voucher {idx + 1}: Invalid type")
+                if not amount or not store_id:
+                    raise Exception(f"Voucher {idx + 1}: Missing required fields (amount, storeId)")
+                if amount <= 0:
+                    raise Exception(f"Voucher {idx + 1}: Amount must be greater than 0")
+                
+                # Verify entities exist
+                customer_vendor = None
+                if customer_vendor_id:
+                    customer_vendor = CustomerVendor.objects.get(id=customer_vendor_id, isDeleted=False)
+                
+                Store.objects.get(id=store_id, isDeleted=False)
+                cash_account = Account.objects.get(id=account_id, isDeleted=False)
+                
+                # Generate voucher ID
+                voucher_id = generate_voucher_id(request.agent.id, voucher_type)
+                
+                # Get user timezone from request header (optional)
+                user_timezone = request.META.get('HTTP_X_TIMEZONE', None)
+                
+                # Parse date with user timezone support
+                voucher_datetime = parse_datetime_with_timezone(voucher_date, user_timezone)
+                
+                # Create transactions
+                transaction_ids = []
+                customer_name = customer_vendor.customerVendorName if customer_vendor else "General Expense"
+                
+                if voucher_type == 1:  # Receipt
+                    t1 = Transaction.objects.create(
+                        accountID=cash_account, amount=amount,
+                        notes=f"Cash received - Voucher {voucher_id} - {customer_name}" if notes == '' else notes,
+                        type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent, createdBy=request.agent.createdBy, createdAt=voucher_datetime
+                    )
+                    t2 = Transaction.objects.create(
+                        accountID=Account.objects.get(id=36), amount=-amount,
+                        notes=f"Payment received - Voucher {voucher_id} - Agent {request.agent.agentName}" if notes == '' else notes,
+                        type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent,
+                        createdBy=request.agent.createdBy, createdAt=voucher_datetime
+                    )
+                    transaction_ids = [t1.id, t2.id]
+                else:  # Payment
+                    t1 = Transaction.objects.create(
+                        accountID=Account.objects.get(id=37), amount=amount,
+                        notes=f"Payment made - Voucher {voucher_id} - {customer_name}" if notes == '' else notes,
+                        type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent,
+                        createdBy=request.agent.createdBy, createdAt=voucher_datetime
+                    )
+                    t2 = Transaction.objects.create(
+                        accountID=cash_account, amount=-amount,
+                        notes=f"Cash payment - Voucher {voucher_id} - {customer_name}" if notes == '' else notes,
+                        type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent, createdBy=request.agent.createdBy, createdAt=voucher_datetime
+                    )
+                    transaction_ids = [t1.id, t2.id]
+                
+                created_vouchers.append({
+                    'voucherId': voucher_id,
+                    'amount': float(amount),
+                    'type': voucher_type,
+                    'customerVendor': customer_name,
+                    'transactionIds': transaction_ids
+                })
+                total_amount += amount
+        
+        return Response({
+            'success': True,
+            'message': f'{len(created_vouchers)} vouchers created successfully',
+            'data': {
+                'totalVouchers': len(created_vouchers),
+                'createdVouchers': created_vouchers,
+                'totalAmount': float(total_amount)
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Batch processing failed: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -3684,6 +4624,8 @@ def create_voucher(request):
     }
 )
 @api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
 @agent_authentication_required
 def get_vouchers(request):
     """
@@ -3816,4 +4758,1231 @@ def get_vouchers(request):
             'success': False,
             'error': 'PROCESSING_ERROR',
             'message': f'Error retrieving vouchers: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================================================
+# Visit API Views
+# =============================================================================
+
+@extend_schema(
+    summary="Create a new visit",
+    description="""
+    Create a new visit record for an agent. Agent can only create visits for themselves.
+    
+    **Authentication**: Requires HTTP Basic Auth with agent credentials
+    
+    **Example Request Body**:
+    ```json
+    {
+        "transType": 1,
+        "customerVendor": 5,
+        "date": "2025-09-25",
+        "latitude": 30.0444,
+        "longitude": 31.2357,
+        "notes": "Customer meeting completed successfully"
+    }
+    ```
+    
+    **Transaction Types**:
+    - 1: Sales
+    - 2: Return Sales  
+    - 3: Receive Voucher
+    - 4: Pay Voucher
+    
+    **Example cURL**:
+    ```bash
+    curl -X POST "http://127.0.0.1:8000/api/visits/create/" \
+         -H "Content-Type: application/json" \
+         -H "Authorization: Basic YWdlbnR1c2VybmFtZTpwYXNzd29yZA==" \
+         -d '{"transType": 1, "customerVendor": 5, "date": "2025-09-25", "latitude": 30.0444, "longitude": 31.2357, "notes": "Customer visit"}'
+    ```
+    """,
+    request=VisitSerializer,
+    responses={
+        201: VisitSerializer,
+        400: OpenApiTypes.OBJECT,
+        401: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['POST'])
+@authentication_classes([])  # Disable DRF authentication
+@permission_classes([AllowAny])  # Allow any user (we handle auth in decorator)
+@agent_authentication_required
+def create_visit(request):
+    """Create a new visit for the authenticated agent"""
+    try:
+        # Force the agentID to be the authenticated agent
+        data = request.data.copy()
+        data['agentID'] = request.agent.id
+        
+        serializer = VisitSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Visit created successfully',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                'success': False,
+                'error': 'VALIDATION_ERROR',
+                'message': 'Invalid data provided',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error creating visit: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="List agent's visits",
+    description="Get all visits for the authenticated agent or specific agent (staff only) with optional filtering",
+    parameters=[
+        OpenApiParameter(name='agent_id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Agent ID (for staff users)'),
+        OpenApiParameter(name='date_from', type=OpenApiTypes.DATE, description='Filter visits from this date'),
+        OpenApiParameter(name='date_to', type=OpenApiTypes.DATE, description='Filter visits to this date'),
+        OpenApiParameter(name='trans_type', type=OpenApiTypes.INT, description='Filter by transaction type'),
+        OpenApiParameter(name='customer_vendor', type=OpenApiTypes.INT, description='Filter by customer/vendor ID'),
+    ],
+    responses={
+        200: VisitSerializer(many=True),
+        401: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['GET'])
+@authentication_classes([])  # Disable DRF authentication
+@permission_classes([AllowAny])  # Allow any user (we handle auth in function)
+def agent_visits_list(request, agent_id=None):
+    """Get all visits for the authenticated agent or specific agent (staff only)"""
+    try:
+        # Determine which agent's visits to show
+        if agent_id:
+            # Allow access for agent detail page viewing (public access for specific agent)
+            # This allows the agent detail page to load visits without authentication
+            agent = get_object_or_404(Agent, id=agent_id, isDeleted=False)
+            target_agent = agent
+        else:
+            # Agent requesting their own visits (requires agent authentication)
+            auth_header = request.META.get('HTTP_AUTHORIZATION')
+            if not auth_header or not auth_header.startswith('Basic '):
+                return Response({
+                    'success': False,
+                    'error': 'AUTHENTICATION_REQUIRED',
+                    'message': 'Agent authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            try:
+                import base64
+                encoded_credentials = auth_header.split(' ')[1]
+                decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+                username, password = decoded_credentials.split(':')
+                
+                agent = Agent.objects.filter(
+                    agentUsername=username, 
+                    isDeleted=False,
+                    isActive=True
+                ).first()
+                
+                if not agent or not agent.check_password(password):
+                    return Response({
+                        'success': False,
+                        'error': 'INVALID_CREDENTIALS',
+                        'message': 'Invalid agent credentials'
+                    }, status=status.HTTP_401_UNAUTHORIZED)
+                
+                target_agent = agent
+            except Exception as e:
+                return Response({
+                    'success': False,
+                    'error': 'AUTHENTICATION_ERROR',
+                    'message': f'Authentication failed: {str(e)}'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Filter visits for the target agent
+        queryset = Visit.objects.filter(
+            agentID=target_agent,
+            isDeleted=False
+        ).select_related('customerVendor', 'agentID')
+        
+        # Apply filters
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        trans_type = request.GET.get('trans_type')
+        customer_vendor = request.GET.get('customer_vendor')
+        
+        if date_from:
+            queryset = queryset.filter(date__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date__date__lte=date_to)
+        if trans_type:
+            queryset = queryset.filter(transType=trans_type)
+        if customer_vendor:
+            queryset = queryset.filter(customerVendor=customer_vendor)
+        
+        serializer = VisitSerializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'data': serializer.data,
+            'count': queryset.count()
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving visits: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================================================
+# VisitPlan API Views
+# =============================================================================
+
+@extend_schema(
+    summary="List all visit plans",
+    description="""
+    Retrieve all visit plans with optional filtering.
+    
+    **Important**: When filtering by `agent_id`, only **active plans** (isActive=True) are returned.
+    Without agent_id filter, all plans are returned regardless of active status.
+    
+    **Filters**:
+    - `agent_id`: Filter by agent ID (returns only active plans for that agent)
+    - `date_from`: Filter plans starting from this date
+    - `date_to`: Filter plans ending before this date
+    """,
+    parameters=[
+        OpenApiParameter(name='agent_id', type=OpenApiTypes.INT, description='Filter by agent ID (returns only active plans)'),
+        OpenApiParameter(name='date_from', type=OpenApiTypes.DATE, description='Filter plans starting from this date'),
+        OpenApiParameter(name='date_to', type=OpenApiTypes.DATE, description='Filter plans ending before this date'),
+    ],
+    responses={
+        200: VisitPlanSerializer(many=True),
+    },
+    tags=['Visit Plans']
+)
+@api_view(['GET'])
+def visitplan_list(request):
+    """Get all visit plans with optional filtering"""
+    try:
+        queryset = VisitPlan.objects.filter(isDeleted=False).select_related('agentID')
+        
+        # Apply filters
+        agent_id = request.GET.get('agent_id')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        
+        if agent_id:
+            # When filtering by agent, only return active plan
+            queryset = queryset.filter(agentID=agent_id, isActive=True)
+        if date_from:
+            queryset = queryset.filter(dateFrom__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(dateTo__lte=date_to)
+        
+        serializer = VisitPlanSerializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'data': serializer.data,
+            'count': queryset.count()
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving visit plans: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get visit plan by ID",
+    description="Retrieve a specific visit plan by ID",
+    parameters=[
+        OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Visit Plan ID')
+    ],
+    responses={
+        200: VisitPlanSerializer,
+        404: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['GET'])
+def visitplan_detail(request, id):
+    """Get specific visit plan by ID"""
+    try:
+        visitplan = get_object_or_404(VisitPlan, id=id, isDeleted=False)
+        serializer = VisitPlanSerializer(visitplan)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'NOT_FOUND',
+            'message': f'Visit plan not found: {str(e)}'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@extend_schema(
+    summary="Create a new visit plan",
+    description="""
+    Create a new visit plan for an agent.
+    
+    **Example Request Body**:
+    ```json
+    {
+        "agentID": 1,
+        "dateFrom": "2025-10-24",
+        "dateTo": "2025-10-31",
+        "customers": [1, 5, 10, 15, 20],
+        "notes": "Weekly visit plan for October"
+    }
+    ```
+    """,
+    request=VisitPlanSerializer,
+    responses={
+        201: VisitPlanSerializer,
+        400: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['POST'])
+def visitplan_create(request):
+    """Create a new visit plan"""
+    try:
+        serializer = VisitPlanSerializer(data=request.data)
+        if serializer.is_valid():
+            # Set audit fields
+            if request.user and request.user.is_authenticated:
+                serializer.save(createdBy=request.user, updatedBy=request.user)
+            else:
+                serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Visit plan created successfully',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                'success': False,
+                'error': 'VALIDATION_ERROR',
+                'message': 'Invalid data provided',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error creating visit plan: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Update visit plan",
+    description="Update an existing visit plan",
+    parameters=[
+        OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Visit Plan ID')
+    ],
+    request=VisitPlanSerializer,
+    responses={
+        200: VisitPlanSerializer,
+        400: OpenApiTypes.OBJECT,
+        404: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['PUT', 'PATCH'])
+def visitplan_update(request, id):
+    """Update visit plan"""
+    try:
+        visitplan = get_object_or_404(VisitPlan, id=id, isDeleted=False)
+        partial = request.method == 'PATCH'
+        
+        serializer = VisitPlanSerializer(visitplan, data=request.data, partial=partial)
+        if serializer.is_valid():
+            # Set audit fields
+            if request.user and request.user.is_authenticated:
+                serializer.save(updatedBy=request.user)
+            else:
+                serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Visit plan updated successfully',
+                'data': serializer.data
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'VALIDATION_ERROR',
+                'message': 'Invalid data provided',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error updating visit plan: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Delete visit plan",
+    description="Soft delete a visit plan (marks as deleted)",
+    parameters=[
+        OpenApiParameter(name='id', type=OpenApiTypes.INT, location=OpenApiParameter.PATH, description='Visit Plan ID')
+    ],
+    responses={
+        200: OpenApiTypes.OBJECT,
+        404: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['DELETE'])
+def visitplan_delete(request, id):
+    """Soft delete visit plan"""
+    try:
+        visitplan = get_object_or_404(VisitPlan, id=id, isDeleted=False)
+        visitplan.isDeleted = True
+        visitplan.deletedAt = timezone.now()
+        
+        if request.user and request.user.is_authenticated:
+            visitplan.deletedBy = request.user
+        
+        visitplan.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Visit plan deleted successfully'
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error deleting visit plan: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get agent's current visit plan",
+    description="""
+    Get the current active visit plan for an agent based on today's date.
+    Agent can access their own plan via authentication.
+    
+    **Authentication**: Requires HTTP Basic Auth with agent credentials
+    
+    Returns the visit plan that includes today's date (where today is between dateFrom and dateTo),
+    with the list of customers the agent should visit.
+    """,
+    responses={
+        200: VisitPlanSerializer,
+        401: OpenApiTypes.OBJECT,
+        404: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@agent_authentication_required
+def agent_current_visitplan(request):
+    """Get current visit plan for authenticated agent"""
+    try:
+        from datetime import date
+        today = date.today()
+        
+        # Get the visit plan that includes today's date
+        visitplan = VisitPlan.objects.filter(
+            agentID=request.agent,
+            dateFrom__lte=today,
+            dateTo__gte=today,
+            isDeleted=False
+        ).first()
+        
+        if not visitplan:
+            return Response({
+                'success': False,
+                'error': 'NOT_FOUND',
+                'message': 'No active visit plan found for today'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = VisitPlanSerializer(visitplan)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving visit plan: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get agent's visit plans",
+    description="""
+    Get all visit plans for the authenticated agent.
+    
+    **Authentication**: Requires HTTP Basic Auth with agent credentials
+    """,
+    parameters=[
+        OpenApiParameter(name='status', type=OpenApiTypes.STR, description='Filter by status: active, upcoming, past'),
+    ],
+    responses={
+        200: VisitPlanSerializer(many=True),
+        401: OpenApiTypes.OBJECT
+    }
+)
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@agent_authentication_required
+def agent_visitplans_list(request):
+    """Get all visit plans for authenticated agent"""
+    try:
+        from datetime import date
+        today = date.today()
+        
+        queryset = VisitPlan.objects.filter(
+            agentID=request.agent,
+            isDeleted=False
+        ).order_by('-dateFrom')
+        
+        # Filter by status if provided
+        status_filter = request.GET.get('status')
+        if status_filter == 'active':
+            queryset = queryset.filter(dateFrom__lte=today, dateTo__gte=today)
+        elif status_filter == 'upcoming':
+            queryset = queryset.filter(dateFrom__gt=today)
+        elif status_filter == 'past':
+            queryset = queryset.filter(dateTo__lt=today)
+        
+        serializer = VisitPlanSerializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'data': serializer.data,
+            'count': queryset.count()
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving visit plans: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Batch create visits",
+    description="""
+    Create multiple visit records in a single batch operation.
+    All visits processed in atomic transaction.
+    
+    **Authentication Required**: Basic Auth with agent credentials
+    """,
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'visits': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'transType': {'type': 'integer'},
+                            'customerVendor': {'type': 'integer'},
+                            'date': {'type': 'string', 'format': 'date-time'},
+                            'latitude': {'type': 'number'},
+                            'longitude': {'type': 'number'},
+                            'notes': {'type': 'string'}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    responses={
+        201: {
+            'description': 'Visits created successfully',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'success': True,
+                        'message': '2 visits created successfully',
+                        'data': {
+                            'totalVisits': 2,
+                            'createdVisits': [{'id': 1}, {'id': 2}]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    tags=['Visits']
+)
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@agent_authentication_required
+def batch_create_visits(request):
+    """Create multiple visits in a single batch operation"""
+    from django.db import transaction as db_transaction
+    
+    try:
+        visits_data = request.data.get('visits', [])
+        
+        if not visits_data:
+            return Response({
+                'success': False,
+                'error': 'NO_VISITS',
+                'message': 'No visits provided'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(visits_data) > 100:
+            return Response({
+                'success': False,
+                'error': 'BATCH_SIZE_EXCEEDED',
+                'message': 'Maximum 100 visits per batch'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        created_visits = []
+        
+        with db_transaction.atomic():
+            for idx, visit_data in enumerate(visits_data):
+                # Validate required fields
+                if not all(k in visit_data for k in ['transType', 'date', 'latitude', 'longitude']):
+                    raise Exception(f"Visit {idx + 1}: Missing required fields")
+                
+                # Verify customer/vendor if provided
+                customer_vendor = None
+                if visit_data.get('customerVendor'):
+                    try:
+                        customer_vendor = CustomerVendor.objects.get(
+                            id=visit_data['customerVendor'],
+                            isDeleted=False
+                        )
+                    except CustomerVendor.DoesNotExist:
+                        raise Exception(f"Visit {idx + 1}: Customer/Vendor not found")
+                
+                # Create visit
+                visit = Visit.objects.create(
+                    agentID=request.agent,
+                    transType=visit_data['transType'],
+                    customerVendor=customer_vendor,
+                    date=visit_data['date'],
+                    latitude=Decimal(str(visit_data['latitude'])),
+                    longitude=Decimal(str(visit_data['longitude'])),
+                    notes=visit_data.get('notes', ''),
+                    createdBy=request.agent.createdBy
+                )
+                
+                created_visits.append({'id': visit.id})
+        
+        return Response({
+            'success': True,
+            'message': f'{len(created_visits)} visits created successfully',
+            'data': {
+                'totalVisits': len(created_visits),
+                'createdVisits': created_visits
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Batch processing failed: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get negative visits",
+    description="""
+    Get visits where no transaction occurred (negative visits).
+    A negative visit is when an agent visited a customer but no invoice or voucher was created.
+    
+    **Filters**:
+    - agent_id (required): Filter by agent ID
+    - date_from (optional): Start date (YYYY-MM-DD)
+    - date_to (optional): End date (YYYY-MM-DD)
+    - customer_vendor (optional): Filter by customer/vendor ID
+    """,
+    parameters=[
+        OpenApiParameter('agent_id', OpenApiTypes.INT, required=True, description='Agent ID'),
+        OpenApiParameter('date_from', OpenApiTypes.DATE, description='Start date (YYYY-MM-DD)'),
+        OpenApiParameter('date_to', OpenApiTypes.DATE, description='End date (YYYY-MM-DD)'),
+        OpenApiParameter('customer_vendor', OpenApiTypes.INT, description='Customer/Vendor ID'),
+    ],
+    responses={
+        200: {
+            'description': 'Negative visits retrieved successfully',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'success': True,
+                        'data': [
+                            {
+                                'id': 1,
+                                'agent_name': 'Agent Name',
+                                'customer_name': 'Customer Name',
+                                'date': '2025-10-23T10:30:00Z',
+                                'latitude': 30.0444,
+                                'longitude': 31.2357,
+                                'notes': 'Customer not available'
+                            }
+                        ],
+                        'count': 1
+                    }
+                }
+            }
+        },
+        400: {'description': 'Missing required agent_id parameter'}
+    },
+    tags=['Visits']
+)
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def get_negative_visits(request):
+    """Get visits where no transaction occurred (negative visits)"""
+    try:
+        agent_id = request.GET.get('agent_id')
+        if not agent_id:
+            return Response({
+                'success': False,
+                'error': 'MISSING_PARAMETER',
+                'message': 'agent_id parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get all visits for the agent
+        queryset = Visit.objects.filter(
+            agentID_id=agent_id,
+            isDeleted=False
+        ).select_related('agentID', 'customerVendor')
+        
+        # Apply date filters
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        customer_vendor = request.GET.get('customer_vendor')
+        
+        if date_from:
+            queryset = queryset.filter(date__date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date__date__lte=date_to)
+        if customer_vendor:
+            queryset = queryset.filter(customerVendor_id=customer_vendor)
+        
+        # Filter negative visits: visits with no related invoices or transactions
+        negative_visits = []
+        for visit in queryset:
+            # Check if visit has related invoice (by matching date, agent, and customer)
+            has_invoice = InvoiceMaster.objects.filter(
+                agentID=visit.agentID,
+                customerOrVendorID=visit.customerVendor,
+                createdAt__date=visit.date.date(),
+                isDeleted=False
+            ).exists()
+            
+            # Check if visit has related transaction (voucher)
+            has_transaction = Transaction.objects.filter(
+                agentID=visit.agentID,
+                customerVendorID=visit.customerVendor,
+                createdAt__date=visit.date.date(),
+                isDeleted=False
+            ).exists()
+            
+            # If no invoice and no transaction, it's a negative visit
+            if not has_invoice and not has_transaction:
+                negative_visits.append({
+                    'id': visit.id,
+                    'agent_id': visit.agentID.id,
+                    'agent_name': visit.agentID.agentName,
+                    'customer_id': visit.customerVendor.id if visit.customerVendor else None,
+                    'customer_name': visit.customerVendor.customerVendorName if visit.customerVendor else None,
+                    'trans_type': visit.transType,
+                    'date': visit.date.isoformat(),
+                    'latitude': float(visit.latitude),
+                    'longitude': float(visit.longitude),
+                    'notes': visit.notes
+                })
+        
+        return Response({
+            'success': True,
+            'data': negative_visits,
+            'count': len(negative_visits)
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving negative visits: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get agent's active visit plan with customer details",
+    description="""
+    Get the active visit plan for the authenticated agent with full customer details.
+    
+    **Authentication**: Requires HTTP Basic Auth with agent credentials
+    
+    **Business Logic**:
+    - Returns only the active plan (isActive=True)
+    - Plan must include today's date (dateFrom <= today <= dateTo)
+    - Only customers with type=1 (customers, not vendors) are included
+    - Each customer includes their assigned price list from CustomerVendorPriceList table
+    
+    **Response includes**:
+    - Plan ID, date range, and notes
+    - List of customers with: ID, name, phone numbers, type, notes
+    - Price list information (if assigned to customer)
+    - Total customer count
+    
+    **Example Response**:
+    ```json
+    {
+      "success": true,
+      "data": {
+        "plan_id": 1,
+        "date_from": "2025-10-23",
+        "date_to": "2025-10-23",
+        "notes": "Weekly visit plan",
+        "customers": [
+          {
+            "id": 175,
+            "customer_name": "ابراهيم الصياد",
+            "phone_one": "01234567890",
+            "phone_two": null,
+            "type": 1,
+            "notes": "VIP customer",
+            "price_list": {
+              "id": 3,
+              "name": "قائمة أسعار نصف جمله"
+            }
+          },
+          {
+            "id": 4,
+            "customer_name": "ابراهيم ماركت",
+            "phone_one": null,
+            "phone_two": null,
+            "type": 1,
+            "notes": null,
+            "price_list": null
+          }
+        ],
+        "total_customers": 2
+      }
+    }
+    ```
+    
+    **Error Responses**:
+    - **401 Unauthorized**: Invalid or missing credentials
+    - **404 Not Found**: No active plan for today
+    """,
+    responses={
+        200: {
+            'description': 'Active visit plan with customer details retrieved successfully',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'success': True,
+                        'data': {
+                            'plan_id': 1,
+                            'date_from': '2025-10-23',
+                            'date_to': '2025-10-31',
+                            'notes': 'Weekly visit plan',
+                            'customers': [
+                                {
+                                    'id': 175,
+                                    'customer_name': 'ابراهيم الصياد',
+                                    'phone_one': '01234567890',
+                                    'phone_two': None,
+                                    'type': 1,
+                                    'notes': 'VIP customer',
+                                    'price_list': {
+                                        'id': 3,
+                                        'name': 'قائمة أسعار نصف جمله'
+                                    }
+                                }
+                            ],
+                            'total_customers': 1
+                        }
+                    }
+                }
+            }
+        },
+        401: {
+            'description': 'Authentication failed',
+            'content': {
+                'application/json': {
+                    'examples': {
+                        'invalid_credentials': {
+                            'summary': 'Invalid credentials',
+                            'value': {
+                                'success': False,
+                                'error': 'INVALID_CREDENTIALS',
+                                'message': 'Invalid agent credentials'
+                            }
+                        },
+                        'no_credentials': {
+                            'summary': 'Missing credentials',
+                            'value': {
+                                'success': False,
+                                'error': 'NO_CREDENTIALS',
+                                'message': 'Authentication credentials not provided'
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        404: {
+            'description': 'No active plan found for today',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'success': False,
+                        'error': 'NOT_FOUND',
+                        'message': 'No active visit plan found for today'
+                    }
+                }
+            }
+        },
+        500: {
+            'description': 'Server error',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'success': False,
+                        'error': 'PROCESSING_ERROR',
+                        'message': 'Error retrieving active visit plan: {error details}'
+                    }
+                }
+            }
+        }
+    },
+    tags=['Agent - Visit Plans']
+)
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@agent_authentication_required
+def agent_active_plan_with_customers(request):
+    """Get active visit plan for authenticated agent with detailed customer information"""
+    try:
+        from datetime import date
+        today = date.today()
+        
+        # Get the active visit plan that includes today's date
+        visitplan = VisitPlan.objects.filter(
+            agentID=request.agent,
+            isActive=True,
+            dateFrom__lte=today,
+            dateTo__gte=today,
+            isDeleted=False
+        ).first()
+        
+        if not visitplan:
+            return Response({
+                'success': False,
+                'error': 'NOT_FOUND',
+                'message': 'No active visit plan found for today'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get customer IDs from the plan
+        customer_ids = visitplan.customers if visitplan.customers else []
+        
+        if not customer_ids:
+            return Response({
+                'success': True,
+                'data': {
+                    'plan_id': visitplan.id,
+                    'date_from': visitplan.dateFrom,
+                    'date_to': visitplan.dateTo,
+                    'notes': visitplan.notes,
+                    'customers': []
+                }
+            })
+        
+        # Get customers with type=1 (customers only, not vendors)
+        customers = CustomerVendor.objects.filter(
+            id__in=customer_ids,
+            type=1,
+            isDeleted=False
+        ).prefetch_related('customervendorpricelist_set__priceListID')
+        
+        # Build customer list with price list information
+        customer_list = []
+        for customer in customers:
+            # Get the customer's price list (there should be only one due to unique_together constraint)
+            price_list_relation = customer.customervendorpricelist_set.filter(isDeleted=False).first()
+            
+            customer_data = {
+                'id': customer.id,
+                'customer_name': customer.customerVendorName,
+                'phone_one': customer.phone_one,
+                'phone_two': customer.phone_two,
+                'type': customer.type,
+                'notes': customer.notes,
+                'price_list': None
+            }
+            
+            if price_list_relation:
+                customer_data['price_list'] = {
+                    'id': price_list_relation.priceListID.id,
+                    'name': price_list_relation.priceListID.priceListName
+                }
+            
+            customer_list.append(customer_data)
+        
+        return Response({
+            'success': True,
+            'data': {
+                'plan_id': visitplan.id,
+                'date_from': visitplan.dateFrom,
+                'date_to': visitplan.dateTo,
+                'notes': visitplan.notes,
+                'customers': customer_list,
+                'total_customers': len(customer_list)
+            }
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving active visit plan: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get stock by store",
+    description="Returns stock levels for all items in a specific store from the itemStock view",
+    parameters=[
+        OpenApiParameter(
+            name='storeID',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Store ID to get stock for',
+            required=True
+        )
+    ],
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'data': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'item_id': {'type': 'integer'},
+                            'item_name': {'type': 'string'},
+                            'stock': {'type': 'number'}
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['GET'])
+@authentication_classes([])  # Disable DRF authentication
+@permission_classes([AllowAny])  # Allow any user
+def agent_stock(request):
+    """Get stock levels for all items in a specific store"""
+    try:
+        store_id = request.query_params.get('storeID')
+        
+        if not store_id:
+            return Response({
+                'success': False,
+                'message': 'storeID parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate store exists
+        try:
+            Store.objects.get(id=store_id, isDeleted=False)
+        except Store.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'Store with ID {store_id} not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Query the itemStock view
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('''
+                SELECT id, "itemName", stock
+                FROM "itemStock"
+                WHERE "storeID" = %s AND "isDeleted" = FALSE
+            ''', [store_id])
+            
+            results = cursor.fetchall()
+        
+        # Format response
+        stock_data = [
+            {
+                'item_id': row[0],
+                'item_name': row[1],
+                'stock': float(row[2]) if row[2] is not None else 0
+            }
+            for row in results
+        ]
+        
+        return Response({
+            'success': True,
+            'data': stock_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error retrieving stock: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get agent cash balance",
+    description="Returns agent cash balance (debit, credit, and net balance) from cash account transactions with optional date filtering",
+    parameters=[
+        OpenApiParameter(
+            name='agent_id',
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
+            description='Agent ID to get balance for',
+            required=True
+        ),
+        OpenApiParameter(
+            name='date_from',
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
+            description='Start date for filtering transactions (YYYY-MM-DD)',
+            required=False
+        ),
+        OpenApiParameter(
+            name='date_to',
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
+            description='End date for filtering transactions (YYYY-MM-DD)',
+            required=False
+        )
+    ],
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'data': {
+                    'type': 'object',
+                    'properties': {
+                        'agent_id': {'type': 'integer'},
+                        'agent_name': {'type': 'string'},
+                        'agent_username': {'type': 'string'},
+                        'total_debit': {'type': 'number'},
+                        'total_credit': {'type': 'number'},
+                        'balance': {'type': 'number'}
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['GET'])
+@authentication_classes([])  # Disable DRF authentication
+@permission_classes([AllowAny])  # Allow any user
+def agent_cash_balance(request):
+    """Get cash balance for a specific agent with optional date filtering"""
+    try:
+        agent_id = request.query_params.get('agent_id')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        
+        if not agent_id:
+            return Response({
+                'success': False,
+                'message': 'agent_id parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate agent exists
+        try:
+            agent = Agent.objects.get(id=agent_id, isDeleted=False)
+        except Agent.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'Agent with ID {agent_id} not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Query with date filtering, filtered by cash account (accountID = 35)
+        from django.db import connection
+        
+        query = '''
+            SELECT 
+                a.id AS agentid,
+                a."agentName" AS agentname,
+                a."agentUsername" AS agentusername,
+                COALESCE(SUM(CASE WHEN t.amount < 0 THEN ABS(t.amount) ELSE 0 END), 0) AS totaldebit,
+                COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) AS totalcredit,
+                COALESCE(SUM(t.amount), 0) AS balance
+            FROM agents a
+            LEFT JOIN transactions t ON a.id = t."agentID" 
+                AND t."isDeleted" = FALSE
+                AND t."accountID_id" = 35
+        '''
+        
+        params = [agent_id]
+        conditions = ['a.id = %s', 'a."isDeleted" = FALSE']
+        
+        if date_from:
+            conditions.append('t."createdAt" >= %s')
+            params.append(date_from)
+        
+        if date_to:
+            # Add one day to include the entire end date
+            conditions.append('t."createdAt" < %s::date + interval \'1 day\'')
+            params.append(date_to)
+        
+        query += ' WHERE ' + ' AND '.join(conditions)
+        query += ' GROUP BY a.id, a."agentName", a."agentUsername"'
+        
+        with connection.cursor() as cursor:
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+        
+        if not result:
+            # Return zero balance if no transactions found
+            return Response({
+                'success': True,
+                'data': {
+                    'agent_id': agent.id,
+                    'agent_name': agent.agentName,
+                    'agent_username': agent.agentUsername,
+                    'total_debit': 0.0,
+                    'total_credit': 0.0,
+                    'balance': 0.0
+                }
+            }, status=status.HTTP_200_OK)
+        
+        # Format response
+        balance_data = {
+            'agent_id': result[0],
+            'agent_name': result[1],
+            'agent_username': result[2],
+            'total_debit': float(result[3]) if result[3] is not None else 0.0,
+            'total_credit': float(result[4]) if result[4] is not None else 0.0,
+            'balance': float(result[5]) if result[5] is not None else 0.0
+        }
+        
+        return Response({
+            'success': True,
+            'data': balance_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error retrieving agent balance: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -80,3 +80,19 @@ AGENT_MAX_NAME_LENGTH = 255
 # Agent Status Constants (for future use if needed)
 AGENT_STATUS_ACTIVE = 1
 AGENT_STATUS_INACTIVE = 0
+
+# Visit Transaction Type Choices
+VISIT_TRANSACTION_TYPE_CHOICES = [
+    (1, 'Sales'),
+    (2, 'Return Sales'),
+    (3, 'Receive Voucher'),
+    (4, 'Pay Voucher'),
+    (5, 'Negative Visit'),
+]
+
+# Constants for Visit Transaction Types
+VISIT_TRANSACTION_TYPE_SALES = 1
+VISIT_TRANSACTION_TYPE_RETURN_SALES = 2
+VISIT_TRANSACTION_TYPE_RECEIVE_VOUCHER = 3
+VISIT_TRANSACTION_TYPE_PAY_VOUCHER = 4
+VISIT_TRANSACTION_TYPE_NEGATIVE_VISIT = 5

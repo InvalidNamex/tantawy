@@ -64,6 +64,12 @@ urlpatterns = [
     path('stores/edit/<int:store_id>/', views.stores_edit_view, name='stores_edit'),
     path('stores/delete/<int:store_id>/', views.stores_delete_view, name='stores_delete'),
     
+    # Visit Plans URLs (Template-based for frontend)
+    path('visitplans/', views.visitplans_manage_view, name='visitplans_manage'),
+    path('visitplans/add/', views.visitplan_add_view, name='visitplan_add'),
+    path('visitplans/edit/<int:plan_id>/', views.visitplan_edit_view, name='visitplan_edit'),
+    path('visitplans/delete/<int:plan_id>/', views.visitplan_delete_view, name='visitplan_delete'),
+    
     # API URLs - All under /api/ prefix
     
     # ItemsGroup URLs (API)
@@ -123,13 +129,23 @@ urlpatterns = [
     path('api/agents/<int:id>/update/', views.agent_update, name='agent_update'),
     path('api/agents/<int:id>/delete/', views.agent_delete, name='agent_delete'),
     
+    # Agent Transactions URL (API for mobile app to get vouchers)
+    path('api/agents/transactions/', views.agent_transactions_api, name='agent_transactions_api'),
+    
     # Agent Authentication URLs (API for mobile app)
     path('api/agents/login/', views.agent_login, name='agent_login'),
     path('api/agents/logout/', views.agent_logout, name='agent_logout'),
     path('api/agents/verify-token/', views.agent_verify_token, name='agent_verify_token'),
     
+    # Store Authentication URLs (API)
+    path('api/stores/login/', views.store_login, name='store_login'),
+    path('api/stores/agents/', views.store_agents, name='store_agents'),
+    path('api/stores/stock/', views.store_stock, name='store_stock'),
+    path('api/stores/update-stock/', views.store_update_stock, name='store_update_stock'),
+    
     # Voucher URLs (API for agents)
     path('api/vouchers/', views.create_voucher, name='create_voucher'),
+    path('api/vouchers/batch-create/', views.batch_create_vouchers, name='batch_create_vouchers'),
     path('api/vouchers/list/', views.get_vouchers, name='get_vouchers'),
     
     # Invoice API URLs
@@ -138,4 +154,32 @@ urlpatterns = [
     path('api/invoices/<int:invoice_id>/available-returns/', invoice_api.get_available_returns_api, name='get_available_returns_api'),
     path('api/invoices/type/<int:invoice_type>/', invoice_api.get_invoices_by_type_api, name='get_invoices_by_type_api'),
     path('api/invoices/<int:invoice_id>/detail/', invoice_api.get_invoice_detail_api, name='get_invoice_detail_api'),
+    
+    # Visits API URLs (Agent Authentication Required)
+    path('api/visits/create/', views.create_visit, name='create_visit'),
+    path('api/visits/batch-create/', views.batch_create_visits, name='batch_create_visits'),
+    path('api/visits/list/', views.agent_visits_list, name='agent_visits_list'),
+    path('api/visits/agent/<int:agent_id>/', views.agent_visits_list, name='agent_visits_by_id'),
+    path('api/visits/negative/', views.get_negative_visits, name='get_negative_visits'),
+    
+    # VisitPlan API URLs
+    path('api/visit-plans/', views.visitplan_list, name='visitplan_list'),
+    path('api/visit-plans/<int:id>/', views.visitplan_detail, name='visitplan_detail'),
+    path('api/visit-plans/create/', views.visitplan_create, name='visitplan_create'),
+    path('api/visit-plans/<int:id>/update/', views.visitplan_update, name='visitplan_update'),
+    path('api/visit-plans/<int:id>/delete/', views.visitplan_delete, name='visitplan_delete'),
+    
+    # Agent VisitPlan URLs (Agent Authentication Required)
+    path('api/agents/visit-plans/current/', views.agent_current_visitplan, name='agent_current_visitplan'),
+    path('api/agents/visit-plans/list/', views.agent_visitplans_list, name='agent_visitplans_list'),
+    path('api/agents/visit-plans/active-with-customers/', views.agent_active_plan_with_customers, name='agent_active_plan_with_customers'),
+    
+    # Agent Stock URL (API for mobile app)
+    path('api/agents/stock/', views.agent_stock, name='agent_stock'),
+    
+    # Agent Cash Balance URL (API for mobile app)
+    path('api/agents/cash_balance/', views.agent_cash_balance, name='agent_cash_balance'),
+    
+    # Helper API for customers (used by visits)
+    path('api/customers/', views.customers_api_list, name='customers_api_list'),
 ]

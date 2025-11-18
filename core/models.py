@@ -351,3 +351,70 @@ class Agent(BaseModel):
         db_table = 'agents'
         verbose_name = "Agent"
         verbose_name_plural = "Agents"
+
+
+class Visit(BaseModel):
+    """
+    Visit model to track agents' visits to customers/vendors.
+    Records location data and transaction types for field activity tracking.
+    """
+    transType = models.SmallIntegerField(choices=VISIT_TRANSACTION_TYPE_CHOICES,
+                                       help_text="Type of visit: 1=Sales, 2=Return Sales, 3=Receive Voucher, 4=Pay Voucher")
+    customerVendor = models.ForeignKey(CustomerVendor, on_delete=models.PROTECT, 
+                                     null=True, blank=True,
+                                     help_text="Associated customer or vendor (nullable for pay vouchers)")
+    date = models.DateTimeField(help_text="Date and time of the visit")
+    latitude = models.DecimalField(max_digits=10, decimal_places=7,
+                                 help_text="Latitude coordinate of visit location")
+    longitude = models.DecimalField(max_digits=10, decimal_places=7,
+                                  help_text="Longitude coordinate of visit location")
+    agentID = models.ForeignKey(Agent, on_delete=models.PROTECT,
+                              help_text="Agent who made the visit", db_column='agentID')
+    notes = models.TextField(blank=True, null=True,
+                           help_text="Additional notes about the visit")
+    
+    def __str__(self):
+        customer_name = self.customerVendor.customerVendorName if self.customerVendor else "-"
+        return f"Visit by {self.agentID.agentName} to {customer_name} on {self.date.strftime('%Y-%m-%d')}"
+    
+    class Meta:
+        ordering = ['-date']  # Most recent visits first
+        db_table = 'visits'
+        verbose_name = "Visit"
+        verbose_name_plural = "Visits"
+
+
+class VisitPlan(BaseModel):
+    """
+    Visit Plan model for admins/supervisors to assign customers to agents for a period.
+    The agent will only see selected customers in their app during the specified period.
+    """
+    agentID = models.ForeignKey(Agent, on_delete=models.PROTECT,
+                              help_text="Agent assigned to this visit plan", db_column='agentID')
+    dateFrom = models.DateField(help_text="Start date of the visit plan period")
+    dateTo = models.DateField(help_text="End date of the visit plan period")
+    customers = models.JSONField(help_text="JSON array of customer IDs assigned to this plan")
+    notes = models.TextField(blank=True, null=True,
+                           help_text="Additional notes about the visit plan")
+    isActive = models.BooleanField(default=False,
+                                  help_text="Whether this plan is currently active. Only one plan per agent can be active.")
+    
+    def __str__(self):
+        return f"Visit Plan for {self.agentID.agentName} ({self.dateFrom} to {self.dateTo})"
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure only one active plan per agent"""
+        if self.isActive:
+            # Deactivate all other plans for this agent
+            VisitPlan.objects.filter(
+                agentID=self.agentID,
+                isDeleted=False,
+                isActive=True
+            ).exclude(pk=self.pk).update(isActive=False)
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        ordering = ['-dateFrom', 'agentID']
+        db_table = 'visitPlans'
+        verbose_name = "Visit Plan"
+        verbose_name_plural = "Visit Plans"

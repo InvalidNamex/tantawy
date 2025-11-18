@@ -259,3 +259,101 @@ class AgentSerializer(serializers.ModelSerializer):
             if not self.instance or self.instance.agentUsername != value:
                 raise serializers.ValidationError("This username is already taken.")
         return value
+
+
+class VisitSerializer(serializers.ModelSerializer):
+    """Serializer for Visit model with related object information."""
+    
+    agent_name = serializers.CharField(source='agentID.agentName', read_only=True)
+    customer_vendor_name = serializers.CharField(source='customerVendor.customerVendorName', read_only=True)
+    trans_type_display = serializers.CharField(source='get_transType_display', read_only=True)
+    
+    class Meta:
+        model = Visit
+        fields = ['id', 'transType', 'trans_type_display', 'customerVendor', 'customer_vendor_name', 
+                 'date', 'latitude', 'longitude', 'agentID', 'agent_name', 'notes', 
+                 'createdAt', 'updatedAt', 'deletedAt', 'createdBy', 'updatedBy', 
+                 'deletedBy', 'isDeleted']
+        read_only_fields = ['createdAt', 'updatedAt']
+    
+    def validate(self, data):
+        """Custom validation for visit data."""
+        # For pay vouchers (type 4), customerVendor can be null
+        if data.get('transType') != 4 and not data.get('customerVendor'):
+            raise serializers.ValidationError("Customer/Vendor is required for this transaction type.")
+        return data
+
+
+class VisitPlanSerializer(serializers.ModelSerializer):
+    """Serializer for VisitPlan model with related object information."""
+    
+    agent_name = serializers.CharField(source='agentID.agentName', read_only=True)
+    customer_count = serializers.SerializerMethodField()
+    customer_details = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = VisitPlan
+        fields = ['id', 'agentID', 'agent_name', 'dateFrom', 'dateTo', 'customers', 
+                 'customer_count', 'customer_details', 'notes', 'isActive',
+                 'createdAt', 'updatedAt', 'deletedAt', 'createdBy', 'updatedBy', 
+                 'deletedBy', 'isDeleted']
+        read_only_fields = ['createdAt', 'updatedAt']
+    
+    def get_customer_count(self, obj):
+        """Return the number of customers in the plan."""
+        if obj.customers and isinstance(obj.customers, list):
+            return len(obj.customers)
+        return 0
+    
+    def get_customer_details(self, obj):
+        """Return list of customer objects with id and name."""
+        if not obj.customers or not isinstance(obj.customers, list):
+            return []
+        
+        try:
+            customer_ids = obj.customers
+            customers = CustomerVendor.objects.filter(id__in=customer_ids, isDeleted=False)
+            return [
+                {
+                    'id': c.id,
+                    'name': c.customerVendorName,
+                    'phone_one': c.phone_one,
+                    'phone_two': c.phone_two,
+                    'type': c.type,
+                }
+                for c in customers
+            ]
+        except Exception:
+            return []
+    
+    def validate_customers(self, value):
+        """Validate that customers is a list of integers."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Customers must be a list of customer IDs.")
+        
+        if not all(isinstance(item, int) for item in value):
+            raise serializers.ValidationError("All customer IDs must be integers.")
+        
+        # Validate that all customer IDs exist
+        existing_ids = CustomerVendor.objects.filter(
+            id__in=value, 
+            isDeleted=False
+        ).values_list('id', flat=True)
+        
+        invalid_ids = set(value) - set(existing_ids)
+        if invalid_ids:
+            raise serializers.ValidationError(
+                f"Invalid customer IDs: {', '.join(map(str, invalid_ids))}"
+            )
+        
+        return value
+    
+    def validate(self, data):
+        """Custom validation for visit plan data."""
+        date_from = data.get('dateFrom')
+        date_to = data.get('dateTo')
+        
+        if date_from and date_to and date_from > date_to:
+            raise serializers.ValidationError("dateFrom must be before or equal to dateTo.")
+        
+        return data

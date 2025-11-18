@@ -1,9 +1,10 @@
 # API Views for Invoice Management
 # POST endpoint for creating all 4 types of invoices with transaction processing
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from django.db import transaction as db_transaction
 from django.db import models
 from django.contrib.auth.decorators import login_required
@@ -12,9 +13,11 @@ from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from functools import wraps
+import base64
 from .models import (
     InvoiceMaster, InvoiceDetail, Transaction, Account, 
-    CustomerVendor, Item, Store
+    CustomerVendor, Item, Store, Agent
 )
 from .constants import *
 import json
@@ -24,6 +27,57 @@ CASH_ACCOUNT_ID = 35
 VISA_ACCOUNT_ID = 10
 VENDORS_DEFERRED_ACCOUNT_ID = 38
 CUSTOMERS_DEFERRED_ACCOUNT_ID = 36
+
+
+def agent_authentication_required(view_func):
+    """
+    Decorator for agent authentication using HTTP Basic Auth.
+    Expects Authorization header with base64 encoded agentUsername:agentPassword
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # Get Authorization header
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if not auth_header or not auth_header.startswith('Basic '):
+            return Response({
+                'success': False,
+                'error': 'AUTHENTICATION_REQUIRED',
+                'message': 'Agent authentication required. Use Basic Auth with agent credentials.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Decode credentials
+            encoded_credentials = auth_header.split(' ')[1]
+            decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+            username, password = decoded_credentials.split(':')
+            
+            # Find and authenticate agent
+            agent = Agent.objects.filter(
+                agentUsername=username, 
+                isDeleted=False,
+                isActive=True
+            ).first()
+            
+            if not agent or not agent.check_password(password):
+                return Response({
+                    'success': False,
+                    'error': 'INVALID_CREDENTIALS',
+                    'message': 'Invalid agent credentials'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Add agent to request
+            request.agent = agent
+            return view_func(request, *args, **kwargs)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 'AUTHENTICATION_ERROR',
+                'message': f'Authentication failed: {str(e)}'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return _wrapped_view
+
 
 @extend_schema(
     summary="Create Invoice",
@@ -247,32 +301,15 @@ def create_invoice_api(request):
     }
 )
 @api_view(['POST'])
-@csrf_exempt
+@authentication_classes([])  # Disable DRF authentication
+@permission_classes([AllowAny])  # Allow any user
+@agent_authentication_required
 def batch_create_invoices_api(request):
     """
     Create multiple invoices in a single batch operation.
     All invoices processed in atomic transaction for data consistency.
+    Uses agent authentication from decorator - agent is available as request.agent
     """
-    # Check for agent token authentication (for mobile apps) or Django user authentication
-    agent_token = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION')
-    agent = None
-    
-    if agent_token:
-        try:
-            from core.models import Agent
-            # Extract token (remove 'Bearer ' prefix if present)
-            token = agent_token.replace('Bearer ', '').strip()
-            agent = Agent.objects.get(id=int(token), isDeleted=False, isActive=True)
-        except (ValueError, Agent.DoesNotExist):
-            agent = None
-    
-    # Allow if user is authenticated OR agent token is valid
-    if not request.user.is_authenticated and not agent:
-        return Response({
-            'success': False,
-            'message': 'Authentication required'
-        }, status=status.HTTP_401_UNAUTHORIZED)
-    
     try:
         # Parse request data
         invoices_data = request.data.get('invoices', [])
@@ -280,12 +317,14 @@ def batch_create_invoices_api(request):
         if not invoices_data:
             return Response({
                 'success': False,
+                'error': 'NO_INVOICES',
                 'message': 'No invoices provided for batch processing'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if len(invoices_data) > 100:  # Limit batch size
             return Response({
                 'success': False,
+                'error': 'BATCH_SIZE_EXCEEDED',
                 'message': 'Batch size limited to 100 invoices maximum'
             }, status=status.HTTP_400_BAD_REQUEST)
         
@@ -302,26 +341,25 @@ def batch_create_invoices_api(request):
         if validation_errors:
             return Response({
                 'success': False,
+                'error': 'VALIDATION_ERROR',
                 'message': 'Batch validation failed',
                 'errors': validation_errors
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Determine which user to use for audit fields
-        if request.user.is_authenticated:
-            audit_user = request.user
-        elif agent:
-            # Use the agent's creator or updater as the audit user
-            audit_user = agent.createdBy if agent.createdBy else agent.updatedBy
+        # Use agent from decorator for audit fields
+        audit_user = request.agent.createdBy if request.agent.createdBy else request.agent.updatedBy
+        if not audit_user:
+            # Fallback to first superuser if no valid user found
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            audit_user = User.objects.filter(is_superuser=True).first()
+            
             if not audit_user:
-                # Fallback to first superuser if no valid user found
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-                audit_user = User.objects.filter(is_superuser=True).first()
-        else:
-            return Response({
-                'success': False,
-                'message': 'Unable to determine audit user'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({
+                    'success': False,
+                    'error': 'CONFIGURATION_ERROR',
+                    'message': 'Unable to determine audit user'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Process all invoices in a single transaction
         created_invoices = []
@@ -352,7 +390,7 @@ def batch_create_invoices_api(request):
                         'invoiceType': get_invoice_type_name(invoice_master.invoiceType),
                         'netTotal': float(invoice_master.netTotal or 0),
                         'customerVendor': invoice_master.customerOrVendorID.customerVendorName if invoice_master.customerOrVendorID else None,
-                        'agent': invoice_master.agentID.agentName if invoice_master.agentID else None
+                        'agent': request.agent.agentName
                     })
                     
                     total_amount += invoice_master.netTotal or Decimal('0')
@@ -363,7 +401,7 @@ def batch_create_invoices_api(request):
         
         return Response({
             'success': True,
-            'message': f'Batch processing completed successfully. {len(created_invoices)} invoices created.',
+            'message': f'{len(created_invoices)} invoices created successfully',
             'data': {
                 'totalInvoices': len(created_invoices),
                 'createdInvoices': created_invoices,
@@ -374,6 +412,7 @@ def batch_create_invoices_api(request):
     except Exception as e:
         return Response({
             'success': False,
+            'error': 'PROCESSING_ERROR',
             'message': f'Batch processing failed: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -423,20 +462,18 @@ def validate_invoice_data(invoice_master_data, invoice_details_data):
         except Item.DoesNotExist:
             return {'valid': False, 'message': f'Item {detail["item"]} not found'}
     
-    # For return invoices, validate original invoice
+    # For return invoices, optionally validate original invoice if provided
     if invoice_type in [3, 4]:
         original_invoice_id = invoice_master_data.get('originalInvoiceID')
-        if not original_invoice_id:
-            return {'valid': False, 'message': 'Return invoices must reference an original invoice'}
-        
-        try:
-            original_invoice = InvoiceMaster.objects.get(id=original_invoice_id, isDeleted=False)
-            # Validate return type matches original type
-            if (invoice_type == 3 and original_invoice.invoiceType != 1) or \
-               (invoice_type == 4 and original_invoice.invoiceType != 2):
-                return {'valid': False, 'message': 'Return invoice type must match original invoice type'}
-        except InvoiceMaster.DoesNotExist:
-            return {'valid': False, 'message': 'Original invoice not found'}
+        if original_invoice_id:
+            try:
+                original_invoice = InvoiceMaster.objects.get(id=original_invoice_id, isDeleted=False)
+                # Validate return type matches original type
+                if (invoice_type == 3 and original_invoice.invoiceType != 1) or \
+                   (invoice_type == 4 and original_invoice.invoiceType != 2):
+                    return {'valid': False, 'message': 'Return invoice type must match original invoice type'}
+            except InvoiceMaster.DoesNotExist:
+                return {'valid': False, 'message': 'Original invoice not found'}
     
     return {'valid': True, 'message': 'Validation passed'}
 

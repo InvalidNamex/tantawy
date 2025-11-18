@@ -20,14 +20,14 @@ class Migration(migrations.Migration):
                 COALESCE(im."storeID_id", id."storeID_id") AS "storeID",
                 COALESCE(SUM(
                     CASE 
-                        WHEN im."invoiceType" = 1 AND im."isDeleted" = FALSE THEN id.quantity 
+                        WHEN im."invoiceType" IN (1, 4) AND im."isDeleted" = FALSE THEN id.quantity 
                         ELSE 0 
                     END
                 ), 0) 
                 - 
                 COALESCE(SUM(
                     CASE 
-                        WHEN im."invoiceType" = 2 AND im."isDeleted" = FALSE THEN id.quantity 
+                        WHEN im."invoiceType" IN (2, 3) AND im."isDeleted" = FALSE THEN id.quantity 
                         ELSE 0 
                     END
                 ), 0) AS stock

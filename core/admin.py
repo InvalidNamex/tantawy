@@ -348,3 +348,96 @@ class AgentAdmin(admin.ModelAdmin):
             obj.createdBy = request.user
         obj.updatedBy = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(Visit)
+class VisitAdmin(admin.ModelAdmin):
+    """Admin interface for Visit model to track agent visits."""
+    list_display = ['id', 'agentID', 'customerVendor', 'transType', 'get_transType_display', 'date', 'latitude', 'longitude', 'isDeleted']
+    list_filter = ['isDeleted', 'transType', 'agentID', 'date']
+    search_fields = ['agentID__agentName', 'customerVendor__customerVendorName', 'notes']
+    readonly_fields = ['createdAt', 'updatedAt']
+    raw_id_fields = ['agentID', 'customerVendor']
+    date_hierarchy = 'date'
+    ordering = ['-date']
+    
+    fieldsets = (
+        ('Visit Information', {
+            'fields': ('agentID', 'customerVendor', 'transType', 'date', 'notes')
+        }),
+        ('Location Data', {
+            'fields': ('latitude', 'longitude')
+        }),
+        ('Audit Information', {
+            'fields': ('createdAt', 'updatedAt', 'deletedAt', 'isDeleted'),
+            'classes': ('collapse',)
+        }),
+        ('User Tracking', {
+            'fields': ('createdBy', 'updatedBy', 'deletedBy'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_transType_display(self, obj):
+        """Display human-readable transaction type."""
+        return obj.get_transType_display()
+    get_transType_display.short_description = 'Transaction Type'
+
+
+@admin.register(VisitPlan)
+class VisitPlanAdmin(admin.ModelAdmin):
+    """Admin interface for VisitPlan model to manage agent visit schedules."""
+    list_display = ['id', 'agentID', 'dateFrom', 'dateTo', 'get_customer_count', 'isActive', 'createdAt', 'isDeleted']
+    list_filter = ['isDeleted', 'isActive', 'agentID', 'dateFrom', 'dateTo']
+    search_fields = ['agentID__agentName', 'notes']
+    readonly_fields = ['createdAt', 'updatedAt', 'get_customer_list']
+    raw_id_fields = ['agentID']
+    date_hierarchy = 'dateFrom'
+    ordering = ['-dateFrom', 'agentID']
+    
+    fieldsets = (
+        ('Plan Information', {
+            'fields': ('agentID', 'dateFrom', 'dateTo', 'customers', 'notes', 'isActive')
+        }),
+        ('Customer Details', {
+            'fields': ('get_customer_list',),
+            'classes': ('collapse',),
+            'description': 'List of customers assigned to this visit plan'
+        }),
+        ('Audit Information', {
+            'fields': ('createdAt', 'updatedAt', 'deletedAt', 'isDeleted'),
+            'classes': ('collapse',)
+        }),
+        ('User Tracking', {
+            'fields': ('createdBy', 'updatedBy', 'deletedBy'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_customer_count(self, obj):
+        """Display number of customers in the plan."""
+        if obj.customers and isinstance(obj.customers, list):
+            return len(obj.customers)
+        return 0
+    get_customer_count.short_description = 'Customers Count'
+    
+    def get_customer_list(self, obj):
+        """Display readable list of customer names."""
+        if not obj.customers or not isinstance(obj.customers, list):
+            return "No customers assigned"
+        
+        try:
+            customer_ids = obj.customers
+            customers = CustomerVendor.objects.filter(id__in=customer_ids, isDeleted=False)
+            customer_names = [f"{c.id}: {c.customerVendorName}" for c in customers]
+            return "\n".join(customer_names) if customer_names else "No valid customers found"
+        except Exception as e:
+            return f"Error loading customers: {str(e)}"
+    get_customer_list.short_description = 'Customer List'
+    
+    def save_model(self, request, obj, form, change):
+        """Override save to handle audit fields."""
+        if not change:  # Creating new visit plan
+            obj.createdBy = request.user
+        obj.updatedBy = request.user
+        super().save_model(request, obj, form, change)

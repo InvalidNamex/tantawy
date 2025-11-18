@@ -80,6 +80,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:visitplans_manage' %}">
+                            <i class="bi bi-calendar-check"></i> خطط الزيارات
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'authentication:users_list' %}">
                             <i class="bi bi-people"></i> إدارة المستخدمين
                         </a>
@@ -206,8 +211,6 @@
                 window.dispatchEvent(new CustomEvent('themechange', {
                     detail: { theme: theme }
                 }));
-                
-                console.log('Theme switched to:', theme);
             }
             
             // Toggle theme function

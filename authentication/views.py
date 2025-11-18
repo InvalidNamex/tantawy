@@ -587,8 +587,17 @@ def agent_detail_view(request, agent_id):
     ).count()
     
     # Get customers for the filter dropdown (only customers, not vendors)
-    from core.models import CustomerVendor
+    from core.models import CustomerVendor, Visit
     customers = CustomerVendor.objects.filter(isDeleted=False, type=1).order_by('customerVendorName')
+    
+    # Get visits count for this agent
+    visits_count = Visit.objects.filter(agentID=agent, isDeleted=False).count()
+    
+    # Calculate cash balance (money in minus money out)
+    from django.db.models import Sum
+    # Receipts (type 1) have positive amounts, payments (type 2) have negative amounts
+    # So we just sum all amounts - payments are already negative
+    cash_balance = transactions_list.aggregate(total=Sum('amount'))['total'] or 0
 
     context = {
         'agent': agent,
@@ -598,13 +607,15 @@ def agent_detail_view(request, agent_id):
         'payment_transactions': payment_transactions,
         'sales_invoices': sales_invoices,
         'return_sales_invoices': return_sales_invoices,
+        'visits_count': visits_count,
+        'cash_balance': cash_balance,
         'customers': customers,
         'transaction_type_filter': transaction_type_filter,
         'transaction_id_filter': transaction_id_filter,
         'customer_vendor_filter': customer_vendor_filter,
         'date_from': date_from,
         'date_to': date_to,
-        'today_date': timezone.now().date().strftime('%Y-%m-%d'),
+        'today_date': timezone.localtime(timezone.now()).date().strftime('%Y-%m-%d'),
     }
     
     return render(request, 'authentication/agent_detail.html', context)
@@ -1082,7 +1093,7 @@ def agent_transactions_filtered_api(request):
                 'type': transaction_type_display,
                 'amount': float(abs(transaction.amount)) if transaction.amount else 0.0,  # Use absolute value for display
                 'customerName': transaction.customerVendorID.customerVendorName if transaction.customerVendorID else None,
-                'notes': transaction.notes or f"Invoice #{transaction.invoiceID.id}" if transaction.invoiceID else "Manual Transaction",
+                'notes': transaction.notes or (f"Invoice #{transaction.invoiceID.id}" if transaction.invoiceID else "Manual Transaction"),
                 'createdAt': transaction.createdAt.isoformat() if transaction.createdAt else None,
                 'invoiceId': transaction.invoiceID.id if transaction.invoiceID else None
             }
