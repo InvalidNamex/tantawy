@@ -959,18 +959,38 @@ def agent_invoices_filtered_api(request):
         
         invoices_data = []
         for invoice in invoices:
+            # Get invoice details for this invoice
+            from core.models import InvoiceDetail
+            invoice_details = InvoiceDetail.objects.filter(
+                invoiceMasterID=invoice,
+                isDeleted=False
+            ).select_related('item')
+            
+            # Build invoice details array
+            details_data = []
+            for detail in invoice_details:
+                details_data.append({
+                    'itemID': detail.item.id,
+                    'itemName': detail.item.itemName,
+                    'itemQuantity': float(detail.quantity) if detail.quantity else 0.0
+                })
+            
             invoice_data = {
                 'id': invoice.id,
                 'invoiceNumber': f'INV-{invoice.id:06d}',  # Generate invoice number from ID
                 'invoiceType': invoice.invoiceType,
                 'customerName': invoice.customerOrVendorID.customerVendorName if invoice.customerOrVendorID else None,
                 'storeName': invoice.storeID.storeName if invoice.storeID else None,
+                'discountAmount': float(invoice.discountAmount) if invoice.discountAmount else 0.0,
+                'taxAmount': float(invoice.taxAmount) if invoice.taxAmount else 0.0,
                 'netTotal': float(invoice.netTotal) if invoice.netTotal else 0.0,
                 'totalPaid': float(invoice.totalPaid) if invoice.totalPaid else 0.0,
+                'paymentType': invoice.paymentType,
                 'status': invoice.status,  # Use actual status field: 0=paid, 1=unpaid, 2=partially paid
                 'originalInvoiceNumber': f'INV-{invoice.originalInvoiceID.id:06d}' if invoice.originalInvoiceID else None,
                 'createdAt': invoice.createdAt.isoformat() if invoice.createdAt else None,
-                'notes': invoice.notes
+                'notes': invoice.notes,
+                'invoiceDetails': details_data
             }
             invoices_data.append(invoice_data)
         

@@ -1160,3 +1160,176 @@ def get_invoice_detail_api(request, invoice_id):
             'success': False,
             'message': f'Error retrieving invoice details: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get Agent Invoices",
+    description="""Get invoices for the authenticated agent with detailed information.
+    Returns discount amount, tax amount, total paid, payment type, and invoice details (itemID, itemName, itemQuantity).
+    Requires agent authentication using HTTP Basic Auth.""",
+    parameters=[
+        OpenApiParameter(name='from_date', type=OpenApiTypes.DATE, location=OpenApiParameter.QUERY, 
+                        description='Filter from date (YYYY-MM-DD)'),
+        OpenApiParameter(name='to_date', type=OpenApiTypes.DATE, location=OpenApiParameter.QUERY, 
+                        description='Filter to date (YYYY-MM-DD)'),
+        OpenApiParameter(name='invoice_type', type=OpenApiTypes.INT, location=OpenApiParameter.QUERY, 
+                        description='Filter by invoice type (1=Purchase, 2=Sales, 3=Return Purchase, 4=Return Sales)'),
+        OpenApiParameter(name='customer_vendor_id', type=OpenApiTypes.INT, location=OpenApiParameter.QUERY, 
+                        description='Filter by customer/vendor ID'),
+        OpenApiParameter(name='page', type=OpenApiTypes.INT, location=OpenApiParameter.QUERY, 
+                        description='Page number (default: 1)'),
+        OpenApiParameter(name='page_size', type=OpenApiTypes.INT, location=OpenApiParameter.QUERY, 
+                        description='Items per page (default: 20, max: 100)')
+    ],
+    responses={
+        200: {
+            'description': 'Agent invoices retrieved successfully',
+            'example': {
+                "success": True,
+                "data": {
+                    "invoices": [
+                        {
+                            "invoiceId": 123,
+                            "invoiceType": 2,
+                            "invoiceTypeName": "Sales",
+                            "customerOrVendorName": "ABC Company",
+                            "discountAmount": 50.00,
+                            "taxAmount": 125.00,
+                            "netTotal": 1500.00,
+                            "totalPaid": 1500.00,
+                            "paymentType": 1,
+                            "paymentTypeName": "Cash",
+                            "createdAt": "2025-11-19T15:30:00Z",
+                            "invoiceDetails": [
+                                {
+                                    "itemID": 101,
+                                    "itemName": "Product A",
+                                    "itemQuantity": 10.0
+                                }
+                            ]
+                        }
+                    ],
+                    "pagination": {
+                        "page": 1,
+                        "pageSize": 20,
+                        "totalCount": 45,
+                        "totalPages": 3
+                    }
+                }
+            }
+        },
+        401: {
+            'description': 'Authentication required',
+            'example': {
+                "success": False,
+                "error": "AUTHENTICATION_REQUIRED",
+                "message": "Agent authentication required. Use Basic Auth with agent credentials."
+            }
+        }
+    }
+)
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@agent_authentication_required
+def get_agent_invoices_api(request):
+    """
+    Get invoices for the authenticated agent with detailed information.
+    Returns discount amount, tax amount, total paid, payment type, and invoice details.
+    Uses agent authentication from decorator - agent is available as request.agent
+    """
+    try:
+        # Get query parameters
+        from_date = request.GET.get('from_date')
+        to_date = request.GET.get('to_date')
+        invoice_type = request.GET.get('invoice_type')
+        customer_vendor_id = request.GET.get('customer_vendor_id')
+        page = int(request.GET.get('page', 1))
+        page_size = min(int(request.GET.get('page_size', 20)), 100)  # Max 100 per page
+        
+        # Build queryset for authenticated agent's invoices
+        queryset = InvoiceMaster.objects.filter(
+            agentID=request.agent,
+            isDeleted=False
+        ).select_related('customerOrVendorID', 'storeID', 'agentID')
+        
+        # Apply filters
+        if from_date:
+            queryset = queryset.filter(createdAt__gte=from_date)
+        
+        if to_date:
+            queryset = queryset.filter(createdAt__lte=to_date)
+        
+        if invoice_type:
+            queryset = queryset.filter(invoiceType=invoice_type)
+        
+        if customer_vendor_id:
+            queryset = queryset.filter(customerOrVendorID_id=customer_vendor_id)
+        
+        # Order by newest first
+        queryset = queryset.order_by('-createdAt')
+        
+        # Get total count
+        total_count = queryset.count()
+        
+        # Apply pagination
+        start = (page - 1) * page_size
+        end = start + page_size
+        invoices = queryset[start:end]
+        
+        # Serialize invoice data with details
+        invoices_data = []
+        for invoice in invoices:
+            # Get invoice details
+            invoice_details = InvoiceDetail.objects.filter(
+                invoiceMasterID=invoice,
+                isDeleted=False
+            ).select_related('item')
+            
+            # Serialize details
+            details_data = []
+            for detail in invoice_details:
+                details_data.append({
+                    'itemID': detail.item.id,
+                    'itemName': detail.item.itemName,
+                    'itemQuantity': float(detail.quantity) if detail.quantity else 0
+                })
+            
+            # Serialize invoice
+            invoices_data.append({
+                'invoiceId': invoice.id,
+                'invoiceType': invoice.invoiceType,
+                'invoiceTypeName': invoice.get_invoiceType_display(),
+                'customerOrVendorName': invoice.customerOrVendorID.customerVendorName if invoice.customerOrVendorID else '',
+                'customerOrVendorID': invoice.customerOrVendorID.id if invoice.customerOrVendorID else None,
+                'discountAmount': float(invoice.discountAmount) if invoice.discountAmount else 0,
+                'taxAmount': float(invoice.taxAmount) if invoice.taxAmount else 0,
+                'netTotal': float(invoice.netTotal) if invoice.netTotal else 0,
+                'totalPaid': float(invoice.totalPaid) if invoice.totalPaid else 0,
+                'paymentType': invoice.paymentType,
+                'paymentTypeName': invoice.get_paymentType_display(),
+                'status': invoice.status,
+                'statusName': invoice.get_status_display(),
+                'createdAt': invoice.createdAt.isoformat() if invoice.createdAt else '',
+                'invoiceDetails': details_data
+            })
+        
+        return Response({
+            'success': True,
+            'data': {
+                'invoices': invoices_data,
+                'pagination': {
+                    'page': page,
+                    'pageSize': page_size,
+                    'totalCount': total_count,
+                    'totalPages': (total_count + page_size - 1) // page_size
+                }
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': 'PROCESSING_ERROR',
+            'message': f'Error retrieving agent invoices: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
