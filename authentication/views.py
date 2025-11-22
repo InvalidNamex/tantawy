@@ -18,7 +18,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import check_password
 import json
 from drf_spectacular.utils import extend_schema
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import AllowAny
 
 
 @never_cache
@@ -1133,3 +1134,148 @@ def agent_transactions_filtered_api(request):
             'success': False,
             'message': f'Server error: {str(e)}'
         }, status=500)
+
+
+def get_agent_basic_auth(request):
+    """
+    Helper function to handle Basic Auth for Agent model
+    Returns tuple (agent, error_response)
+    If authentication successful: returns (agent, None)
+    If authentication failed: returns (None, JsonResponse)
+    """
+    import base64
+    from django.contrib.auth.hashers import check_password
+    from core.models import Agent
+
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Basic '):
+        return None, JsonResponse({
+            'success': False,
+            'message': 'Authentication credentials were not provided.'
+        }, status=401, headers={'WWW-Authenticate': 'Basic realm="Agent API"'})
+
+    try:
+        encoded_credentials = auth_header.split(' ')[1]
+        decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
+        username, password = decoded_credentials.split(':', 1)
+    except Exception:
+        return None, JsonResponse({
+            'success': False,
+            'message': 'Invalid authentication credentials.'
+        }, status=401, headers={'WWW-Authenticate': 'Basic realm="Agent API"'})
+
+    try:
+        agent = Agent.objects.get(agentUsername=username, isDeleted=False)
+    except Agent.DoesNotExist:
+        return None, JsonResponse({
+            'success': False,
+            'message': 'Invalid username or password.'
+        }, status=401, headers={'WWW-Authenticate': 'Basic realm="Agent API"'})
+
+    if not agent.isActive:
+        return None, JsonResponse({
+            'success': False,
+            'message': 'Agent account is inactive.'
+        }, status=403)
+
+    if not check_password(password, agent.agentPassword):
+        return None, JsonResponse({
+            'success': False,
+            'message': 'Invalid username or password.'
+        }, status=401, headers={'WWW-Authenticate': 'Basic realm="Agent API"'})
+
+    return agent, None
+
+
+@csrf_exempt
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def customer_transactions_api(request):
+    """
+    API endpoint to get transactions for customers assigned to the authenticated agent
+    """
+    # 1. Authenticate Agent
+    agent, error_response = get_agent_basic_auth(request)
+    if error_response:
+        return error_response
+
+    try:
+        from core.models import VisitPlan, Transaction
+        
+        # 2. Get active VisitPlan for the agent
+        visit_plan = VisitPlan.objects.filter(
+            agentID=agent,
+            isActive=True,
+            isDeleted=False
+        ).first()
+
+        if not visit_plan:
+            return JsonResponse({
+                'success': True,
+                'message': 'No active visit plan found.',
+                'transactions': []
+            })
+
+        # 3. Extract customer IDs
+        customer_ids = visit_plan.customers
+        if not customer_ids or not isinstance(customer_ids, list):
+             return JsonResponse({
+                'success': True,
+                'message': 'No customers assigned in the visit plan.',
+                'transactions': []
+            })
+
+        # 4. Query Transactions
+        transactions = Transaction.objects.filter(
+            customerVendorID__id__in=customer_ids,
+            isDeleted=False
+        ).select_related('customerVendorID', 'invoiceID').order_by('customerVendorID__id', '-createdAt')
+
+        # 5. Format Response - Group by customer
+        from collections import defaultdict
+        grouped_transactions = defaultdict(list)
+        
+        for trans in transactions:
+            customer_id = trans.customerVendorID.id if trans.customerVendorID else None
+            customer_name = trans.customerVendorID.customerVendorName if trans.customerVendorID else 'Unknown'
+            
+            trans_data = {
+                'created_at': trans.createdAt.isoformat() if trans.createdAt else None,
+                'amount': float(trans.amount) if trans.amount else 0.0,
+                'notes': trans.notes,
+                'type': trans.type,
+                'invoiceID': trans.invoiceID.id if trans.invoiceID else None
+            }
+            
+            if customer_id:
+                grouped_transactions[customer_id].append({
+                    'customer_id': customer_id,
+                    'customer_name': customer_name,
+                    'transaction': trans_data
+                })
+
+        # Convert to list format
+        result_data = []
+        for customer_id, trans_list in grouped_transactions.items():
+            if trans_list:
+                customer_name = trans_list[0]['customer_name']
+                result_data.append({
+                    'customer_id': customer_id,
+                    'customer_name': customer_name,
+                    'transactions': [item['transaction'] for item in trans_list]
+                })
+
+        return JsonResponse({
+            'success': True,
+            'count': len(transactions),
+            'customers_count': len(result_data),
+            'data': result_data
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }, status=500)
+

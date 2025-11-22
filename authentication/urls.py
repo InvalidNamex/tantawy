@@ -31,4 +31,5 @@ urlpatterns = [
     path('api/agents/<int:agent_id>/invoices/', views.agent_invoices_api, name='agent_invoices_api'),
     path('api/agents/invoices/', views.agent_invoices_filtered_api, name='agent_invoices_filtered_api'),
     path('api/agents/transactions/', views.agent_transactions_filtered_api, name='agent_transactions_filtered_api'),
+    path('api/agents/customer_transactions/', views.customer_transactions_api, name='customer_transactions_api'),
 ]
