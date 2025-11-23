@@ -606,8 +606,16 @@ This applies to ALL operators: ==, !=, <,>, <=,>=
                 }
 
                 document.addEventListener('DOMContentLoaded', function () {
-                    const itemId = {{ item.id }
-                };
+                    const itemId = {{ item.id }};
+
+                // Prevent form submission for bulkPriceUpdateForm
+                const bulkPriceForm = document.getElementById('bulkPriceUpdateForm');
+                if (bulkPriceForm) {
+                    bulkPriceForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        return false;
+                    });
+                }
 
                 // Tab management - remember active tab
                 const activeTab = localStorage.getItem('activeItemTab') || 'main';
