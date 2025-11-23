@@ -1,5 +1,30 @@
 {% extends 'base.html' %}
 {% load static %}
+{% comment %}
+==================================================================================
+DJANGO TEMPLATE SYNTAX RULES - DO NOT VIOLATE THESE RULES
+==================================================================================
+
+1. COMPARISON OPERATORS MUST HAVE SPACES:
+✅ CORRECT: {% if variable == 'value' %}
+❌ WRONG: {% if variable=='value' %}
+
+This applies to ALL operators: ==, !=, <,>, <=,>=
+        Django's template parser REQUIRES spaces around operators.
+
+        2. TEMPLATE VARIABLES MUST BE ON ONE LINE:
+        ✅ CORRECT: {{ item.createdBy.get_full_name|default:item.createdBy.username }}
+        ❌ WRONG: {{ item.createdBy.get_full_name|
+        default:item.createdBy.username }}
+
+        Splitting {{ }} across multiple lines causes Django to render it as text.
+
+        3. DO NOT "FIX" LINE LENGTH BY BREAKING TEMPLATE TAGS:
+        Long lines in templates are acceptable. Readability < Functionality. If you must break a line, only break
+            OUTSIDE template tags {{ }} or {% %}. AI AGENTS: These rules are NON-NEGOTIABLE. Violating them breaks the
+            page.
+==================================================================================
+{% endcomment %}
 
 {% block title %}إدارة الأصناف - نظام إدارة الطنطاوي{% endblock %}
 
@@ -18,765 +43,763 @@
 </nav>
 {% endblock %}
 
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="mb-1">إدارة الأصناف</h2>
-        <p class="text-muted mb-0">عرض وإدارة جميع الأصناف في النظام</p>
-    </div>
-    <div>
-        <button type="button" class="btn btn-primary" onclick="openAddModal()">
-            <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
-        </button>
-    </div>
-</div>
-
-<!-- Search and Filter Section -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" class="form-control" name="search" value="{{ search_query }}"
-                        placeholder="البحث في الأصناف (الاسم، المجموعة، الرمز، الرقم)" list="searchSuggestions">
-                    <datalist id="searchSuggestions">
-                        <!-- Will be populated via JavaScript -->
-                    </datalist>
+            {% block content %}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">إدارة الأصناف</h2>
+                    <p class="text-muted mb-0">عرض وإدارة جميع الأصناف في النظام</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary" onclick="openAddModal()">
+                        <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
+                    </button>
                 </div>
             </div>
-            <div class="col-md-3">
-                <select class="form-select" name="sort">
-                    <option value="itemName" {% if sort_by=='itemName' %}selected{% endif %}>ترتيب حسب الاسم</option>
-                    <option value="id" {% if sort_by=='id' %}selected{% endif %}>ترتيب حسب الرقم</option>
-                    <option value="itemGroupId__itemsGroupName" {% if sort_by=='itemGroupId__itemsGroupName'
-                        %}selected{% endif %}>ترتيب حسب المجموعة</option>
-                    <option value="sign" {% if sort_by=='sign' %}selected{% endif %}>ترتيب حسب الرمز</option>
-                    <option value="createdAt" {% if sort_by=='createdAt' %}selected{% endif %}>ترتيب حسب تاريخ الإنشاء
-                    </option>
-                    <option value="updatedAt" {% if sort_by=='updatedAt' %}selected{% endif %}>ترتيب حسب تاريخ التحديث
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select" name="direction">
-                    <option value="asc" {% if sort_direction=='asc' %}selected{% endif %}>تصاعدي</option>
-                    <option value="desc" {% if sort_direction=='desc' %}selected{% endif %}>تنازلي</option>
-                </select>
-            </div>
-            <div class="col-md-1">
-                <button type="submit" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-funnel"></i>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
-<!-- Results Summary -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <span class="text-muted">إجمالي النتائج: </span>
-        <span class="badge bg-primary">{{ total_count }}</span>
-        {% if search_query %}
-        <span class="text-muted ms-3">البحث عن: </span>
-        <span class="badge bg-info">"{{ search_query }}"</span>
-        <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-sm ms-2">
-            <i class="bi bi-x-circle me-1"></i>إلغاء البحث
-        </a>
-        {% endif %}
-    </div>
-    <div class="text-muted">
-        صفحة {{ items.number }} من {{ items.paginator.num_pages }}
-    </div>
-</div>
+            <!-- Search and Filter Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control" name="search" value="{{ search_query }}"
+                                    placeholder="البحث في الأصناف (الاسم، المجموعة، الرمز، الرقم)"
+                                    list="searchSuggestions">
+                                <datalist id="searchSuggestions">
+                                    <!-- Will be populated via JavaScript -->
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="sort">
+                                <option value="itemName" {% if sort_by == 'itemName' %}selected{% endif %}>ترتيب حسب الاسم</option>
+                                <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ترتيب حسب الرقم</option>
+                                <option value="itemGroupId__itemsGroupName" {% if sort_by == 'itemGroupId__itemsGroupName' %}selected{% endif %}>ترتيب حسب المجموعة</option>
+                                <option value="sign" {% if sort_by == 'sign' %}selected{% endif %}>ترتيب حسب الرمز</option>
+                                <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>ترتيب حسب تاريخ الإنشاء</option>
+                                <option value="updatedAt" {% if sort_by == 'updatedAt' %}selected{% endif %}>ترتيب حسب تاريخ التحديث</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" name="direction">
+                                <option value="asc" {% if sort_direction == 'asc' %}selected{% endif %}>تصاعدي</option>
+                                <option value="desc" {% if sort_direction == 'desc' %}selected{% endif %}>تنازلي</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-funnel"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
-<!-- Items Table -->
-<div class="card">
-    <div class="card-body p-0">
-        {% if items %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>الرقم</th>
-                        <th>اسم الصنف</th>
-                        <th>المجموعة</th>
-                        <th>الرمز</th>
-                        <th>تاريخ الإنشاء</th>
-                        <th>من قام بالإنشاء</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr>
-                        <td>
-                            <span class="badge bg-light text-dark">#{{ item.id }}</span>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-box text-primary me-2"></i>
-                                <div>
-                                    <a href="{% url 'core:items_detail' item.id %}"
-                                        class="fw-semibold text-decoration-none">
-                                        {{ item.itemName }}
-                                    </a>
+            <!-- Results Summary -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="text-muted">إجمالي النتائج: </span>
+                    <span class="badge bg-primary">{{ total_count }}</span>
+                    {% if search_query %}
+                    <span class="text-muted ms-3">البحث عن: </span>
+                    <span class="badge bg-info">"{{ search_query }}"</span>
+                    <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                        <i class="bi bi-x-circle me-1"></i>إلغاء البحث
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="text-muted">
+                    صفحة {{ items.number }} من {{ items.paginator.num_pages }}
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="card">
+                <div class="card-body p-0">
+                    {% if items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الرقم</th>
+                                    <th>اسم الصنف</th>
+                                    <th>المجموعة</th>
+                                    <th>الرمز</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>من قام بالإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-light text-dark">#{{ item.id }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-box text-primary me-2"></i>
+                                            <div>
+                                                <a href="{% url 'core:items_detail' item.id %}"
+                                                    class="fw-semibold text-decoration-none">
+                                                    {{ item.itemName }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if item.itemGroupId %}
+                                        <span class="badge bg-info">{{ item.itemGroupId.itemsGroupName }}</span>
+                                        {% else %}
+                                        <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.sign %}
+                                        <span class="badge bg-secondary">{{ item.sign }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ item.createdAt|date:"j M Y" }}</small><br>
+                                        <small class="text-muted">{{ item.createdAt|time:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if item.createdBy %}
+                                        <span class="badge bg-success">{{ item.createdBy.get_full_name|default:item.createdBy.username }}</span>
+                                        {% else %}
+                                        <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'core:items_detail' item.id %}"
+                                                class="btn btn-outline-info btn-sm" title="عرض التفاصيل">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'core:items_edit' item.id %}"
+                                                class="btn btn-outline-warning btn-sm" title="تعديل">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'core:items_delete' item.id %}"
+                                                class="btn btn-outline-danger btn-sm" title="حذف">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-box display-1 text-muted"></i>
+                        <h4 class="text-muted mt-3">لا توجد أصناف</h4>
+                        {% if search_query %}
+                        <p class="text-muted">لم يتم العثور على أي أصناف تطابق معايير البحث</p>
+                        <a href="{% url 'core:items' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-right me-2"></i>عرض جميع الأصناف
+                        </a>
+                        {% else %}
+                        <p class="text-muted">ابدأ بإضافة أول صنف في النظام</p>
+                        <button type="button" class="btn btn-primary" onclick="openAddModal()">
+                            <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if items.has_other_pages %}
+            <nav aria-label="pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if items.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ items.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in items.paginator.page_range %}
+                    {% if num == items.number %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > items.number|add:'-3' and num < items.number|add:'3' %} <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                            {{ num }}
+                        </a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if items.has_next %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ items.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="?page={{ items.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            <!-- Add Item Modal -->
+            <!-- Custom Add Item Modal -->
+            <div id="customModal" class="custom-modal" style="display: none;">
+                <div class="custom-modal-backdrop" onclick="closeAddModal()"></div>
+                <div class="custom-modal-content custom-modal-large">
+                    <div class="custom-modal-header">
+                        <h5><i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد</h5>
+                        <button type="button" class="custom-close-btn" onclick="closeAddModal()">×</button>
+                    </div>
+                    <form id="addItemForm" onsubmit="handleFormSubmit(event)">
+                        {% csrf_token %}
+                        <div class="custom-modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <!-- Item Name -->
+                                    <div class="form-group">
+                                        <label for="itemName">
+                                            <i class="bi bi-box me-1"></i>
+                                            اسم الصنف <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="itemName" name="itemName"
+                                            placeholder="أدخل اسم الصنف" required maxlength="255">
+                                        <small class="form-text text-muted">
+                                            <span id="nameCount">0</span>/255 حرف
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <!-- Item Sign -->
+                                    <div class="form-group">
+                                        <label for="sign">
+                                            <i class="bi bi-tag me-1"></i>
+                                            الرمز <span class="text-muted">(اختياري)</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="sign" name="sign"
+                                            placeholder="رمز الصنف" maxlength="255">
+                                    </div>
                                 </div>
                             </div>
-                        </td>
-                        <td>
-                            {% if item.itemGroupId %}
-                            <span class="badge bg-info">{{ item.itemGroupId.itemsGroupName }}</span>
-                            {% else %}
-                            <span class="text-muted">غير محدد</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if item.sign %}
-                            <span class="badge bg-secondary">{{ item.sign }}</span>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <small class="text-muted">{{ item.createdAt|date:"j M Y" }}</small><br>
-                            <small class="text-muted">{{ item.createdAt|time:"H:i" }}</small>
-                        </td>
-                        <td>
-                            {% if item.createdBy %}
-                            <span class="badge bg-success">{{
-                                item.createdBy.get_full_name|default:item.createdBy.username }}</span>
-                            {% else %}
-                            <span class="text-muted">غير محدد</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="{% url 'core:items_detail' item.id %}" class="btn btn-outline-info btn-sm"
-                                    title="عرض التفاصيل">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a href="{% url 'core:items_edit' item.id %}" class="btn btn-outline-warning btn-sm"
-                                    title="تعديل">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="{% url 'core:items_delete' item.id %}" class="btn btn-outline-danger btn-sm"
-                                    title="حذف">
-                                    <i class="bi bi-trash"></i>
-                                </a>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <!-- Item Group -->
+                                    <div class="form-group">
+                                        <label for="itemGroupId">
+                                            <i class="bi bi-collection me-1"></i>
+                                            مجموعة الصنف <span class="text-muted">(اختياري)</span>
+                                        </label>
+                                        <select class="form-select" id="itemGroupId" name="itemGroupId">
+                                            <option value="">اختر مجموعة الصنف</option>
+                                            {% for group in item_groups %}
+                                            <option value="{{ group.id }}">{{ group.itemsGroupName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <!-- Price List -->
+                                    <div class="form-group">
+                                        <label for="pricelistId">
+                                            <i class="bi bi-currency-dollar me-1"></i>
+                                            قائمة الأسعار <span class="text-muted">(اختياري)</span>
+                                        </label>
+                                        <select class="form-select" id="pricelistId" name="pricelistId">
+                                            <option value="">اختر قائمة الأسعار</option>
+                                            {% for pricelist in pricelists %}
+                                            <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-box display-1 text-muted"></i>
-            <h4 class="text-muted mt-3">لا توجد أصناف</h4>
-            {% if search_query %}
-            <p class="text-muted">لم يتم العثور على أي أصناف تطابق معايير البحث</p>
-            <a href="{% url 'core:items' %}" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-right me-2"></i>عرض جميع الأصناف
-            </a>
-            {% else %}
-            <p class="text-muted">ابدأ بإضافة أول صنف في النظام</p>
-            <button type="button" class="btn btn-primary" onclick="openAddModal()">
-                <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
-            </button>
-            {% endif %}
-        </div>
-        {% endif %}
-    </div>
-</div>
 
-<!-- Pagination -->
-{% if items.has_other_pages %}
-<nav aria-label="pagination" class="mt-4">
-    <ul class="pagination justify-content-center">
-        {% if items.has_previous %}
-        <li class="page-item">
-            <a class="page-link"
-                href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
-                <i class="bi bi-chevron-double-right"></i>
-            </a>
-        </li>
-        <li class="page-item">
-            <a class="page-link"
-                href="?page={{ items.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
-                <i class="bi bi-chevron-right"></i>
-            </a>
-        </li>
-        {% endif %}
-
-        {% for num in items.paginator.page_range %}
-        {% if num == items.number %}
-        <li class="page-item active">
-            <span class="page-link">{{ num }}</span>
-        </li>
-        {% elif num > items.number|add:'-3' and num < items.number|add:'3' %} <li class="page-item">
-            <a class="page-link"
-                href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">{{
-                num }}</a>
-            </li>
-            {% endif %}
-            {% endfor %}
-
-            {% if items.has_next %}
-            <li class="page-item">
-                <a class="page-link"
-                    href="?page={{ items.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            <li class="page-item">
-                <a class="page-link"
-                    href="?page={{ items.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if sort_direction %}&direction={{ sort_direction }}{% endif %}">
-                    <i class="bi bi-chevron-double-left"></i>
-                </a>
-            </li>
-            {% endif %}
-    </ul>
-</nav>
-{% endif %}
-
-<!-- Add Item Modal -->
-<!-- Custom Add Item Modal -->
-<div id="customModal" class="custom-modal" style="display: none;">
-    <div class="custom-modal-backdrop" onclick="closeAddModal()"></div>
-    <div class="custom-modal-content custom-modal-large">
-        <div class="custom-modal-header">
-            <h5><i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد</h5>
-            <button type="button" class="custom-close-btn" onclick="closeAddModal()">×</button>
-        </div>
-        <form id="addItemForm" onsubmit="handleFormSubmit(event)">
-            {% csrf_token %}
-            <div class="custom-modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <!-- Item Name -->
-                        <div class="form-group">
-                            <label for="itemName">
-                                <i class="bi bi-box me-1"></i>
-                                اسم الصنف <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control" id="itemName" name="itemName"
-                                placeholder="أدخل اسم الصنف" required maxlength="255">
-                            <small class="form-text text-muted">
-                                <span id="nameCount">0</span>/255 حرف
-                            </small>
+                            <!-- Price -->
+                            <div class="form-group">
+                                <label for="price">
+                                    <i class="bi bi-cash me-1"></i>
+                                    السعر <span class="text-muted">(اختياري)</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="price" name="price" placeholder="0.00"
+                                        step="0.01" min="0">
+                                    <span class="input-group-text">جنيه</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <!-- Item Sign -->
-                        <div class="form-group">
-                            <label for="sign">
-                                <i class="bi bi-tag me-1"></i>
-                                الرمز <span class="text-muted">(اختياري)</span>
-                            </label>
-                            <input type="text" class="form-control" id="sign" name="sign" placeholder="رمز الصنف"
-                                maxlength="255">
+                        <div class="custom-modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddModal()">
+                                <i class="bi bi-x-circle me-2"></i>إلغاء
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="bi bi-check-circle me-2"></i>حفظ الصنف
+                            </button>
                         </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <!-- Item Group -->
-                        <div class="form-group">
-                            <label for="itemGroupId">
-                                <i class="bi bi-collection me-1"></i>
-                                مجموعة الصنف <span class="text-muted">(اختياري)</span>
-                            </label>
-                            <select class="form-select" id="itemGroupId" name="itemGroupId">
-                                <option value="">اختر مجموعة الصنف</option>
-                                {% for group in item_groups %}
-                                <option value="{{ group.id }}">{{ group.itemsGroupName }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <!-- Price List -->
-                        <div class="form-group">
-                            <label for="pricelistId">
-                                <i class="bi bi-currency-dollar me-1"></i>
-                                قائمة الأسعار <span class="text-muted">(اختياري)</span>
-                            </label>
-                            <select class="form-select" id="pricelistId" name="pricelistId">
-                                <option value="">اختر قائمة الأسعار</option>
-                                {% for pricelist in pricelists %}
-                                <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Price -->
-                <div class="form-group">
-                    <label for="price">
-                        <i class="bi bi-cash me-1"></i>
-                        السعر <span class="text-muted">(اختياري)</span>
-                    </label>
-                    <div class="input-group">
-                        <input type="number" class="form-control" id="price" name="price" placeholder="0.00" step="0.01"
-                            min="0">
-                        <span class="input-group-text">جنيه</span>
-                    </div>
+                    </form>
                 </div>
             </div>
-            <div class="custom-modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">
-                    <i class="bi bi-x-circle me-2"></i>إلغاء
-                </button>
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    <i class="bi bi-check-circle me-2"></i>حفظ الصنف
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endblock %}
+            {% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Custom Modal Styles */
-    .custom-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 9999;
-        overflow-y: auto;
-    }
-
-    .custom-modal-backdrop {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(2px);
-    }
-
-    .custom-modal-content {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        width: 90%;
-        max-width: 500px;
-        max-height: 90vh;
-        animation: modalSlideIn 0.3s ease-out;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .custom-modal-large {
-        max-width: 800px;
-        max-height: 95vh;
-    }
-
-    [data-theme="dark"] .custom-modal-content {
-        background: rgba(30, 30, 30, 0.95);
-        color: #fff;
-    }
-
-    @keyframes modalSlideIn {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -60%);
-        }
-
-        to {
-            opacity: 1;
-            transform: translate(-50%, -50%);
-        }
-    }
-
-    .custom-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 24px 16px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    }
-
-    [data-theme="dark"] .custom-modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .custom-modal-header h5 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-    }
-
-    .custom-close-btn {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 0;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        transition: background-color 0.2s;
-    }
-
-    .custom-close-btn:hover {
-        background: rgba(0, 0, 0, 0.1);
-    }
-
-    [data-theme="dark"] .custom-close-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    .custom-modal-body {
-        padding: 20px 24px;
-        flex: 1;
-        overflow-y: auto;
-    }
-
-    .form-group {
-        margin-bottom: 20px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-    }
-
-    .custom-modal-footer {
-        padding: 16px 24px 20px;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-    }
-
-    [data-theme="dark"] .custom-modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Alert styles for messages */
-    .custom-alert {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        min-width: 300px;
-        animation: alertSlideIn 0.3s ease-out;
-    }
-
-    .custom-alert.success {
-        background: rgba(40, 167, 69, 0.9);
-        color: white;
-        border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    .custom-alert.danger {
-        background: rgba(220, 53, 69, 0.9);
-        color: white;
-        border: 1px solid rgba(220, 53, 69, 0.3);
-    }
-
-    @keyframes alertSlideIn {
-        from {
-            opacity: 0;
-            transform: translateX(100%);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    /* Original table styles */
-    .table th {
-        background-color: var(--light-green);
-        color: var(--dark-green);
-        font-weight: 600;
-        border: none;
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(39, 174, 96, 0.1);
-    }
-
-    .card {
-        border: none;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-group .btn {
-        margin: 0 1px;
-    }
-
-    .badge {
-        font-size: 0.75em;
-    }
-
-    .form-control:focus {
-        border-color: var(--primary-green);
-        box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-        border: none;
-    }
-
-    .btn-primary:hover {
-        background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
-        transform: translateY(-1px);
-    }
-
-    #nameCount {
-        font-weight: 500;
-    }
-
-    .pagination .page-link {
-        color: var(--primary-green);
-        border-color: var(--light-green);
-    }
-
-    .pagination .page-item.active .page-link {
-        background-color: var(--primary-green);
-        border-color: var(--primary-green);
-    }
-
-    .pagination .page-link:hover {
-        background-color: var(--light-green);
-        border-color: var(--primary-green);
-        color: var(--dark-green);
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchInput = document.querySelector('input[name="search"]');
-        const sortSelect = document.querySelector('select[name="sort"]');
-        const directionSelect = document.querySelector('select[name="direction"]');
-        const itemNameInput = document.getElementById('itemName');
-        const nameCount = document.getElementById('nameCount');
-
-        // Auto-submit search form on sort/direction change
-        if (sortSelect) {
-            sortSelect.addEventListener('change', function () {
-                this.form.submit();
-            });
-        }
-
-        if (directionSelect) {
-            directionSelect.addEventListener('change', function () {
-                this.form.submit();
-            });
-        }
-
-        // Search input - submit on Enter key only
-        if (searchInput) {
-            searchInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    this.form.submit();
+            {% block extra_css %}
+            <style>
+                /* Custom Modal Styles */
+                .custom-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    z-index: 9999;
+                    overflow-y: auto;
                 }
-            });
-        }
 
-        // Character count for item name
-        function updateNameCount() {
-            if (itemNameInput && nameCount) {
-                const count = itemNameInput.value.length;
-                nameCount.textContent = count;
-                nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
-            }
-        }
-
-        if (itemNameInput) {
-            itemNameInput.addEventListener('input', updateNameCount);
-        }
-
-        // Confirm delete actions
-        document.querySelectorAll('a[href*="delete"]').forEach(link => {
-            link.addEventListener('click', function (e) {
-                if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الصنف؟')) {
-                    e.preventDefault();
+                .custom-modal-backdrop {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    backdrop-filter: blur(2px);
                 }
-            });
-        });
-    });
 
-    // Custom Modal Functions
-    function openAddModal() {
-        const modal = document.getElementById('customModal');
-        const nameInput = document.getElementById('itemName');
+                .custom-modal-content {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                    border-radius: 12px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 90vh;
+                    animation: modalSlideIn 0.3s ease-out;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                }
 
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+                .custom-modal-large {
+                    max-width: 800px;
+                    max-height: 95vh;
+                }
 
-        // Load form data
-        loadFormData();
+                [data-theme="dark"] .custom-modal-content {
+                    background: rgba(30, 30, 30, 0.95);
+                    color: #fff;
+                }
 
-        // Focus on input after animation
-        setTimeout(() => {
-            if (nameInput) {
-                nameInput.focus();
-            }
-        }, 300);
-    }
+                @keyframes modalSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translate(-50%, -60%);
+                    }
 
-    function closeAddModal() {
-        const modal = document.getElementById('customModal');
-        const form = document.getElementById('addItemForm');
-
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-
-        // Reset form
-        if (form) {
-            form.reset();
-            // Update character count
-            const nameCount = document.getElementById('nameCount');
-            if (nameCount) {
-                nameCount.textContent = '0';
-                nameCount.style.color = 'inherit';
-            }
-        }
-    }
-
-    function loadFormData() {
-        fetch('{% url "core:items_add" %}', {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                // Populate item groups
-                const itemGroupSelect = document.getElementById('itemGroupId');
-                itemGroupSelect.innerHTML = '<option value="">اختر مجموعة الصنف</option>';
-                data.item_groups.forEach(group => {
-                    itemGroupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
-                });
-
-                // Populate price lists
-                const pricelistSelect = document.getElementById('pricelistId');
-                pricelistSelect.innerHTML = '<option value="">اختر قائمة الأسعار</option>';
-                data.pricelists.forEach(pricelist => {
-                    pricelistSelect.innerHTML += `<option value="${pricelist.id}">${pricelist.name}</option>`;
-                });
-            })
-            .catch(error => {
-                console.error('Error loading form data:', error);
-                showCustomAlert('حدث خطأ أثناء تحميل البيانات', 'danger');
-            });
-    }
-
-    // Handle form submission
-    function handleFormSubmit(event) {
-        event.preventDefault();
-
-        const form = event.target;
-        const formData = new FormData(form);
-        const submitBtn = document.getElementById('submitBtn');
-        const originalText = submitBtn.innerHTML;
-
-        // Prevent multiple submissions
-        if (submitBtn.disabled) {
-            return;
-        }
-
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
-
-        fetch('{% url "core:items_add" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Close modal
-                    closeAddModal();
-
-                    // Show success message
-                    showCustomAlert(data.message, 'success');
-
-                    // Refresh page after short delay
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    if (data.errors && Array.isArray(data.errors)) {
-                        data.errors.forEach(error => showCustomAlert(error, 'danger'));
-                    } else {
-                        showCustomAlert(data.error || 'حدث خطأ في حفظ الصنف', 'danger');
+                    to {
+                        opacity: 1;
+                        transform: translate(-50%, -50%);
                     }
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showCustomAlert('حدث خطأ في الاتصال بالخادم', 'danger');
-            })
-            .finally(() => {
-                // Reset button state
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            });
-    }
 
-    // Custom alert function
-    function showCustomAlert(message, type) {
-        const alert = document.createElement('div');
-        alert.className = `custom-alert ${type}`;
-        alert.textContent = message;
+                .custom-modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px 24px 16px;
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                }
 
-        document.body.appendChild(alert);
+                [data-theme="dark"] .custom-modal-header {
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                }
 
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.remove();
-            }
-        }, 3000);
-    }
+                .custom-modal-header h5 {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                }
 
-    // Close modal with Escape key
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            const modal = document.getElementById('customModal');
-            if (modal && modal.style.display === 'flex') {
-                closeAddModal();
-            }
-        }
-    });
-</script>
-{% endblock %}
+                .custom-close-btn {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 6px;
+                    transition: background-color 0.2s;
+                }
+
+                .custom-close-btn:hover {
+                    background: rgba(0, 0, 0, 0.1);
+                }
+
+                [data-theme="dark"] .custom-close-btn:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+
+                .custom-modal-body {
+                    padding: 20px 24px;
+                    flex: 1;
+                    overflow-y: auto;
+                }
+
+                .form-group {
+                    margin-bottom: 20px;
+                }
+
+                .form-group label {
+                    display: block;
+                    margin-bottom: 8px;
+                    font-weight: 500;
+                }
+
+                .custom-modal-footer {
+                    padding: 16px 24px 20px;
+                    border-top: 1px solid rgba(0, 0, 0, 0.1);
+                    display: flex;
+                    gap: 12px;
+                    justify-content: flex-end;
+                }
+
+                [data-theme="dark"] .custom-modal-footer {
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                }
+
+                /* Alert styles for messages */
+                .custom-alert {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    z-index: 10000;
+                    min-width: 300px;
+                    animation: alertSlideIn 0.3s ease-out;
+                }
+
+                .custom-alert.success {
+                    background: rgba(40, 167, 69, 0.9);
+                    color: white;
+                    border: 1px solid rgba(40, 167, 69, 0.3);
+                }
+
+                .custom-alert.danger {
+                    background: rgba(220, 53, 69, 0.9);
+                    color: white;
+                    border: 1px solid rgba(220, 53, 69, 0.3);
+                }
+
+                @keyframes alertSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100%);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
+                /* Original table styles */
+                .table th {
+                    background-color: var(--light-green);
+                    color: var(--dark-green);
+                    font-weight: 600;
+                    border: none;
+                }
+
+                .table-hover tbody tr:hover {
+                    background-color: rgba(39, 174, 96, 0.1);
+                }
+
+                .card {
+                    border: none;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+
+                .btn-group .btn {
+                    margin: 0 1px;
+                }
+
+                .badge {
+                    font-size: 0.75em;
+                }
+
+                .form-control:focus {
+                    border-color: var(--primary-green);
+                    box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
+                    border: none;
+                }
+
+                .btn-primary:hover {
+                    background: linear-gradient(135deg, var(--dark-green) 0%, var(--primary-green) 100%);
+                    transform: translateY(-1px);
+                }
+
+                #nameCount {
+                    font-weight: 500;
+                }
+
+                .pagination .page-link {
+                    color: var(--primary-green);
+                    border-color: var(--light-green);
+                }
+
+                .pagination .page-item.active .page-link {
+                    background-color: var(--primary-green);
+                    border-color: var(--primary-green);
+                }
+
+                .pagination .page-link:hover {
+                    background-color: var(--light-green);
+                    border-color: var(--primary-green);
+                    color: var(--dark-green);
+                }
+            </style>
+            {% endblock %}
+
+            {% block extra_js %}
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const searchInput = document.querySelector('input[name="search"]');
+                    const sortSelect = document.querySelector('select[name="sort"]');
+                    const directionSelect = document.querySelector('select[name="direction"]');
+                    const itemNameInput = document.getElementById('itemName');
+                    const nameCount = document.getElementById('nameCount');
+
+                    // Auto-submit search form on sort/direction change
+                    if (sortSelect) {
+                        sortSelect.addEventListener('change', function () {
+                            this.form.submit();
+                        });
+                    }
+
+                    if (directionSelect) {
+                        directionSelect.addEventListener('change', function () {
+                            this.form.submit();
+                        });
+                    }
+
+                    // Search input - submit on Enter key only
+                    if (searchInput) {
+                        searchInput.addEventListener('keypress', function (e) {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                this.form.submit();
+                            }
+                        });
+                    }
+
+                    // Character count for item name
+                    function updateNameCount() {
+                        if (itemNameInput && nameCount) {
+                            const count = itemNameInput.value.length;
+                            nameCount.textContent = count;
+                            nameCount.style.color = count > 255 ? 'red' : count > 230 ? 'orange' : 'inherit';
+                        }
+                    }
+
+                    if (itemNameInput) {
+                        itemNameInput.addEventListener('input', updateNameCount);
+                    }
+
+                    // Confirm delete actions
+                    document.querySelectorAll('a[href*="delete"]').forEach(link => {
+                        link.addEventListener('click', function (e) {
+                            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الصنف؟')) {
+                                e.preventDefault();
+                            }
+                        });
+                    });
+                });
+
+                // Custom Modal Functions
+                function openAddModal() {
+                    const modal = document.getElementById('customModal');
+                    const nameInput = document.getElementById('itemName');
+
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+
+                    // Load form data
+                    loadFormData();
+
+                    // Focus on input after animation
+                    setTimeout(() => {
+                        if (nameInput) {
+                            nameInput.focus();
+                        }
+                    }, 300);
+                }
+
+                function closeAddModal() {
+                    const modal = document.getElementById('customModal');
+                    const form = document.getElementById('addItemForm');
+
+                    modal.style.display = 'none';
+                    document.body.style.overflow = '';
+
+                    // Reset form
+                    if (form) {
+                        form.reset();
+                        // Update character count
+                        const nameCount = document.getElementById('nameCount');
+                        if (nameCount) {
+                            nameCount.textContent = '0';
+                            nameCount.style.color = 'inherit';
+                        }
+                    }
+                }
+
+                function loadFormData() {
+                    fetch('{% url "core:items_add" %}', {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Populate item groups
+                            const itemGroupSelect = document.getElementById('itemGroupId');
+                            itemGroupSelect.innerHTML = '<option value="">اختر مجموعة الصنف</option>';
+                            data.item_groups.forEach(group => {
+                                itemGroupSelect.innerHTML += `<option value="${group.id}">${group.name}</option>`;
+                            });
+
+                            // Populate price lists
+                            const pricelistSelect = document.getElementById('pricelistId');
+                            pricelistSelect.innerHTML = '<option value="">اختر قائمة الأسعار</option>';
+                            data.pricelists.forEach(pricelist => {
+                                pricelistSelect.innerHTML += `<option value="${pricelist.id}">${pricelist.name}</option>`;
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error loading form data:', error);
+                            showCustomAlert('حدث خطأ أثناء تحميل البيانات', 'danger');
+                        });
+                }
+
+                // Handle form submission
+                function handleFormSubmit(event) {
+                    event.preventDefault();
+
+                    const form = event.target;
+                    const formData = new FormData(form);
+                    const submitBtn = document.getElementById('submitBtn');
+                    const originalText = submitBtn.innerHTML;
+
+                    // Prevent multiple submissions
+                    if (submitBtn.disabled) {
+                        return;
+                    }
+
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+
+                    fetch('{% url "core:items_add" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Close modal
+                                closeAddModal();
+
+                                // Show success message
+                                showCustomAlert(data.message, 'success');
+
+                                // Refresh page after short delay
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            } else {
+                                if (data.errors && Array.isArray(data.errors)) {
+                                    data.errors.forEach(error => showCustomAlert(error, 'danger'));
+                                } else {
+                                    showCustomAlert(data.error || 'حدث خطأ في حفظ الصنف', 'danger');
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showCustomAlert('حدث خطأ في الاتصال بالخادم', 'danger');
+                        })
+                        .finally(() => {
+                            // Reset button state
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        });
+                }
+
+                // Custom alert function
+                function showCustomAlert(message, type) {
+                    const alert = document.createElement('div');
+                    alert.className = `custom-alert ${type}`;
+                    alert.textContent = message;
+
+                    document.body.appendChild(alert);
+
+                    // Auto remove after 3 seconds
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 3000);
+                }
+
+                // Close modal with Escape key
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        const modal = document.getElementById('customModal');
+                        if (modal && modal.style.display === 'flex') {
+                            closeAddModal();
+                        }
+                    }
+                });
+            </script>
+            {% endblock %}

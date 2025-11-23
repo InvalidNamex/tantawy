@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+{% comment %}
+==================================================================================
+DJANGO TEMPLATE SYNTAX RULES - DO NOT VIOLATE THESE RULES
+==================================================================================
+
+1. COMPARISON OPERATORS MUST HAVE SPACES:
+✅ CORRECT: {% if variable == 'value' %}
+❌ WRONG: {% if variable=='value' %}
+
+This applies to ALL operators: ==, !=, <,>, <=,>=
+        Django's template parser REQUIRES spaces around operators.
+
+        2. TEMPLATE VARIABLES MUST BE ON ONE LINE:
+        ✅ CORRECT: {{ item.createdBy.get_full_name|default:item.createdBy.username }}
+        ❌ WRONG: {{ item.createdBy.get_full_name|
+        default:item.createdBy.username }}
+
+        Splitting {{ }} across multiple lines causes Django to render it as text.
+
+        3. DO NOT "FIX" LINE LENGTH BY BREAKING TEMPLATE TAGS:
+        Long lines in templates are acceptable. Readability < Functionality. If you must break a line, only break
+            OUTSIDE template tags {{ }} or {% %}. AI AGENTS: These rules are NON-NEGOTIABLE. Violating them breaks the
+            page.=================================================================================={% endcomment %}
+{% block title %}إدارة المخزون - نظام إدارة الطنطاوي{% endblock %}
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'authentication:dashboard' %}">
+                        <i class="bi bi-house"></i> الرئيسية
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">
+                    <i class="bi bi-boxes"></i> إدارة المخزون
+                </li>
+            </ol>
+            </nav>
+            {% endblock %}
+
+            {% block content %}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">إدارة المخزون</h2>
+                    <p class="text-muted mb-0">عرض وإدارة مخزون جميع المتاجر</p>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card bg-light border-0 mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="bi bi-info-circle text-primary" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">معلومات</h6>
+                            <p class="mb-0 text-muted small">
+                                اضغط على المخزن لعرض جميع الأصناف الموجودة به وإدارة الكميات
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="text-muted">إجمالي المخازن: </span>
+                    <span class="badge bg-primary">{{ stores|length }}</span>
+                </div>
+            </div>
+
+            <!-- Stores Grid -->
+            {% if stores %}
+            <div class="row g-4">
+                {% for store in stores %}
+                <div class="col-md-6 col-lg-4">
+                    <a href="{% url 'core:inventory_store_detail' store.id %}" class="text-decoration-none">
+                        <div class="card h-100 border-0 shadow-sm hover-shadow transition-all">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="p-3 bg-primary bg-opacity-10 rounded-3">
+                                        <i class="bi bi-shop text-primary" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <span class="badge bg-success">نشط</span>
+                                </div>
+
+                                <h5 class="card-title mb-3 text-dark">{{ store.name }}</h5>
+
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                <i class="bi bi-box text-muted"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block">عدد الأصناف</small>
+                                                <strong class="text-dark">{{ store.item_count }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                <i class="bi bi-stack text-muted"></i>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted d-block">إجمالي المخزون</small>
+                                                <strong class="text-dark">{{ store.total_stock|floatformat:0 }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-primary">
+                                            <i class="bi bi-arrow-left-circle me-1"></i>
+                                            عرض التفاصيل
+                                        </span>
+                                        <i class="bi bi-chevron-left text-muted"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="mt-3 mb-2">لا توجد مخازن</h5>
+                    <p class="text-muted mb-0">لا توجد مخازن مسجلة في النظام حالياً</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <style>
+                .hover-shadow {
+                    transition: all 0.3s ease;
+                }
+
+                .hover-shadow:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+                }
+
+                .transition-all {
+                    transition: all 0.3s ease;
+                }
+            </style>
+            {% endblock %}

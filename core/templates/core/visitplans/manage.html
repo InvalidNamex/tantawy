@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}إدارة خطط الزيارات - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-calendar-check"></i> خطط الزيارات
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">إدارة خطط الزيارات</h2>
+        <p class="text-muted mb-0">عرض وإدارة خطط زيارات المناديب للعملاء</p>
+    </div>
+    <div>
+        <a href="{% url 'core:visitplan_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>إضافة خطة جديدة
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">المندوب</label>
+                <select class="form-select" name="agent">
+                    <option value="">جميع المناديب</option>
+                    {% for agent in agents %}
+                    <option value="{{ agent.id }}" {% if selected_agent == agent.id|stringformat:"s" %}selected{% endif %}>
+                        {{ agent.agentName }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">البحث</label>
+                <input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="بحث...">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Visit Plans Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if visit_plans %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>الرقم</th>
+                        <th>المندوب</th>
+                        <th>من تاريخ</th>
+                        <th>إلى تاريخ</th>
+                        <th>عدد العملاء</th>
+                        <th>العملاء</th>
+                        <th>الحالة</th>
+                        <th>ملاحظات</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in visit_plans %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-light text-dark">#{{ plan.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-badge text-primary me-2"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ plan.agentID.agentName }}</div>
+                                    <small class="text-muted">{{ plan.agentID.agentUsername }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ plan.dateFrom|date:"j M Y" }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ plan.dateTo|date:"j M Y" }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ plan.customer_count }} عميل</span>
+                        </td>
+                        <td>
+                            {% if plan.customer_objects %}
+                                <div class="customer-list">
+                                    {% for customer in plan.customer_objects|slice:":3" %}
+                                        <span class="badge bg-secondary mb-1">{{ customer.customerVendorName }}</span>
+                                    {% endfor %}
+                                    {% if plan.customer_count > 3 %}
+                                        <span class="badge bg-dark mb-1">+{{ plan.customer_count|add:"-3" }} المزيد</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if plan.isActive %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>نشط
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-circle me-1"></i>غير نشط
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if plan.notes %}
+                                <small class="text-muted">{{ plan.notes|truncatewords:5 }}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'core:visitplan_edit' plan.id %}" 
+                                   class="btn btn-outline-warning btn-sm" 
+                                   title="تعديل">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'core:visitplan_delete' plan.id %}" 
+                                   class="btn btn-outline-danger btn-sm" 
+                                   title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">لا توجد خطط زيارات</h4>
+            {% if search_query or selected_agent or date_from or date_to %}
+            <p class="text-muted">لم يتم العثور على أي خطط تطابق معايير البحث</p>
+            <a href="{% url 'core:visitplans_manage' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-right me-2"></i>عرض جميع الخطط
+            </a>
+            {% else %}
+            <p class="text-muted">ابدأ بإضافة أول خطة زيارة للمناديب</p>
+            <a href="{% url 'core:visitplan_add' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>إضافة خطة جديدة
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if visit_plans.has_other_pages %}
+<nav aria-label="pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if visit_plans.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ visit_plans.previous_page_number }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for num in visit_plans.paginator.page_range %}
+        {% if num == visit_plans.number %}
+        <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+        </li>
+        {% elif num > visit_plans.number|add:'-3' and num < visit_plans.number|add:'3' %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ num }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        
+        {% if visit_plans.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ visit_plans.next_page_number }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ visit_plans.paginator.num_pages }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.table th {
+    background-color: var(--light-green);
+    color: var(--dark-green);
+    font-weight: 600;
+    border: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(39, 174, 96, 0.1);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.customer-list {
+    max-width: 250px;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.pagination .page-link {
+    color: var(--primary-green);
+    border-color: var(--light-green);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+/* Fix modal z-index to ensure it appears above everything */
+.modal-backdrop {
+    z-index: 1040 !important;
+}
+
+.modal {
+    z-index: 1050 !important;
+}
+
+.modal-dialog {
+    z-index: 1051 !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit form on agent/date selection change
+    const agentSelect = document.querySelector('select[name="agent"]');
+    const dateFromInput = document.querySelector('input[name="date_from"]');
+    const dateToInput = document.querySelector('input[name="date_to"]');
+    
+    if (agentSelect) {
+        agentSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    if (dateFromInput) {
+        dateFromInput.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    if (dateToInput) {
+        dateToInput.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+    
+    // Fix modal backdrop issue - ensure modals work properly
+    const modals = document.querySelectorAll('[id^="viewModal"]');
+    modals.forEach(function(modalEl) {
+        modalEl.addEventListener('show.bs.modal', function (event) {
+            // Ensure the modal and backdrop have correct z-index
+            setTimeout(function() {
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.style.zIndex = '1040';
+                }
+                modalEl.style.zIndex = '1050';
+            }, 10);
+        });
+        
+        // Clean up when modal is hidden
+        modalEl.addEventListener('hidden.bs.modal', function (event) {
+            // Remove any stray backdrops
+            document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+                backdrop.remove();
+            });
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+    });
+});
+</script>
+{% endblock %}

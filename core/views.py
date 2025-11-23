@@ -1486,6 +1486,21 @@ def items_detail_view(request, item_id):
         priceList__isDeleted=False
     ).order_by('priceList__priceListName')
     
+    # Get all price lists for inline editing
+    pricelists = PriceList.objects.filter(isDeleted=False).order_by('priceListName')
+    
+    # Create a list of pricelists with their current prices for easy template access
+    pricelists_with_prices = []
+    price_dict = {pd.priceList.id: pd for pd in price_details}
+    
+    for pricelist in pricelists:
+        price_detail = price_dict.get(pricelist.id)
+        pricelists_with_prices.append({
+            'pricelist': pricelist,
+            'price_detail': price_detail,
+            'has_price': price_detail is not None
+        })
+    
     # Get available price lists (not already assigned to this item)
     assigned_pricelist_ids = price_details.values_list('priceList_id', flat=True)
     available_pricelists = PriceList.objects.filter(isDeleted=False).exclude(
@@ -1522,6 +1537,8 @@ def items_detail_view(request, item_id):
     context = {
         'item': item,
         'price_details': price_details,
+        'pricelists': pricelists,
+        'pricelists_with_prices': pricelists_with_prices,
         'available_pricelists': available_pricelists,
         'store_stocks': store_stocks,
         'item_groups': item_groups,
@@ -1536,28 +1553,42 @@ def items_add_price_view(request, item_id):
     Add price to item for a specific price list (AJAX endpoint)
     """
     if request.method == 'POST':
+        import json
+        
         item = get_object_or_404(Item, id=item_id, isDeleted=False)
         
-        pricelist_id = request.POST.get('price_list_id')
-        price = request.POST.get('price', '').strip()
-        
-        # Validation
-        if not pricelist_id:
-            return JsonResponse({'success': False, 'error': 'قائمة الأسعار مطلوبة'})
-        
-        if not price:
-            return JsonResponse({'success': False, 'error': 'السعر مطلوب'})
-        
         try:
+            # Parse JSON body
+            data = json.loads(request.body)
+            pricelist_id = data.get('price_list_id')
+            price = data.get('price')
+            
+            # Validation
+            if not pricelist_id:
+                return JsonResponse({'success': False, 'error': 'قائمة الأسعار مطلوبة'})
+            
+            if price is None or price == '':
+                return JsonResponse({'success': False, 'error': 'السعر مطلوب'})
+            
             pricelist = PriceList.objects.get(id=pricelist_id, isDeleted=False)
-            price_decimal = Decimal(price)
+            price_decimal = Decimal(str(price))
             
             if price_decimal < 0:
                 return JsonResponse({'success': False, 'error': 'السعر لا يمكن أن يكون سالباً'})
             
             # Check if price already exists
-            if PriceListDetail.objects.filter(item=item, priceList=pricelist, isDeleted=False).exists():
-                return JsonResponse({'success': False, 'error': 'السعر موجود بالفعل لهذه القائمة'})
+            existing_price = PriceListDetail.objects.filter(
+                item=item, 
+                priceList=pricelist, 
+                isDeleted=False
+            ).first()
+            
+            if existing_price:
+                # Update existing price instead of creating duplicate
+                existing_price.price = price_decimal
+                existing_price.updatedBy = request.user
+                existing_price.save()
+                return JsonResponse({'success': True, 'message': 'تم تحديث السعر بنجاح'})
             
             # Create price detail
             PriceListDetail.objects.create(
@@ -1572,9 +1603,12 @@ def items_add_price_view(request, item_id):
             
         except PriceList.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'قائمة الأسعار غير موجودة'})
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
             return JsonResponse({'success': False, 'error': 'السعر يجب أن يكون رقماً صحيحاً'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'بيانات غير صالحة'})
         except Exception as e:
+            logger.error(f"Error adding price: {str(e)}")
             return JsonResponse({'success': False, 'error': f'حدث خطأ: {str(e)}'})
     
     return JsonResponse({'success': False, 'error': 'طريقة الطلب غير صحيحة'})
@@ -1595,7 +1629,7 @@ def items_update_price_view(request, item_id, price_id):
             data = json.loads(request.body)
             new_price = data.get('price')
             
-            if new_price is None:
+            if new_price is None or new_price == '':
                 return JsonResponse({'success': False, 'error': 'السعر مطلوب'})
             
             price_decimal = Decimal(str(new_price))
@@ -1609,9 +1643,12 @@ def items_update_price_view(request, item_id, price_id):
             
             return JsonResponse({'success': True, 'message': 'تم تحديث السعر بنجاح'})
             
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
             return JsonResponse({'success': False, 'error': 'السعر يجب أن يكون رقماً صحيحاً'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'بيانات غير صالحة'})
         except Exception as e:
+            logger.error(f"Error updating price: {str(e)}")
             return JsonResponse({'success': False, 'error': f'حدث خطأ: {str(e)}'})
     
     return JsonResponse({'success': False, 'error': 'طريقة الطلب غير صحيحة'})
@@ -5986,3 +6023,357 @@ def agent_cash_balance(request):
             'success': False,
             'message': f'Error retrieving agent balance: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================
+# INVENTORY MANAGEMENT VIEWS (STORE ADMINS)
+# =============================================
+
+def user_is_store_admin(user):
+    """Check if user is in StoreAdmins group"""
+    return user.groups.filter(name='StoreAdmins').exists() or user.is_superuser
+
+@login_required
+def inventory_management_view(request):
+    """
+    Display list of stores with their item counts from itemStock view
+    Only accessible by StoreAdmins group or superusers
+    """
+    # Check permissions
+    if not user_is_store_admin(request.user):
+        messages.error(request, 'ليس لديك صلاحية الوصول لإدارة المخزون')
+        return redirect('authentication:dashboard')
+    
+    from django.db import connection
+    
+    # Get all stores with item counts from itemStock view
+    with connection.cursor() as cursor:
+        cursor.execute('''
+            SELECT 
+                s.id,
+                s."storeName",
+                COUNT(DISTINCT ist.id) as item_count,
+                COALESCE(SUM(ist.stock), 0) as total_stock
+            FROM stores s
+            LEFT JOIN "itemStock" ist ON s.id = ist."storeID" AND ist."isDeleted" = FALSE
+            WHERE s."isDeleted" = FALSE
+            GROUP BY s.id, s."storeName"
+            ORDER BY s."storeName"
+        ''')
+        
+        stores_data = []
+        for row in cursor.fetchall():
+            stores_data.append({
+                'id': row[0],
+                'name': row[1],
+                'item_count': row[2],
+                'total_stock': float(row[3]) if row[3] else 0
+            })
+    
+    context = {
+        'stores': stores_data,
+    }
+    
+    return render(request, 'core/inventory/list.html', context)
+
+
+@login_required
+def inventory_store_detail_view(request, store_id):
+    """
+    Display items in a specific store with quantities from itemStock view
+    Only accessible by StoreAdmins group or superusers
+    """
+    # Check permissions
+    if not user_is_store_admin(request.user):
+        messages.error(request, 'ليس لديك صلاحية الوصول لإدارة المخزون')
+        return redirect('authentication:dashboard')
+    
+    store = get_object_or_404(Store, id=store_id, isDeleted=False)
+    
+    from django.db import connection
+    
+    # Get search parameter
+    search_query = request.GET.get('search', '').strip()
+    
+    # Build query with optional search
+    query = '''
+        SELECT 
+            ist.id as item_id,
+            ist."itemName" as item_name,
+            COALESCE(ist.stock, 0) as stock
+        FROM "itemStock" ist
+        WHERE ist."storeID" = %s 
+            AND ist."isDeleted" = FALSE
+    '''
+    
+    params = [store_id]
+    
+    if search_query:
+        query += ' AND ist."itemName" ILIKE %s'
+        params.append(f'%{search_query}%')
+    
+    query += ' ORDER BY ist."itemName"'
+    
+    with connection.cursor() as cursor:
+        cursor.execute(query, params)
+        
+        items_data = []
+        for row in cursor.fetchall():
+            items_data.append({
+                'id': row[0],
+                'name': row[1],
+                'stock': float(row[2]) if row[2] else 0
+            })
+    
+    # Pagination
+    paginator = Paginator(items_data, 20)  # 20 items per page
+    page_number = request.GET.get('page')
+    items_page = paginator.get_page(page_number)
+    
+    # Get all items for the quick add dropdown
+    all_items = Item.objects.filter(isDeleted=False).order_by('itemName')
+    
+    context = {
+        'store': store,
+        'items': items_page,
+        'all_items': all_items,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'core/inventory/store_detail.html', context)
+
+
+@login_required
+def inventory_add_quantity_view(request):
+    """
+    AJAX endpoint to add quantity to item in store
+    Creates a purchase invoice with price=0 and first available vendor
+    Only accessible by StoreAdmins group or superusers
+    """
+    # Check permissions
+    if not user_is_store_admin(request.user):
+        return JsonResponse({
+            'success': False,
+            'error': 'ليس لديك صلاحية لتنفيذ هذا الإجراء'
+        }, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'طريقة الطلب غير صحيحة'
+        }, status=400)
+    
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        item_id = data.get('item_id')
+        store_id = data.get('store_id')
+        quantity = data.get('quantity')
+        
+        # Validation
+        if not all([item_id, store_id, quantity]):
+            return JsonResponse({
+                'success': False,
+                'error': 'جميع الحقول مطلوبة'
+            })
+        
+        try:
+            quantity = Decimal(str(quantity))
+            if quantity <= 0:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'الكمية يجب أن تكون أكبر من صفر'
+                })
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'error': 'الكمية يجب أن تكون رقماً صحيحاً'
+            })
+        
+        # Get item and store
+        item = get_object_or_404(Item, id=item_id, isDeleted=False)
+        store = get_object_or_404(Store, id=store_id, isDeleted=False)
+        
+        # Get first available vendor
+        vendor = CustomerVendor.objects.filter(
+            isDeleted=False,
+            type__in=[2, 3]  # Vendor or Both
+        ).order_by('id').first()
+        
+        if not vendor:
+            return JsonResponse({
+                'success': False,
+                'error': 'لا يوجد موردين متاحين في النظام'
+            })
+        
+        # Create purchase invoice (type=1)
+        invoice = InvoiceMaster.objects.create(
+            customerOrVendorID=vendor,
+            storeID=store,
+            invoiceType=1,  # Purchase
+            notes=f'إضافة كمية للمخزون - {item.itemName}',
+            discountAmount=0,
+            discountPercentage=0,
+            taxAmount=0,
+            taxPercentage=0,
+            netTotal=0,
+            paymentType=1,  # Cash
+            status=0,  # Paid
+            totalPaid=0,
+            returnStatus=0,  # Not returned
+            createdBy=request.user,
+            updatedBy=request.user
+        )
+        
+        # Create invoice detail
+        InvoiceDetail.objects.create(
+            item=item,
+            quantity=quantity,
+            price=0,
+            notes=f'إضافة كمية للمخزون',
+            invoiceMasterID=invoice,
+            storeID=store,
+            discountAmount=0,
+            discountPercentage=0,
+            taxAmount=0,
+            taxPercentage=0,
+            createdBy=request.user,
+            updatedBy=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'تم إضافة {quantity} من {item.itemName} إلى المخزن بنجاح',
+            'invoice_id': invoice.id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'بيانات غير صحيحة'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error adding quantity: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'حدث خطأ: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def inventory_deduct_quantity_view(request):
+    """
+    AJAX endpoint to deduct quantity from item in store
+    Creates a return purchase invoice with price=0 and first available vendor
+    Only accessible by StoreAdmins group or superusers
+    """
+    # Check permissions
+    if not user_is_store_admin(request.user):
+        return JsonResponse({
+            'success': False,
+            'error': 'ليس لديك صلاحية لتنفيذ هذا الإجراء'
+        }, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'طريقة الطلب غير صحيحة'
+        }, status=400)
+    
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        item_id = data.get('item_id')
+        store_id = data.get('store_id')
+        quantity = data.get('quantity')
+        
+        # Validation
+        if not all([item_id, store_id, quantity]):
+            return JsonResponse({
+                'success': False,
+                'error': 'جميع الحقول مطلوبة'
+            })
+        
+        try:
+            quantity = Decimal(str(quantity))
+            if quantity <= 0:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'الكمية يجب أن تكون أكبر من صفر'
+                })
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'error': 'الكمية يجب أن تكون رقماً صحيحاً'
+            })
+        
+        # Get item and store
+        item = get_object_or_404(Item, id=item_id, isDeleted=False)
+        store = get_object_or_404(Store, id=store_id, isDeleted=False)
+        
+        # Get first available vendor
+        vendor = CustomerVendor.objects.filter(
+            isDeleted=False,
+            type__in=[2, 3]  # Vendor or Both
+        ).order_by('id').first()
+        
+        if not vendor:
+            return JsonResponse({
+                'success': False,
+                'error': 'لا يوجد موردين متاحين في النظام'
+            })
+        
+        # Create return purchase invoice (type=3)
+        invoice = InvoiceMaster.objects.create(
+            customerOrVendorID=vendor,
+            storeID=store,
+            invoiceType=3,  # Return Purchase
+            notes=f'خصم كمية من المخزون - {item.itemName}',
+            discountAmount=0,
+            discountPercentage=0,
+            taxAmount=0,
+            taxPercentage=0,
+            netTotal=0,
+            paymentType=1,  # Cash
+            status=0,  # Paid
+            totalPaid=0,
+            returnStatus=0,  # Not returned
+            createdBy=request.user,
+            updatedBy=request.user
+        )
+        
+        # Create invoice detail
+        InvoiceDetail.objects.create(
+            item=item,
+            quantity=quantity,
+            price=0,
+            notes=f'خصم كمية من المخزون',
+            invoiceMasterID=invoice,
+            storeID=store,
+            discountAmount=0,
+            discountPercentage=0,
+            taxAmount=0,
+            taxPercentage=0,
+            createdBy=request.user,
+            updatedBy=request.user
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'تم خصم {quantity} من {item.itemName} من المخزن بنجاح',
+            'invoice_id': invoice.id
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'بيانات غير صحيحة'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error deducting quantity: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'حدث خطأ: {str(e)}'
+        }, status=500)

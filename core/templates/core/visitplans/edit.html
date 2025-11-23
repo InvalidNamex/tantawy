@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل خطة الزيارة - نظام إدارة الطنطاوي{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'authentication:dashboard' %}">
+                <i class="bi bi-house"></i> الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'core:visitplans_manage' %}">
+                <i class="bi bi-calendar-check"></i> خطط الزيارات
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="bi bi-pencil"></i> تعديل خطة #{{ visit_plan.id }}
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-9">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pencil me-2"></i>
+                    تعديل خطة الزيارة #{{ visit_plan.id }}
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" id="visitPlanForm">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Agent Selection -->
+                        <div class="col-md-6 mb-4">
+                            <label for="agentID" class="form-label">
+                                <i class="bi bi-person-badge me-1"></i>
+                                المندوب <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="agentID" name="agentID" required>
+                                <option value="">اختر المندوب...</option>
+                                {% for agent in agents %}
+                                <option value="{{ agent.id }}" {% if agent.id == visit_plan.agentID.id %}selected{% endif %}>
+                                    {{ agent.agentName }} ({{ agent.agentUsername }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Date From -->
+                        <div class="col-md-3 mb-4">
+                            <label for="dateFrom" class="form-label">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                من تاريخ <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="dateFrom" 
+                                   name="dateFrom" 
+                                   value="{{ visit_plan.dateFrom|date:'Y-m-d' }}"
+                                   min="{{ today }}"
+                                   required>
+                        </div>
+                        
+                        <!-- Date To -->
+                        <div class="col-md-3 mb-4">
+                            <label for="dateTo" class="form-label">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                إلى تاريخ <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="dateTo" 
+                                   name="dateTo" 
+                                   value="{{ visit_plan.dateTo|date:'Y-m-d' }}"
+                                   min="{{ visit_plan.dateFrom|date:'Y-m-d' }}"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Selection -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-people me-1"></i>
+                            العملاء المخصصون <span class="text-danger">*</span>
+                            <span class="badge bg-primary ms-2" id="selectedCount">0 محدد</span>
+                        </label>
+                        
+                        <!-- Search Box -->
+                        <div class="input-group mb-3">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="customerSearch" 
+                                   placeholder="ابحث عن عميل بالاسم أو رقم الهاتف...">
+                        </div>
+                        
+                        <!-- Quick Select Buttons -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectAll">
+                                <i class="bi bi-check-all me-1"></i>تحديد الكل
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAll">
+                                <i class="bi bi-x-circle me-1"></i>إلغاء التحديد
+                            </button>
+                        </div>
+                        
+                        <!-- Customer Checklist -->
+                        <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;" id="customerList">
+                            {% for customer in customers %}
+                            <div class="form-check customer-item" data-customer-name="{{ customer.customerVendorName|lower }}" data-customer-phone="{{ customer.phone_one|default:'' }}">
+                                <input class="form-check-input customer-checkbox" 
+                                       type="checkbox" 
+                                       name="customers" 
+                                       value="{{ customer.id }}" 
+                                       id="customer{{ customer.id }}"
+                                       {% if customer.id in selected_customers %}checked{% endif %}>
+                                <label class="form-check-label w-100" for="customer{{ customer.id }}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ customer.customerVendorName }}</strong>
+                                            {% if customer.phone_one %}
+                                                <br><small class="text-muted">
+                                                    <i class="bi bi-telephone me-1"></i>{{ customer.phone_one }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                        <span class="badge bg-light text-dark">#{{ customer.id }}</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <hr class="my-2">
+                            {% empty %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-inbox display-4"></i>
+                                <p class="mt-2">لا توجد عملاء متاحون</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <small class="form-text text-muted mt-2">
+                            يجب اختيار عميل واحد على الأقل
+                        </small>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">
+                            <i class="bi bi-sticky me-1"></i>
+                            ملاحظات <span class="text-muted">(اختياري)</span>
+                        </label>
+                        <textarea class="form-control" 
+                                  id="notes" 
+                                  name="notes" 
+                                  rows="3" 
+                                  placeholder="أضف أي ملاحظات إضافية...">{{ visit_plan.notes }}</textarea>
+                    </div>
+                    
+                    <!-- Active Status -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   name="isActive" 
+                                   id="isActive"
+                                   value="true"
+                                   {% if visit_plan.isActive %}checked{% endif %}>
+                            <label class="form-check-label" for="isActive">
+                                <i class="bi bi-check-circle me-1"></i>
+                                <strong>تفعيل هذه الخطة</strong>
+                            </label>
+                        </div>
+                        <small class="form-text text-muted mt-1 d-block me-4">
+                            <i class="bi bi-info-circle me-1"></i>
+                            ملاحظة: يمكن أن يكون للمندوب خطة نشطة واحدة فقط. إذا تم تفعيل هذه الخطة، سيتم إلغاء تفعيل الخطط الأخرى تلقائياً.
+                        </small>
+                    </div>
+                    
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-warning btn-lg text-white">
+                            <i class="bi bi-check-circle me-2"></i>
+                            حفظ التعديلات
+                        </button>
+                        
+                        <a href="{% url 'core:visitplans_manage' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.customer-item {
+    padding: 0.75rem;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.customer-item:hover {
+    background-color: rgba(39, 174, 96, 0.1);
+}
+
+.customer-item .form-check-input {
+    cursor: pointer;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.customer-item .form-check-label {
+    cursor: pointer;
+    padding-left: 0.5rem;
+}
+
+#customerList {
+    background-color: #f8f9fa;
+}
+
+.form-check-input:checked + .form-check-label {
+    font-weight: 600;
+    color: var(--primary-green);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('visitPlanForm');
+    const customerCheckboxes = document.querySelectorAll('.customer-checkbox');
+    const selectedCountBadge = document.getElementById('selectedCount');
+    const searchInput = document.getElementById('customerSearch');
+    const customerItems = document.querySelectorAll('.customer-item');
+    const selectAllBtn = document.getElementById('selectAll');
+    const deselectAllBtn = document.getElementById('deselectAll');
+    const dateFromInput = document.getElementById('dateFrom');
+    const dateToInput = document.getElementById('dateTo');
+    
+    // Update selected count
+    function updateSelectedCount() {
+        const count = document.querySelectorAll('.customer-checkbox:checked').length;
+        selectedCountBadge.textContent = count + ' محدد';
+        selectedCountBadge.className = count > 0 ? 'badge bg-success ms-2' : 'badge bg-primary ms-2';
+    }
+    
+    // Add event listeners to checkboxes
+    customerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        customerItems.forEach(item => {
+            const customerName = item.dataset.customerName;
+            const customerPhone = item.dataset.customerPhone;
+            
+            if (customerName.includes(searchTerm) || customerPhone.includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+    
+    // Select all visible customers
+    selectAllBtn.addEventListener('click', function() {
+        customerItems.forEach(item => {
+            if (item.style.display !== 'none') {
+                const checkbox = item.querySelector('.customer-checkbox');
+                checkbox.checked = true;
+            }
+        });
+        updateSelectedCount();
+    });
+    
+    // Deselect all customers
+    deselectAllBtn.addEventListener('click', function() {
+        customerCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedCount();
+    });
+    
+    // Date validation
+    dateFromInput.addEventListener('change', function() {
+        // Update min attribute of dateTo to match dateFrom
+        if (this.value) {
+            dateToInput.min = this.value;
+        }
+        
+        // Clear dateTo if it's now before the new dateFrom
+        if (dateToInput.value && this.value > dateToInput.value) {
+            alert('تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ النهاية');
+            dateToInput.value = '';
+        }
+    });
+    
+    dateToInput.addEventListener('change', function() {
+        if (dateFromInput.value && this.value < dateFromInput.value) {
+            alert('تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية');
+            this.value = '';
+        }
+    });
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const selectedCustomers = document.querySelectorAll('.customer-checkbox:checked').length;
+        
+        if (selectedCustomers === 0) {
+            e.preventDefault();
+            alert('يجب اختيار عميل واحد على الأقل');
+            return false;
+        }
+        
+        if (!dateFromInput.value || !dateToInput.value) {
+            e.preventDefault();
+            alert('يجب تحديد تاريخ البداية والنهاية');
+            return false;
+        }
+        
+        if (dateFromInput.value > dateToInput.value) {
+            e.preventDefault();
+            alert('تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ النهاية');
+            return false;
+        }
+    });
+    
+    // Initialize count
+    updateSelectedCount();
+});
+</script>
+{% endblock %}

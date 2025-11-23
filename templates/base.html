@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}نظام إدارة الطنطاوي{% endblock %}</title>
-    
+
     {% load static %}
-    
+
     <!-- Compiled Glassmorphism CSS -->
     <link rel="stylesheet" href="{% static 'css/compiled.css' %}?v=2.2">
     <!-- Bootstrap CSS for layout -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
+
     <!-- Meta tags for PWA and theme -->
     <meta name="theme-color" content="#ffffff">
     <meta name="description" content="نظام إدارة الطنطاوي - نظام شامل لإدارة الأعمال">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
+
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- Glass Navigation Bar -->
     <nav class="glass-navbar navbar navbar-expand-lg">
@@ -29,14 +31,11 @@
             <a class="navbar-brand d-flex align-items-center" href="{% url 'authentication:dashboard' %}">
                 <img src="/media/logo.png" alt="شعار الطنطاوي" class="logo">
             </a>
-            
+
             <!-- Animated Pill Theme Toggle -->
             <div class="theme-toggle-wrapper me-3">
-                <button id="theme-switch" class="theme-toggle-pill" 
-                        role="switch" 
-                        aria-checked="false" 
-                        aria-label="تبديل بين النمط الفاتح والداكن"
-                        tabindex="0">
+                <button id="theme-switch" class="theme-toggle-pill" role="switch" aria-checked="false"
+                    aria-label="تبديل بين النمط الفاتح والداكن" tabindex="0">
                     <div class="toggle-background">
                         <div class="toggle-icons">
                             <span class="icon sun-icon" aria-hidden="true">☀️</span>
@@ -46,11 +45,12 @@
                     </div>
                 </button>
             </div>
-            
-            <button class="glass-navbar-toggler navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            <button class="glass-navbar-toggler navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav">
                 <i class="bi bi-list"></i>
             </button>
-            
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 {% if user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
@@ -84,29 +84,39 @@
                             <i class="bi bi-calendar-check"></i> خطط الزيارات
                         </a>
                     </li>
+                    {% if user.is_superuser or user.groups.all|length > 0 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:inventory_management' %}">
+                            <i class="bi bi-boxes"></i> إدارة المخزون
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'authentication:users_list' %}">
                             <i class="bi bi-people"></i> إدارة المستخدمين
                         </a>
                     </li>
                 </ul>
-                
+
                 <ul class="navbar-nav">
                     <li class="nav-item navbar-user">
-                        <a class="nav-link user-toggle dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link user-toggle dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown">
                             <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
                         </a>
                         <ul class="glass-dropdown-menu dropdown-menu">
                             <li><a class="glass-dropdown-item dropdown-item" href="#">
-                                <i class="bi bi-person"></i> الملف الشخصي
-                            </a></li>
+                                    <i class="bi bi-person"></i> الملف الشخصي
+                                </a></li>
                             <li><a class="glass-dropdown-item dropdown-item" href="#">
-                                <i class="bi bi-gear"></i> الإعدادات
-                            </a></li>
-                            <li><div class="glass-dropdown-divider dropdown-divider"></div></li>
+                                    <i class="bi bi-gear"></i> الإعدادات
+                                </a></li>
+                            <li>
+                                <div class="glass-dropdown-divider dropdown-divider"></div>
+                            </li>
                             <li><a class="glass-dropdown-item dropdown-item" href="{% url 'authentication:logout' %}">
-                                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
-                            </a></li>
+                                    <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+                                </a></li>
                         </ul>
                     </li>
                 </ul>
@@ -120,28 +130,28 @@
         <div class="container">
             <!-- Breadcrumb -->
             {% block breadcrumb %}{% endblock %}
-                
-                <!-- Messages -->
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show glass-fade-in" role="alert">
-                            {% if message.tags == 'success' %}
-                                <i class="bi bi-check-circle me-2"></i>
-                            {% elif message.tags == 'error' or message.tags == 'danger' %}
-                                <i class="bi bi-exclamation-circle me-2"></i>
-                            {% elif message.tags == 'warning' %}
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                            {% elif message.tags == 'info' %}
-                                <i class="bi bi-info-circle me-2"></i>
-                            {% endif %}
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
-                        </div>
-                    {% endfor %}
+
+            <!-- Messages -->
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show glass-fade-in" role="alert">
+                {% if message.tags == 'success' %}
+                <i class="bi bi-check-circle me-2"></i>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                <i class="bi bi-exclamation-circle me-2"></i>
+                {% elif message.tags == 'warning' %}
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                {% elif message.tags == 'info' %}
+                <i class="bi bi-info-circle me-2"></i>
                 {% endif %}
-                
-                <!-- Page Content -->
-                {% block content %}{% endblock %}
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
         </div>
     </main>
 
@@ -164,38 +174,38 @@
 
     <!-- jQuery (required for Bootstrap Select) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Theme Toggle Manager -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const themeSwitch = document.getElementById('theme-switch');
-            
+
             if (!themeSwitch) return;
-            
+
             // Get initial theme from localStorage or default to light
             function getInitialTheme() {
                 const savedTheme = localStorage.getItem('tantawy-theme');
                 if (savedTheme === 'light' || savedTheme === 'dark') {
                     return savedTheme;
                 }
-                
+
                 // Check system preference
                 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                     return 'dark';
                 }
-                
+
                 return 'light';
             }
-            
+
             // Apply theme to document
             function applyTheme(theme, animate = false) {
                 document.documentElement.setAttribute('data-theme', theme);
                 document.body.setAttribute('data-theme', theme);
                 themeSwitch.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
-                
+
                 // Add pulse animation class
                 if (animate) {
                     themeSwitch.classList.add('toggling');
@@ -203,42 +213,42 @@
                         themeSwitch.classList.remove('toggling');
                     }, 600);
                 }
-                
+
                 // Save to localStorage
                 localStorage.setItem('tantawy-theme', theme);
-                
+
                 // Emit custom event
                 window.dispatchEvent(new CustomEvent('themechange', {
                     detail: { theme: theme }
                 }));
             }
-            
+
             // Toggle theme function
             function toggleTheme() {
                 const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
                 const newTheme = currentTheme === 'light' ? 'dark' : 'light';
                 applyTheme(newTheme, true);
             }
-            
+
             // Initialize theme on page load
             const initialTheme = getInitialTheme();
             applyTheme(initialTheme, false);
-            
+
             // Event listeners
             themeSwitch.addEventListener('click', toggleTheme);
-            
+
             // Keyboard accessibility
-            themeSwitch.addEventListener('keydown', function(e) {
+            themeSwitch.addEventListener('keydown', function (e) {
                 if (e.key === ' ' || e.key === 'Enter') {
                     e.preventDefault();
                     toggleTheme();
                 }
             });
-            
+
             // Listen for system theme changes
             if (window.matchMedia) {
                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-                mediaQuery.addEventListener('change', function(e) {
+                mediaQuery.addEventListener('change', function (e) {
                     // Only auto-switch if user hasn't manually set a preference
                     if (!localStorage.getItem('tantawy-theme')) {
                         applyTheme(e.matches ? 'dark' : 'light', false);
@@ -247,7 +257,8 @@
             }
         });
     </script>
-    
+
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

@@ -44,7 +44,7 @@ class Item(BaseModel):
     itemImage = models.CharField(max_length=255, blank=True, null=True)  # Allow NULL for optional image
     barcode = models.CharField(max_length=255, blank=True, null=True)    # Allow NULL for optional barcode
     sign = models.CharField(max_length=255, blank=True, null=True)       # Allow NULL for optional sign
-    isUsed = models.BooleanField(default=False)
+    isUsed = models.BooleanField(default=True)
     isTax = models.BooleanField(default=False)
     mainUnitName = models.CharField(max_length=255, blank=True, null=True)      # Allow NULL for optional unit names
     subUnitName = models.CharField(max_length=255, blank=True, null=True)       # Allow NULL for optional unit names

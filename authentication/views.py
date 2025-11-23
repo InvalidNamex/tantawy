@@ -1226,10 +1226,11 @@ def customer_transactions_api(request):
                 'transactions': []
             })
 
-        # 4. Query Transactions
+        # 4. Query Transactions - Get all relevant transactions (Invoices and Payments)
         transactions = Transaction.objects.filter(
             customerVendorID__id__in=customer_ids,
-            isDeleted=False
+            isDeleted=False,
+            type__in=[1, 2]  # 1=Purchase/Receipt, 2=Sales/Payment
         ).select_related('customerVendorID', 'invoiceID').order_by('customerVendorID__id', '-createdAt')
 
         # 5. Format Response - Group by customer
@@ -1245,7 +1246,8 @@ def customer_transactions_api(request):
                 'amount': float(trans.amount) if trans.amount else 0.0,
                 'notes': trans.notes,
                 'type': trans.type,
-                'invoiceID': trans.invoiceID.id if trans.invoiceID else None
+                'invoiceID': trans.invoiceID.id if trans.invoiceID else None,
+                'accountID': trans.accountID_id
             }
             
             if customer_id:

@@ -1,903 +1,1084 @@
 {% extends 'base.html' %}
 {% load static %}
+{% comment %}
+==================================================================================
+DJANGO TEMPLATE SYNTAX RULES - DO NOT VIOLATE THESE RULES
+==================================================================================
 
+1. COMPARISON OPERATORS MUST HAVE SPACES:
+✅ CORRECT: {% if variable == 'value' %}
+❌ WRONG: {% if variable=='value' %}
+
+This applies to ALL operators: ==, !=, <,>, <=,>=
+        Django's template parser REQUIRES spaces around operators.
+
+        2. TEMPLATE VARIABLES MUST BE ON ONE LINE:
+        ✅ CORRECT: {{ item.createdBy.get_full_name|default:item.createdBy.username }}
+        ❌ WRONG: {{ item.createdBy.get_full_name|
+        default:item.createdBy.username }}
+
+        Splitting {{ }} across multiple lines causes Django to render it as text.
+
+        3. DO NOT "FIX" LINE LENGTH BY BREAKING TEMPLATE TAGS:
+        Long lines in templates are acceptable. Readability < Functionality. If you must break a line, only break
+            OUTSIDE template tags {{ }} or {% %}. AI AGENTS: These rules are NON-NEGOTIABLE. Violating them breaks the
+            page.=================================================================================={% endcomment %}
 {% block title %}تفاصيل العنصر - {{ item.itemName }}{% endblock %}
-
 {% block content %}
 <div class="container-fluid p-3">
-    <!-- Header with item name and back button -->
-    <div class="row align-items-center mb-4">
-        <div class="col">
-            <h2 class="mb-0 text-dark">
-                <i class="fas fa-box text-success me-2"></i>
-                تفاصيل العنصر: {{ item.itemName }}
-            </h2>
-        </div>
-        <div class="col-auto">
-            <a href="{% url 'core:items' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-right me-2"></i>
-                العودة للقائمة
-            </a>
-        </div>
-    </div>
+            <!-- Header with item name and back button -->
+            <div class="row align-items-center mb-4">
+                <div class="col">
+                    <h2 class="mb-0 text-dark">
+                        <i class="fas fa-box text-success me-2"></i>
+                        تفاصيل العنصر: {{ item.itemName }}
+                    </h2>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'core:items' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        العودة للقائمة
+                    </a>
+                </div>
+            </div>
 
-    <!-- Tab Navigation -->
-    <ul class="nav nav-pills mb-4" id="itemTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active text-success" id="main-tab" data-bs-toggle="pill" data-bs-target="#main"
-                type="button" role="tab" aria-controls="main" aria-selected="true">
-                <i class="fas fa-info-circle me-2"></i>
-                الرئيسية
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link text-success" id="pricelists-tab" data-bs-toggle="pill" data-bs-target="#pricelists"
-                type="button" role="tab" aria-controls="pricelists" aria-selected="false">
-                <i class="fas fa-tags me-2"></i>
-                قوائم الاسعار
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link text-success" id="stores-tab" data-bs-toggle="pill" data-bs-target="#stores"
-                type="button" role="tab" aria-controls="stores" aria-selected="false">
-                <i class="fas fa-warehouse me-2"></i>
-                المخازن
-            </button>
-        </li>
-    </ul>
-
-    <!-- Custom CSS for tab styling -->
-    <style>
-        .nav-pills .nav-link.active {
-            background-color: var(--primary-green) !important;
-            color: white !important;
-        }
-
-        .nav-pills .nav-link:not(.active) {
-            color: var(--primary-green) !important;
-            background-color: transparent !important;
-        }
-
-        .nav-pills .nav-link:not(.active):hover {
-            background-color: rgba(39, 174, 96, 0.1) !important;
-        }
-
-        /* Custom Modal Styles */
-        .custom-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
-            overflow-y: auto;
-        }
-
-        .custom-modal-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
-        }
-
-        .custom-modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            animation: modalSlideIn 0.3s ease-out;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            z-index: 10000;
-        }
-
-        [data-theme="dark"] .custom-modal-content {
-            background: rgba(30, 30, 30, 0.95);
-            color: #fff;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -60%);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%);
-            }
-        }
-
-        .custom-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 24px 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="dark"] .custom-modal-header {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .custom-modal-header h5 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .custom-close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-        }
-
-        .custom-close-btn:hover {
-            background: rgba(0, 0, 0, 0.1);
-        }
-
-        [data-theme="dark"] .custom-close-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .custom-modal-body {
-            padding: 20px 24px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .custom-modal-footer {
-            padding: 16px 24px 20px;
-            border-top: 1px solid rgba(0, 0, 0, 0.1);
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        [data-theme="dark"] .custom-modal-footer {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-    </style>
-
-    <!-- Tab Content -->
-    <div class="tab-content" id="itemTabsContent">
-        <!-- Main Info Tab -->
-        <div class="tab-pane fade show active" id="main" role="tabpanel" aria-labelledby="main-tab">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle text-success me-2"></i>
-                        المعلومات الأساسية
-                    </h5>
-                    <button type="button" class="btn btn-success btn-sm" id="saveMainInfoBtn">
-                        <i class="fas fa-save me-2"></i>
-                        حفظ التغييرات
+            <!-- Tab Navigation -->
+            <ul class="nav nav-pills mb-4" id="itemTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active text-success" id="main-tab" data-bs-toggle="pill"
+                        data-bs-target="#main" type="button" role="tab" aria-controls="main" aria-selected="true">
+                        <i class="fas fa-info-circle me-2"></i>
+                        الرئيسية
                     </button>
-                </div>
-                <form id="mainInfoForm">
-                    {% csrf_token %}
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">اسم العنصر:</label>
-                                    <input type="text" class="form-control" name="itemName" value="{{ item.itemName }}"
-                                        required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">المجموعة:</label>
-                                    <select class="form-select" name="itemGroupId">
-                                        <option value="">اختر المجموعة...</option>
-                                        {% for group in item_groups %}
-                                        <option value="{{ group.id }}" {% if item.itemGroupId and
-                                            item.itemGroupId.id==group.id %}selected{% endif %}>
-                                            {{ group.itemsGroupName }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">حالة الاستخدام:</label>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="isUsed" id="isUsedYes"
-                                            value="true" {% if item.isUsed %}checked{% endif %}>
-                                        <label class="form-check-label" for="isUsedYes">
-                                            <span class="badge bg-success">مستخدم</span>
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="isUsed" id="isUsedNo"
-                                            value="false" {% if not item.isUsed %}checked{% endif %}>
-                                        <label class="form-check-label" for="isUsedNo">
-                                            <span class="badge bg-secondary">غير مستخدم</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">خاضع للضريبة:</label>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="isTax" id="isTaxYes"
-                                            value="true" {% if item.isTax %}checked{% endif %}>
-                                        <label class="form-check-label" for="isTaxYes">
-                                            <span class="badge bg-warning">خاضع للضريبة</span>
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="isTax" id="isTaxNo"
-                                            value="false" {% if not item.isTax %}checked{% endif %}>
-                                        <label class="form-check-label" for="isTaxNo">
-                                            <span class="badge bg-secondary">معفى من الضريبة</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">الباركود الرئيسي:</label>
-                                    <input type="text" class="form-control" name="barcode"
-                                        value="{{ item.barcode|default:'' }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">الإشارة:</label>
-                                    <input type="text" class="form-control" name="sign"
-                                        value="{{ item.sign|default:'' }}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">صورة العنصر:</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" name="itemImage" id="itemImageUrl"
-                                            value="{{ item.itemImage|default:'' }}" placeholder="رابط الصورة">
-                                        <input type="file" class="d-none" id="imageFileInput" accept="image/*">
-                                        <button type="button" class="btn btn-outline-primary" id="selectImageBtn">
-                                            <i class="bi bi-cloud-upload me-1"></i>
-                                            اختيار صورة
-                                        </button>
-                                    </div>
-                                    <div class="form-text">
-                                        <small class="text-muted">يمكنك إدخال رابط صورة أو رفع صورة من جهازك (JPG, PNG,
-                                            GIF, WEBP - حد أقصى 5MB)</small>
-                                    </div>
-                                    <!-- Image preview -->
-                                    <div id="imagePreview" class="mt-2" style="display: none;">
-                                        <img id="previewImg" src="" alt="معاينة الصورة" class="img-thumbnail"
-                                            style="max-width: 200px; max-height: 200px;">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Units Information -->
-                        <hr>
-                        <h6 class="text-success mb-3">
-                            <i class="fas fa-balance-scale me-2"></i>
-                            معلومات الوحدات
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="card bg-light">
-                                    <div class="card-header text-center">
-                                        <h6 class="card-title text-success mb-0">الوحدة الرئيسية</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-2">
-                                            <label class="form-label fw-bold">الاسم:</label>
-                                            <input type="text" class="form-control form-control-sm" name="mainUnitName"
-                                                value="{{ item.mainUnitName|default:'' }}">
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label fw-bold">الباركود:</label>
-                                            <input type="text" class="form-control form-control-sm"
-                                                name="mainUnitBarcode" value="{{ item.barcode|default:'' }}">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card bg-light">
-                                    <div class="card-header text-center">
-                                        <h6 class="card-title text-success mb-0">الوحدة الفرعية</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-2">
-                                            <label class="form-label fw-bold">الاسم:</label>
-                                            <input type="text" class="form-control form-control-sm" name="subUnitName"
-                                                value="{{ item.subUnitName|default:'' }}">
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label fw-bold">العبوة:</label>
-                                            <input type="number" class="form-control form-control-sm" name="subUnitPack"
-                                                value="{{ item.subUnitPack|floatformat:2 }}" step="0.01" min="0">
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label fw-bold">الباركود:</label>
-                                            <input type="text" class="form-control form-control-sm"
-                                                name="subUnitBarCode" value="{{ item.subUnitBarCode|default:'' }}">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card bg-light">
-                                    <div class="card-header text-center">
-                                        <h6 class="card-title text-success mb-0">الوحدة الصغيرة</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-2">
-                                            <label class="form-label fw-bold">الاسم:</label>
-                                            <input type="text" class="form-control form-control-sm" name="smallUnitName"
-                                                value="{{ item.smallUnitName|default:'' }}">
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label fw-bold">العبوة:</label>
-                                            <input type="number" class="form-control form-control-sm"
-                                                name="mainUnitPack" value="{{ item.mainUnitPack|floatformat:2 }}"
-                                                step="0.01" min="0">
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label fw-bold">الباركود:</label>
-                                            <input type="text" class="form-control form-control-sm"
-                                                name="smallUnitBarCode" value="{{ item.smallUnitBarCode|default:'' }}">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Price Lists Tab -->
-        <div class="tab-pane fade" id="pricelists" role="tabpanel" aria-labelledby="pricelists-tab">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-tags text-success me-2"></i>
-                        قوائم الأسعار
-                    </h5>
-                    <button type="button" class="btn btn-success btn-sm" onclick="openAddPriceModal()">
-                        <i class="fas fa-plus me-2"></i>
-                        إضافة سعر
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-success" id="pricelists-tab" data-bs-toggle="pill"
+                        data-bs-target="#pricelists" type="button" role="tab" aria-controls="pricelists"
+                        aria-selected="false">
+                        <i class="fas fa-tags me-2"></i>
+                        قوائم الاسعار
                     </button>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>قائمة الأسعار</th>
-                                    <th>السعر</th>
-                                    <th>العملة</th>
-                                    <th>الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody id="priceListsTable">
-                                {% for price_detail in price_details %}
-                                <tr data-price-id="{{ price_detail.id }}">
-                                    <td>{{ price_detail.priceList.priceListName }}</td>
-                                    <td class="price-cell">
-                                        <span class="price-display">{{ price_detail.price|floatformat:2 }}</span>
-                                        <input type="number" class="form-control price-input d-none"
-                                            value="{{ price_detail.price }}" step="0.01" min="0">
-                                    </td>
-                                    <td>جنيه</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary edit-price-btn" title="تعديل">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-success save-price-btn d-none" title="حفظ">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-secondary cancel-price-btn d-none" title="إلغاء">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger delete-price-btn" title="حذف">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        لا توجد أسعار محددة لهذا العنصر
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-success" id="stores-tab" data-bs-toggle="pill" data-bs-target="#stores"
+                        type="button" role="tab" aria-controls="stores" aria-selected="false">
+                        <i class="fas fa-warehouse me-2"></i>
+                        المخازن
+                    </button>
+                </li>
+            </ul>
 
-        <!-- Stores Tab -->
-        <div class="tab-pane fade" id="stores" role="tabpanel" aria-labelledby="stores-tab">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">
-                        <i class="fas fa-warehouse text-success me-2"></i>
-                        المخزون في المخازن
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>اسم المخزن</th>
-                                    <th>الكمية المتوفرة</th>
-                                    <th>الحالة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for stock in store_stocks %}
-                                <tr>
-                                    <td>{{ stock.store_name }}</td>
-                                    <td class="fw-bold">{{ stock.stock|floatformat:3 }}</td>
-                                    <td>
-                                        {% if stock.stock > 0 %}
-                                        <span class="badge bg-success">متوفر</span>
-                                        {% elif stock.stock == 0 %}
-                                        <span class="badge bg-warning">نفذت الكمية</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">عجز</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        لا توجد بيانات مخزون لهذا العنصر
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Price Modal - Custom Modal -->
-<div id="addPriceModal" class="custom-modal" style="display: none;">
-    <div class="custom-modal-backdrop" onclick="closeAddPriceModal()"></div>
-    <div class="custom-modal-content">
-        <div class="custom-modal-header">
-            <h5><i class="fas fa-tags me-2"></i>إضافة سعر جديد</h5>
-            <button type="button" class="custom-close-btn" onclick="closeAddPriceModal()">×</button>
-        </div>
-        <form id="addPriceForm" onsubmit="handleAddPriceSubmit(event)">
-            {% csrf_token %}
-            <div class="custom-modal-body">
-                <div class="form-group">
-                    <label for="priceListSelect">
-                        <i class="fas fa-list me-1"></i>
-                        قائمة الأسعار <span class="text-danger">*</span>
-                    </label>
-                    <select class="form-select" id="priceListSelect" name="price_list_id" required>
-                        <option value="">اختر قائمة الأسعار...</option>
-                        {% for pricelist in available_pricelists %}
-                        <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="priceInput">
-                        <i class="fas fa-money-bill me-1"></i>
-                        السعر <span class="text-danger">*</span>
-                    </label>
-                    <input type="number" class="form-control" id="priceInput" name="price" step="0.01" min="0"
-                        placeholder="0.00" required>
-                </div>
-            </div>
-            <div class="custom-modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddPriceModal()">
-                    <i class="fas fa-times me-2"></i>إلغاء
-                </button>
-                <button type="submit" class="btn btn-success" id="addPriceSubmitBtn">
-                    <i class="fas fa-check me-2"></i>إضافة السعر
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-    // Global modal functions (must be global for onclick attributes)
-    function openAddPriceModal() {
-        const modal = document.getElementById('addPriceModal');
-        if (modal) {
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-
-            // Focus on first input after animation
-            setTimeout(() => {
-                const selectElement = document.getElementById('priceListSelect');
-                if (selectElement) {
-                    selectElement.focus();
+            <!-- Custom CSS for tab styling -->
+            <style>
+                .nav-pills .nav-link.active {
+                    background-color: var(--primary-green) !important;
+                    color: white !important;
                 }
-            }, 300);
-        }
-    }
 
-    function closeAddPriceModal() {
-        const modal = document.getElementById('addPriceModal');
-        const form = document.getElementById('addPriceForm');
+                .nav-pills .nav-link:not(.active) {
+                    color: var(--primary-green) !important;
+                    background-color: transparent !important;
+                }
 
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
+                .nav-pills .nav-link:not(.active):hover {
+                    background-color: rgba(39, 174, 96, 0.1) !important;
+                }
 
-        // Reset form
-        if (form) {
-            form.reset();
-        }
-    }
+                /* Custom Modal Styles */
+                .custom-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    z-index: 9999;
+                    overflow-y: auto;
+                }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const itemId = {{ item.id }
-    };
+                .custom-modal-backdrop {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    backdrop-filter: blur(2px);
+                }
 
-    // Tab management - remember active tab
-    const activeTab = localStorage.getItem('activeItemTab') || 'main';
+                .custom-modal-content {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px);
+                    border-radius: 12px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 90vh;
+                    animation: modalSlideIn 0.3s ease-out;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    z-index: 10000;
+                }
 
-    // Activate the remembered tab
-    if (activeTab !== 'main') {
-        const tabButton = document.getElementById(activeTab + '-tab');
-        const tabContent = document.getElementById(activeTab);
+                [data-theme="dark"] .custom-modal-content {
+                    background: rgba(30, 30, 30, 0.95);
+                    color: #fff;
+                }
 
-        if (tabButton && tabContent) {
-            // Remove active from current
-            document.querySelector('.nav-link.active').classList.remove('active');
-            document.querySelector('.tab-pane.show.active').classList.remove('show', 'active');
+                @keyframes modalSlideIn {
+                    from {
+                        opacity: 0;
+                        transform: translate(-50%, -60%);
+                    }
 
-            // Add active to remembered tab
-            tabButton.classList.add('active');
-            tabContent.classList.add('show', 'active');
-        }
-    }
+                    to {
+                        opacity: 1;
+                        transform: translate(-50%, -50%);
+                    }
+                }
 
-    // Save active tab when changed
-    document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tab => {
-        tab.addEventListener('shown.bs.tab', function (e) {
-            const tabId = e.target.getAttribute('aria-controls');
-            localStorage.setItem('activeItemTab', tabId);
-        });
-    });
+                .custom-modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px 24px 16px;
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                }
 
-    // Price editing functionality
-    document.querySelectorAll('.edit-price-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const row = this.closest('tr');
-            const priceDisplay = row.querySelector('.price-display');
-            const priceInput = row.querySelector('.price-input');
-            const editBtn = row.querySelector('.edit-price-btn');
-            const saveBtn = row.querySelector('.save-price-btn');
-            const cancelBtn = row.querySelector('.cancel-price-btn');
+                [data-theme="dark"] .custom-modal-header {
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                }
 
-            priceDisplay.classList.add('d-none');
-            priceInput.classList.remove('d-none');
-            editBtn.classList.add('d-none');
-            saveBtn.classList.remove('d-none');
-            cancelBtn.classList.remove('d-none');
-            priceInput.focus();
-        });
-    });
+                .custom-modal-header h5 {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                }
 
-    document.querySelectorAll('.cancel-price-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const row = this.closest('tr');
-            cancelPriceEdit(row);
-        });
-    });
+                .custom-close-btn {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 6px;
+                    transition: background-color 0.2s;
+                }
 
-    document.querySelectorAll('.save-price-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const row = this.closest('tr');
-            const priceId = row.dataset.priceId;
-            const newPrice = row.querySelector('.price-input').value;
+                .custom-close-btn:hover {
+                    background: rgba(0, 0, 0, 0.1);
+                }
 
-            fetch(`/items/${itemId}/price/${priceId}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({ price: newPrice })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        row.querySelector('.price-display').textContent = parseFloat(newPrice).toFixed(2);
+                [data-theme="dark"] .custom-close-btn:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+
+                .custom-modal-body {
+                    padding: 20px 24px;
+                    flex: 1;
+                    overflow-y: auto;
+                }
+
+                .form-group {
+                    margin-bottom: 20px;
+                }
+
+                .form-group label {
+                    display: block;
+                    margin-bottom: 8px;
+                    font-weight: 500;
+                }
+
+                .custom-modal-footer {
+                    padding: 16px 24px 20px;
+                    border-top: 1px solid rgba(0, 0, 0, 0.1);
+                    display: flex;
+                    gap: 12px;
+                    justify-content: flex-end;
+                }
+
+                [data-theme="dark"] .custom-modal-footer {
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                }
+            </style>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="itemTabsContent">
+                <!-- Main Info Tab -->
+                <div class="tab-pane fade show active" id="main" role="tabpanel" aria-labelledby="main-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle text-success me-2"></i>
+                                المعلومات الأساسية
+                            </h5>
+                            <button type="button" class="btn btn-success btn-sm" id="saveMainInfoBtn">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ التغييرات
+                            </button>
+                        </div>
+                        <form id="mainInfoForm">
+                            {% csrf_token %}
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">اسم العنصر:</label>
+                                            <input type="text" class="form-control" name="itemName"
+                                                value="{{ item.itemName }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">المجموعة:</label>
+                                            <select class="form-select" name="itemGroupId">
+                                                <option value="">اختر المجموعة...</option>
+                                                {% for group in item_groups %}
+                                                <option value="{{ group.id }}" {% if item.itemGroupId and item.itemGroupId.id == group.id %}selected{% endif %}>
+                                                    {{ group.itemsGroupName }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">حالة الاستخدام:</label>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="isUsed"
+                                                    id="isUsedYes" value="true" {% if item.isUsed %}checked{% endif %}>
+                                                <label class="form-check-label" for="isUsedYes">
+                                                    <span class="badge bg-success">مستخدم</span>
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="isUsed" id="isUsedNo"
+                                                    value="false" {% if not item.isUsed %}checked{% endif %}>
+                                                <label class="form-check-label" for="isUsedNo">
+                                                    <span class="badge bg-secondary">غير مستخدم</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">خاضع للضريبة:</label>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="isTax" id="isTaxYes"
+                                                    value="true" {% if item.isTax %}checked{% endif %}>
+                                                <label class="form-check-label" for="isTaxYes">
+                                                    <span class="badge bg-warning">خاضع للضريبة</span>
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="isTax" id="isTaxNo"
+                                                    value="false" {% if not item.isTax %}checked{% endif %}>
+                                                <label class="form-check-label" for="isTaxNo">
+                                                    <span class="badge bg-secondary">معفى من الضريبة</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">الباركود الرئيسي:</label>
+                                            <input type="text" class="form-control" name="barcode"
+                                                value="{{ item.barcode|default:'' }}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">الإشارة:</label>
+                                            <input type="text" class="form-control" name="sign"
+                                                value="{{ item.sign|default:'' }}">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">صورة العنصر:</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" name="itemImage"
+                                                    id="itemImageUrl" value="{{ item.itemImage|default:'' }}"
+                                                    placeholder="رابط الصورة">
+                                                <input type="file" class="d-none" id="imageFileInput" accept="image/*">
+                                                <button type="button" class="btn btn-outline-primary"
+                                                    id="selectImageBtn">
+                                                    <i class="bi bi-cloud-upload me-1"></i>
+                                                    اختيار صورة
+                                                </button>
+                                            </div>
+                                            <div class="form-text">
+                                                <small class="text-muted">يمكنك إدخال رابط صورة أو رفع صورة من جهازك
+                                                    (JPG, PNG,
+                                                    GIF, WEBP - حد أقصى 5MB)</small>
+                                            </div>
+                                            <!-- Image preview -->
+                                            <div id="imagePreview" class="mt-2" style="display: none;">
+                                                <img id="previewImg" src="" alt="معاينة الصورة" class="img-thumbnail"
+                                                    style="max-width: 200px; max-height: 200px;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Units Information -->
+                                <hr>
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-balance-scale me-2"></i>
+                                    معلومات الوحدات
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card bg-light">
+                                            <div class="card-header text-center">
+                                                <h6 class="card-title text-success mb-0">الوحدة الرئيسية</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-2">
+                                                    <label class="form-label fw-bold">الاسم:</label>
+                                                    <input type="text" class="form-control form-control-sm"
+                                                        name="mainUnitName" value="{{ item.mainUnitName|default:'' }}">
+                                                </div>
+                                                <div class="mb-0">
+                                                    <label class="form-label fw-bold">الباركود:</label>
+                                                    <input type="text" class="form-control form-control-sm"
+                                                        name="mainUnitBarcode" value="{{ item.barcode|default:'' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light">
+                                            <div class="card-header text-center">
+                                                <h6 class="card-title text-success mb-0">الوحدة الفرعية</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-2">
+                                                    <label class="form-label fw-bold">الاسم:</label>
+                                                    <input type="text" class="form-control form-control-sm"
+                                                        name="subUnitName" value="{{ item.subUnitName|default:'' }}">
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label fw-bold">العبوة:</label>
+                                                    <input type="number" class="form-control form-control-sm"
+                                                        name="subUnitPack" value="{{ item.subUnitPack|floatformat:2 }}"
+                                                        step="0.01" min="0">
+                                                </div>
+                                                <div class="mb-0">
+                                                    <label class="form-label fw-bold">الباركود:</label>
+                                                    <input type="text" class="form-control form-control-sm"
+                                                        name="subUnitBarCode"
+                                                        value="{{ item.subUnitBarCode|default:'' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-light">
+                                            <div class="card-header text-center">
+                                                <h6 class="card-title text-success mb-0">الوحدة الصغيرة</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-2">
+                                                    <label class="form-label fw-bold">الاسم:</label>
+                                                    <input type="text" class="form-control form-control-sm"
+                                                        name="smallUnitName"
+                                                        value="{{ item.smallUnitName|default:'' }}">
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label fw-bold">العبوة:</label>
+                                                    <input type="number" class="form-control form-control-sm"
+                                                        name="mainUnitPack"
+                                                        value="{{ item.mainUnitPack|floatformat:2 }}" step="0.01"
+                                                        min="0">
+                                                </div>
+                                                <div class="mb-0">
+                                                    <label class="form-label fw-bold">الباركود:</label>
+                                                    <input type="text" class="form-control form-control-sm"
+                                                        name="smallUnitBarCode"
+                                                        value="{{ item.smallUnitBarCode|default:'' }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Price Lists Tab -->
+                <div class="tab-pane fade" id="pricelists" role="tabpanel" aria-labelledby="pricelists-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tags text-success me-2"></i>
+                                قوائم الأسعار
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="bulkPriceUpdateForm">
+                                {% csrf_token %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 40%;">قائمة الأسعار</th>
+                                                <th style="width: 35%;">السعر (جنيه)</th>
+                                                <th style="width: 25%;">الإجراءات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in pricelists_with_prices %}
+                                            <tr data-pricelist-id="{{ item.pricelist.id }}"
+                                                data-price-id="{% if item.has_price %}{{ item.price_detail.id }}{% endif %}">
+                                                <td>
+                                                    <strong>{{ item.pricelist.priceListName }}</strong>
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control price-input"
+                                                        name="price_{{ item.pricelist.id }}"
+                                                        data-pricelist-id="{{ item.pricelist.id }}"
+                                                        value="{% if item.has_price %}{{ item.price_detail.price }}{% endif %}"
+                                                        step="0.01" min="0" placeholder="0.00">
+                                                </td>
+                                                <td>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-success save-single-price-btn"
+                                                        data-pricelist-id="{{ item.pricelist.id }}" title="حفظ السعر">
+                                                        <i class="fas fa-save me-1"></i>حفظ
+                                                    </button>
+                                                    {% if item.has_price %}
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-outline-danger delete-price-btn"
+                                                        data-price-id="{{ item.price_detail.id }}" title="حذف السعر">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    لا توجد قوائم أسعار في النظام
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-3 text-end">
+                                    <button type="button" class="btn btn-primary" id="saveAllPricesBtn">
+                                        <i class="fas fa-save me-2"></i>حفظ جميع الأسعار
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stores Tab -->
+                <div class="tab-pane fade" id="stores" role="tabpanel" aria-labelledby="stores-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-warehouse text-success me-2"></i>
+                                المخزون في المخازن
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>اسم المخزن</th>
+                                            <th>الكمية المتوفرة</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stock in store_stocks %}
+                                        <tr>
+                                            <td>{{ stock.store_name }}</td>
+                                            <td class="fw-bold">{{ stock.stock|floatformat:3 }}</td>
+                                            <td>
+                                                {% if stock.stock > 0 %}
+                                                <span class="badge bg-success">متوفر</span>
+                                                {% elif stock.stock == 0 %}
+                                                <span class="badge bg-warning">نفذت الكمية</span>
+                                                {% else %}
+                                                <span class="badge bg-danger">عجز</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                لا توجد بيانات مخزون لهذا العنصر
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Add Price Modal - Custom Modal -->
+            <div id="addPriceModal" class="custom-modal" style="display: none;">
+                <div class="custom-modal-backdrop" onclick="closeAddPriceModal()"></div>
+                <div class="custom-modal-content">
+                    <div class="custom-modal-header">
+                        <h5><i class="fas fa-tags me-2"></i>إضافة سعر جديد</h5>
+                        <button type="button" class="custom-close-btn" onclick="closeAddPriceModal()">×</button>
+                    </div>
+                    <form id="addPriceForm" onsubmit="handleAddPriceSubmit(event)">
+                        {% csrf_token %}
+                        <div class="custom-modal-body">
+                            <div class="form-group">
+                                <label for="priceListSelect">
+                                    <i class="fas fa-list me-1"></i>
+                                    قائمة الأسعار <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="priceListSelect" name="price_list_id" required>
+                                    <option value="">اختر قائمة الأسعار...</option>
+                                    {% for pricelist in available_pricelists %}
+                                    <option value="{{ pricelist.id }}">{{ pricelist.priceListName }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="priceInput">
+                                    <i class="fas fa-money-bill me-1"></i>
+                                    السعر <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="priceInput" name="price" step="0.01"
+                                    min="0" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div class="custom-modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddPriceModal()">
+                                <i class="fas fa-times me-2"></i>إلغاء
+                            </button>
+                            <button type="submit" class="btn btn-success" id="addPriceSubmitBtn">
+                                <i class="fas fa-check me-2"></i>إضافة السعر
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                // Global modal functions (must be global for onclick attributes)
+                function openAddPriceModal() {
+                    const modal = document.getElementById('addPriceModal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+
+                        // Focus on first input after animation
+                        setTimeout(() => {
+                            const selectElement = document.getElementById('priceListSelect');
+                            if (selectElement) {
+                                selectElement.focus();
+                            }
+                        }, 300);
+                    }
+                }
+
+                function closeAddPriceModal() {
+                    const modal = document.getElementById('addPriceModal');
+                    const form = document.getElementById('addPriceForm');
+
+                    if (modal) {
+                        modal.style.display = 'none';
+                        document.body.style.overflow = '';
+                    }
+
+                    // Reset form
+                    if (form) {
+                        form.reset();
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    const itemId = {{ item.id }
+                };
+
+                // Tab management - remember active tab
+                const activeTab = localStorage.getItem('activeItemTab') || 'main';
+
+                // Activate the remembered tab
+                if (activeTab !== 'main') {
+                    const tabButton = document.getElementById(activeTab + '-tab');
+                    const tabContent = document.getElementById(activeTab);
+
+                    if (tabButton && tabContent) {
+                        // Remove active from current
+                        document.querySelector('.nav-link.active').classList.remove('active');
+                        document.querySelector('.tab-pane.show.active').classList.remove('show', 'active');
+
+                        // Add active to remembered tab
+                        tabButton.classList.add('active');
+                        tabContent.classList.add('show', 'active');
+                    }
+                }
+
+                // Save active tab when changed
+                document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tab => {
+                    tab.addEventListener('shown.bs.tab', function (e) {
+                        const tabId = e.target.getAttribute('aria-controls');
+                        localStorage.setItem('activeItemTab', tabId);
+                    });
+                });
+
+                // Price editing functionality
+                document.querySelectorAll('.edit-price-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const row = this.closest('tr');
+                        const priceDisplay = row.querySelector('.price-display');
+                        const priceInput = row.querySelector('.price-input');
+                        const editBtn = row.querySelector('.edit-price-btn');
+                        const saveBtn = row.querySelector('.save-price-btn');
+                        const cancelBtn = row.querySelector('.cancel-price-btn');
+
+                        priceDisplay.classList.add('d-none');
+                        priceInput.classList.remove('d-none');
+                        editBtn.classList.add('d-none');
+                        saveBtn.classList.remove('d-none');
+                        cancelBtn.classList.remove('d-none');
+                        priceInput.focus();
+                    });
+                });
+
+                document.querySelectorAll('.cancel-price-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const row = this.closest('tr');
                         cancelPriceEdit(row);
-                        showAlert('تم تحديث السعر بنجاح', 'success');
-                    } else {
-                        showAlert('حدث خطأ في تحديث السعر', 'danger');
+                    });
+                });
+
+                document.querySelectorAll('.save-price-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const row = this.closest('tr');
+                        const priceId = row.dataset.priceId;
+                        const newPrice = row.querySelector('.price-input').value;
+
+                        fetch(`/items/${itemId}/price/${priceId}/`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                            },
+                            body: JSON.stringify({ price: newPrice })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    row.querySelector('.price-display').textContent = parseFloat(newPrice).toFixed(2);
+                                    cancelPriceEdit(row);
+                                    showAlert('تم تحديث السعر بنجاح', 'success');
+                                } else {
+                                    showAlert('حدث خطأ في تحديث السعر', 'danger');
+                                }
+                            });
+                    });
+                });
+
+                function cancelPriceEdit(row) {
+                    const priceDisplay = row.querySelector('.price-display');
+                    const priceInput = row.querySelector('.price-input');
+                    const editBtn = row.querySelector('.edit-price-btn');
+                    const saveBtn = row.querySelector('.save-price-btn');
+                    const cancelBtn = row.querySelector('.cancel-price-btn');
+
+                    priceDisplay.classList.remove('d-none');
+                    priceInput.classList.add('d-none');
+                    editBtn.classList.remove('d-none');
+                    saveBtn.classList.add('d-none');
+                    cancelBtn.classList.add('d-none');
+                    priceInput.value = priceDisplay.textContent;
+                }
+
+                // Handle form submission
+                function handleAddPriceSubmit(event) {
+                    event.preventDefault();
+
+                    const form = event.target;
+                    const formData = new FormData(form);
+                    const submitBtn = document.getElementById('addPriceSubmitBtn');
+                    const originalText = submitBtn.innerHTML;
+
+                    // Prevent multiple submissions
+                    if (submitBtn.disabled) {
+                        return;
+                    }
+
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+
+                    fetch(`/items/${itemId}/add-price/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                        },
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Close modal
+                                closeAddPriceModal();
+
+                                // Show success message
+                                showAlert('تم إضافة السعر بنجاح', 'success');
+
+                                // Set tab to pricelists before reload
+                                localStorage.setItem('activeItemTab', 'pricelists');
+
+                                // Reload the page but stay on price lists tab
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                            } else {
+                                showAlert(data.error || 'حدث خطأ في إضافة السعر', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            showAlert('حدث خطأ في الاتصال', 'danger');
+                        })
+                        .finally(() => {
+                            // Reset button state
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        });
+                }
+
+                // Add new price functionality (legacy, now handled by handleAddPriceSubmit)
+                document.getElementById('addPriceForm').addEventListener('submit', handleAddPriceSubmit);
+
+                // Close modal with Escape key
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        const modal = document.getElementById('addPriceModal');
+                        if (modal && modal.style.display === 'flex') {
+                            closeAddPriceModal();
+                        }
                     }
                 });
-        });
-    });
 
-    function cancelPriceEdit(row) {
-        const priceDisplay = row.querySelector('.price-display');
-        const priceInput = row.querySelector('.price-input');
-        const editBtn = row.querySelector('.edit-price-btn');
-        const saveBtn = row.querySelector('.save-price-btn');
-        const cancelBtn = row.querySelector('.cancel-price-btn');
+                // Delete price functionality
+                document.querySelectorAll('.delete-price-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        if (confirm('هل أنت متأكد من حذف هذا السعر؟')) {
+                            const row = this.closest('tr');
+                            const priceId = row.dataset.priceId;
 
-        priceDisplay.classList.remove('d-none');
-        priceInput.classList.add('d-none');
-        editBtn.classList.remove('d-none');
-        saveBtn.classList.add('d-none');
-        cancelBtn.classList.add('d-none');
-        priceInput.value = priceDisplay.textContent;
-    }
-
-    // Handle form submission
-    function handleAddPriceSubmit(event) {
-        event.preventDefault();
-
-        const form = event.target;
-        const formData = new FormData(form);
-        const submitBtn = document.getElementById('addPriceSubmitBtn');
-        const originalText = submitBtn.innerHTML;
-
-        // Prevent multiple submissions
-        if (submitBtn.disabled) {
-            return;
-        }
-
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
-
-        fetch(`/items/${itemId}/add-price/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            },
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Close modal
-                    closeAddPriceModal();
-
-                    // Show success message
-                    showAlert('تم إضافة السعر بنجاح', 'success');
-
-                    // Set tab to pricelists before reload
-                    localStorage.setItem('activeItemTab', 'pricelists');
-
-                    // Reload the page but stay on price lists tab
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showAlert(data.error || 'حدث خطأ في إضافة السعر', 'danger');
-                }
-            })
-            .catch(error => {
-                showAlert('حدث خطأ في الاتصال', 'danger');
-            })
-            .finally(() => {
-                // Reset button state
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            });
-    }
-
-    // Add new price functionality (legacy, now handled by handleAddPriceSubmit)
-    document.getElementById('addPriceForm').addEventListener('submit', handleAddPriceSubmit);
-
-    // Close modal with Escape key
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            const modal = document.getElementById('addPriceModal');
-            if (modal && modal.style.display === 'flex') {
-                closeAddPriceModal();
-            }
-        }
-    });
-
-    // Delete price functionality
-    document.querySelectorAll('.delete-price-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            if (confirm('هل أنت متأكد من حذف هذا السعر؟')) {
-                const row = this.closest('tr');
-                const priceId = row.dataset.priceId;
-
-                fetch(`/items/${itemId}/price/${priceId}/`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            row.remove();
-                            showAlert('تم حذف السعر بنجاح', 'success');
-                        } else {
-                            showAlert('حدث خطأ في حذف السعر', 'danger');
+                            fetch(`/items/${itemId}/price/${priceId}/`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                }
+                            })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        row.remove();
+                                        showAlert('تم حذف السعر بنجاح', 'success');
+                                    } else {
+                                        showAlert('حدث خطأ في حذف السعر', 'danger');
+                                    }
+                                });
                         }
                     });
-            }
-        });
-    });
+                });
 
-    function showAlert(message, type) {
-        // Create bootstrap alert
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
+                function showAlert(message, type) {
+                    // Create bootstrap alert
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                    alertDiv.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
 
-        // Insert at top of container
-        const container = document.querySelector('.container-fluid');
-        container.insertBefore(alertDiv, container.firstChild);
+                    // Insert at top of container
+                    const container = document.querySelector('.container-fluid');
+                    container.insertBefore(alertDiv, container.firstChild);
 
-        // Auto dismiss after 3 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 3000);
-    }
-
-    // Handle main info form submission
-    document.getElementById('saveMainInfoBtn').addEventListener('click', function () {
-        const form = document.getElementById('mainInfoForm');
-        const formData = new FormData(form);
-
-        fetch(`{% url 'core:items_update_main_info' item.id %}`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            },
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('تم حفظ التغييرات بنجاح', 'success');
-                    // Update page title if item name changed
-                    const newItemName = formData.get('itemName');
-                    document.title = `تفاصيل العنصر - ${newItemName}`;
-                    document.querySelector('h2').innerHTML = `<i class="fas fa-box text-success me-2"></i>تفاصيل العنصر: ${newItemName}`;
-                } else {
-                    showAlert(data.error || 'حدث خطأ في حفظ التغييرات', 'danger');
+                    // Auto dismiss after 3 seconds
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 3000);
                 }
-            })
-            .catch(error => {
-                showAlert('حدث خطأ في الاتصال', 'danger');
-            });
-    });
 
-    // Image upload functionality
-    const selectImageBtn = document.getElementById('selectImageBtn');
-    const imageFileInput = document.getElementById('imageFileInput');
-    const itemImageUrl = document.getElementById('itemImageUrl');
-    const imagePreview = document.getElementById('imagePreview');
-    const previewImg = document.getElementById('previewImg');
+                // Handle main info form submission
+                document.getElementById('saveMainInfoBtn').addEventListener('click', function () {
+                    const form = document.getElementById('mainInfoForm');
+                    const formData = new FormData(form);
 
-    // Show file dialog when button is clicked
-    selectImageBtn.addEventListener('click', function () {
-        imageFileInput.click();
-    });
+                    fetch(`{% url 'core:items_update_main_info' item.id %}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                        },
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showAlert('تم حفظ التغييرات بنجاح', 'success');
+                                // Update page title if item name changed
+                                const newItemName = formData.get('itemName');
+                                document.title = `تفاصيل العنصر - ${newItemName}`;
+                                document.querySelector('h2').innerHTML = `<i class="fas fa-box text-success me-2"></i>تفاصيل العنصر: ${newItemName}`;
+                            } else {
+                                showAlert(data.error || 'حدث خطأ في حفظ التغييرات', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            showAlert('حدث خطأ في الاتصال', 'danger');
+                        });
+                });
 
-    // Handle file selection
-    imageFileInput.addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (!file) return;
+                // Image upload functionality
+                const selectImageBtn = document.getElementById('selectImageBtn');
+                const imageFileInput = document.getElementById('imageFileInput');
+                const itemImageUrl = document.getElementById('itemImageUrl');
+                const imagePreview = document.getElementById('imagePreview');
+                const previewImg = document.getElementById('previewImg');
 
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-            showAlert('نوع الملف غير مدعوم. يُسمح بـ: JPG, PNG, GIF, WEBP', 'danger');
-            return;
-        }
+                // Show file dialog when button is clicked
+                selectImageBtn.addEventListener('click', function () {
+                    imageFileInput.click();
+                });
 
-        // Validate file size (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            showAlert('حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت', 'danger');
-            return;
-        }
+                // Handle file selection
+                imageFileInput.addEventListener('change', function (e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
 
-        // Show loading state
-        selectImageBtn.disabled = true;
-        selectImageBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>جاري الرفع...';
+                    // Validate file type
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!allowedTypes.includes(file.type)) {
+                        showAlert('نوع الملف غير مدعوم. يُسمح بـ: JPG, PNG, GIF, WEBP', 'danger');
+                        return;
+                    }
 
-        // Upload file
-        const formData = new FormData();
-        formData.append('image', file);
+                    // Validate file size (5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showAlert('حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت', 'danger');
+                        return;
+                    }
 
-        fetch('{% url "core:items_upload_image" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update the URL field
-                    itemImageUrl.value = data.url;
+                    // Show loading state
+                    selectImageBtn.disabled = true;
+                    selectImageBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>جاري الرفع...';
 
-                    // Show preview
-                    previewImg.src = data.url;
+                    // Upload file
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    fetch('{% url "core:items_upload_image" %}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update the URL field
+                                itemImageUrl.value = data.url;
+
+                                // Show preview
+                                previewImg.src = data.url;
+                                imagePreview.style.display = 'block';
+
+                                showAlert(data.message, 'success');
+                            } else {
+                                showAlert(data.error, 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            showAlert('حدث خطأ أثناء رفع الصورة', 'danger');
+                        })
+                        .finally(() => {
+                            // Reset button state
+                            selectImageBtn.disabled = false;
+                            selectImageBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>اختيار صورة';
+
+                            // Clear file input
+                            imageFileInput.value = '';
+                        });
+                });
+
+                // Show preview if URL is already set
+                if (itemImageUrl.value) {
+                    previewImg.src = itemImageUrl.value;
                     imagePreview.style.display = 'block';
-
-                    showAlert(data.message, 'success');
-                } else {
-                    showAlert(data.error, 'danger');
                 }
-            })
-            .catch(error => {
-                showAlert('حدث خطأ أثناء رفع الصورة', 'danger');
-            })
-            .finally(() => {
-                // Reset button state
-                selectImageBtn.disabled = false;
-                selectImageBtn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>اختيار صورة';
 
-                // Clear file input
-                imageFileInput.value = '';
-            });
-    });
+                // Update preview when URL is manually changed
+                itemImageUrl.addEventListener('input', function () {
+                    if (this.value) {
+                        previewImg.src = this.value;
+                        imagePreview.style.display = 'block';
+                    } else {
+                        imagePreview.style.display = 'none';
+                    }
+                });
 
-    // Show preview if URL is already set
-    if (itemImageUrl.value) {
-        previewImg.src = itemImageUrl.value;
-        imagePreview.style.display = 'block';
-    }
+                // ==========================================
+                // NEW: Bulk Price Update Functionality
+                // ==========================================
 
-    // Update preview when URL is manually changed
-    itemImageUrl.addEventListener('input', function () {
-        if (this.value) {
-            previewImg.src = this.value;
-            imagePreview.style.display = 'block';
-        } else {
-            imagePreview.style.display = 'none';
-        }
-    });
+                // Save single price
+                document.querySelectorAll('.save-single-price-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const pricelistId = this.dataset.pricelistId;
+                        const priceInput = document.querySelector(`input[data-pricelist-id="${pricelistId}"]`);
+                        const price = priceInput.value;
+
+                        console.log('Save price clicked:', { pricelistId, price, itemId });
+
+                        if (!price || parseFloat(price) < 0) {
+                            showAlert('يرجى إدخال سعر صحيح', 'warning');
+                            return;
+                        }
+
+                        const originalText = this.innerHTML;
+                        this.disabled = true;
+                        this.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>حفظ...';
+
+                        // Check if this is an update or new price
+                        const row = this.closest('tr');
+                        const priceId = row.dataset.priceId;
+
+                        const url = priceId ?
+                            `/items/${itemId}/price/${priceId}/` :
+                            `/items/${itemId}/add-price/`;
+
+                        const method = priceId ? 'PUT' : 'POST';
+
+                        console.log('Request:', { url, method, priceId, pricelistId, price });
+
+                        fetch(url, {
+                            method: method,
+                            headers: {
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                price_list_id: pricelistId,
+                                price: price
+                            })
+                        })
+                            .then(response => {
+                                console.log('Response status:', response.status);
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('Response data:', data);
+                                if (data.success) {
+                                    showAlert('تم حفظ السعر بنجاح', 'success');
+                                    // Reload to update the delete button if needed
+                                    setTimeout(() => location.reload(), 1000);
+                                } else {
+                                    showAlert(data.error || 'حدث خطأ في حفظ السعر', 'danger');
+                                }
+                            })
+                            .catch(error => {
+                                showAlert('حدث خطأ في الاتصال', 'danger');
+                                console.error('Fetch error:', error);
+                            })
+                            .finally(() => {
+                                this.disabled = false;
+                                this.innerHTML = originalText;
+                            });
+                    });
+                });
+
+                // Save all prices
+                document.getElementById('saveAllPricesBtn').addEventListener('click', function () {
+                    const priceInputs = document.querySelectorAll('.price-input');
+                    const prices = [];
+
+                    priceInputs.forEach(input => {
+                        if (input.value && parseFloat(input.value) >= 0) {
+                            prices.push({
+                                pricelist_id: input.dataset.pricelistId,
+                                price: parseFloat(input.value)
+                            });
+                        }
+                    });
+
+                    if (prices.length === 0) {
+                        showAlert('لا توجد أسعار لحفظها', 'warning');
+                        return;
+                    }
+
+                    const originalText = this.innerHTML;
+                    this.disabled = true;
+                    this.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>جاري الحفظ...';
+
+                    let savedCount = 0;
+                    let failedCount = 0;
+
+                    // Save each price
+                    const savePromises = prices.map(priceData => {
+                        const row = document.querySelector(`tr[data-pricelist-id="${priceData.pricelist_id}"]`);
+                        const priceId = row.dataset.priceId;
+
+                        const url = priceId ?
+                            `/items/${itemId}/price/${priceId}/` :
+                            `/items/${itemId}/add-price/`;
+
+                        const method = priceId ? 'PUT' : 'POST';
+
+                        return fetch(url, {
+                            method: method,
+                            headers: {
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                price_list_id: priceData.pricelist_id,
+                                price: priceData.price
+                            })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    savedCount++;
+                                } else {
+                                    failedCount++;
+                                }
+                            })
+                            .catch(() => {
+                                failedCount++;
+                            });
+                    });
+
+                    Promise.all(savePromises).then(() => {
+                        if (savedCount > 0) {
+                            showAlert(`تم حفظ ${savedCount} سعر بنجاح`, 'success');
+                            setTimeout(() => location.reload(), 1500);
+                        }
+                        if (failedCount > 0) {
+                            showAlert(`فشل حفظ ${failedCount} سعر`, 'danger');
+                        }
+                    }).finally(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                    });
+                });
 });
-</script>
-{% endblock %}
+            </script>
+            {% endblock %}

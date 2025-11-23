@@ -1,4 +1,24 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "files.associations": {
+        "**/templates/**/*.html": "django-html",
+        "**/templates/**/*": "django-html",
+        "**/*.html": "django-html"
+    },
+    "[django-html]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "[html]": {
+        "editor.formatOnSave": false
+    },
+    "html.format.enable": false,
+    "prettier.disableLanguages": [
+        "django-html",
+        "html"
+    ],
+    "emmet.includeLanguages": {
+        "django-html": "html"
+    }
 }

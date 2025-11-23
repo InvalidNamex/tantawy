@@ -70,6 +70,12 @@ urlpatterns = [
     path('visitplans/edit/<int:plan_id>/', views.visitplan_edit_view, name='visitplan_edit'),
     path('visitplans/delete/<int:plan_id>/', views.visitplan_delete_view, name='visitplan_delete'),
     
+    # Inventory Management URLs (Template-based for StoreAdmins)
+    path('inventory/', views.inventory_management_view, name='inventory_management'),
+    path('inventory/store/<int:store_id>/', views.inventory_store_detail_view, name='inventory_store_detail'),
+    path('inventory/add-quantity/', views.inventory_add_quantity_view, name='inventory_add_quantity'),
+    path('inventory/deduct-quantity/', views.inventory_deduct_quantity_view, name='inventory_deduct_quantity'),
+    
     # API URLs - All under /api/ prefix
     
     # ItemsGroup URLs (API)
