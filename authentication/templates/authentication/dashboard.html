@@ -148,123 +148,63 @@
     </div>
 </div>
 
-<!-- Invoice Management Section with Glass Effects -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="glass-card">
-            <div class="glass-card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-receipt me-2"></i> إدارة الفواتير
-                </h5>
-            </div>
-            <div class="glass-card-body">
-                <div class="glass-card-grid-2x2">
-                    <div class="glass-stats-card glass-card-primary">
-                        <div class="stats-icon">
-                            <i class="bi bi-bag-fill"></i>
-                        </div>
-                        <div class="stats-number">{{ purchase_invoices_count }}</div>
-                        <p class="stats-label">فواتير الشراء</p>
-                        <a href="{% url 'core:invoices_purchase' %}" class="glass-btn-primary glass-btn mt-3">
-                            <i class="bi bi-eye me-1"></i> عرض
-                        </a>
-                    </div>
-                    
-                    <div class="glass-stats-card glass-card-success">
-                        <div class="stats-icon bg-success">
-                            <i class="bi bi-cart-fill"></i>
-                        </div>
-                        <div class="stats-number">{{ sales_invoices_count }}</div>
-                        <p class="stats-label">فواتير المبيعات</p>
-                        <a href="{% url 'core:invoices_sales' %}" class="glass-btn-success glass-btn mt-3">
-                            <i class="bi bi-eye me-1"></i> عرض
-                        </a>
-                    </div>
-                    
-                    <div class="glass-stats-card glass-card-warning">
-                        <div class="stats-icon bg-warning">
-                            <i class="bi bi-arrow-return-left"></i>
-                        </div>
-                        <div class="stats-number">{{ return_purchase_invoices_count }}</div>
-                        <p class="stats-label">مرتجع الشراء</p>
-                        <a href="{% url 'core:invoices_return_purchase' %}" class="glass-btn-warning glass-btn mt-3">
-                            <i class="bi bi-eye me-1"></i> عرض
-                        </a>
-                    </div>
-                    
-                    <div class="glass-stats-card glass-card-danger">
-                        <div class="stats-icon bg-danger">
-                            <i class="bi bi-arrow-return-right"></i>
-                        </div>
-                        <div class="stats-number">{{ return_sales_invoices_count }}</div>
-                        <p class="stats-label">مرتجع المبيعات</p>
-                        <a href="{% url 'core:invoices_return_sales' %}" class="glass-btn-danger glass-btn mt-3">
-                            <i class="bi bi-eye me-1"></i> عرض
-                        </a>
-                    </div>
-                </div>
-            </div>
+<!-- Management Tools Row with Glass Effects -->
+<div class="dashboard-stats">
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.8s;">
+        <div class="card-icon">
+            <i class="bi bi-people"></i>
         </div>
+        <h5 class="card-title">إدارة المناديب</h5>
+        <div class="card-value"><i class="bi bi-arrow-right-circle"></i></div>
+        <p class="card-subtitle">إدارة المناديب والمتابعة</p>
+        <a href="{% url 'authentication:agents_manage' %}" class="glass-btn-primary glass-btn mt-3">
+            <i class="bi bi-arrow-right me-1"></i> إدارة
+        </a>
+    </div>
+    
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.9s;">
+        <div class="card-icon">
+            <i class="bi bi-calendar-check"></i>
+        </div>
+        <h5 class="card-title">خطط الزيارات</h5>
+        <div class="card-value"><i class="bi bi-arrow-right-circle"></i></div>
+        <p class="card-subtitle">إدارة خطط الزيارات الميدانية</p>
+        <a href="{% url 'core:visitplans_manage' %}" class="glass-btn-success glass-btn mt-3">
+            <i class="bi bi-arrow-right me-1"></i> إدارة
+        </a>
+    </div>
+    
+    {% if user.is_superuser or user.groups.all|length > 0 %}
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 1.0s;">
+        <div class="card-icon">
+            <i class="bi bi-boxes"></i>
+        </div>
+        <h5 class="card-title">إدارة المخزون</h5>
+        <div class="card-value"><i class="bi bi-arrow-right-circle"></i></div>
+        <p class="card-subtitle">إدارة الكميات والمخزون</p>
+        <a href="{% url 'core:inventory_management' %}" class="glass-btn-info glass-btn mt-3">
+            <i class="bi bi-arrow-right me-1"></i> إدارة
+        </a>
+    </div>
+    {% endif %}
+    
+    <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 1.1s;">
+        <div class="card-icon">
+            <i class="bi bi-people"></i>
+        </div>
+        <h5 class="card-title">إدارة المستخدمين</h5>
+        <div class="card-value"><i class="bi bi-arrow-right-circle"></i></div>
+        <p class="card-subtitle">إدارة حسابات المستخدمين</p>
+        <a href="{% url 'authentication:users_list' %}" class="glass-btn-warning glass-btn mt-3">
+            <i class="bi bi-arrow-right me-1"></i> إدارة
+        </a>
     </div>
 </div>
 
+<!-- Invoice Management Section with Glass Effects -->
+</div>
+
 <!-- Quick Actions with Glass Effects -->
-<div class="row">
-    <div class="col-12">
-        <div class="glass-card">
-            <div class="glass-card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-lightning me-2"></i> إجراءات سريعة
-                </h5>
-            </div>
-            <div class="glass-card-body">
-                <div class="layout-grid-4">
-                    <a href="{% url 'core:itemsgroups' %}" class="glass-btn-primary glass-btn py-3 text-center d-block">
-                        <i class="bi bi-collection me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة مجموعات الأصناف</div>
-                    </a>
-                    <a href="{% url 'core:items' %}" class="glass-btn-secondary glass-btn py-3 text-center d-block">
-                        <i class="bi bi-box me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة الأصناف</div>
-                    </a>
-                    <a href="{% url 'core:customers' %}" class="glass-btn-success glass-btn py-3 text-center d-block">
-                        <i class="bi bi-person-check me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة العملاء</div>
-                    </a>
-                    <a href="{% url 'core:vendors' %}" class="glass-btn-info glass-btn py-3 text-center d-block">
-                        <i class="bi bi-truck me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة الموردين</div>
-                    </a>
-                    <a href="{% url 'core:invoices_main' %}" class="glass-btn-warning glass-btn py-3 text-center d-block">
-                        <i class="bi bi-receipt me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة الفواتير</div>
-                    </a>
-                    <a href="{% url 'core:pricelists' %}" class="glass-btn glass-btn py-3 text-center d-block">
-                        <i class="bi bi-currency-dollar me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة قوائم الأسعار</div>
-                    </a>
-                    <a href="{% url 'core:storegroups' %}" class="glass-btn glass-btn py-3 text-center d-block">
-                        <i class="bi bi-building me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة مجموعات المخازن</div>
-                    </a>
-                    <a href="{% url 'core:stores' %}" class="glass-btn glass-btn py-3 text-center d-block">
-                        <i class="bi bi-shop me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة المخازن</div>
-                    </a>
-                    <a href="{% url 'authentication:agents_manage' %}" class="glass-btn-primary glass-btn py-3 text-center d-block">
-                        <i class="bi bi-people me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة المناديب</div>
-                    </a>
-                    {% if user.is_staff %}
-                    <a href="{% url 'authentication:users_list' %}" class="glass-btn-danger glass-btn py-3 text-center d-block">
-                        <i class="bi bi-people me-2 d-block mb-2 fs-3"></i>
-                        <div>إدارة المستخدمين</div>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Recent Activity with Glass Effects -->

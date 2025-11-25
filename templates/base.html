@@ -53,50 +53,7 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 {% if user.is_authenticated %}
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'authentication:dashboard' %}">
-                            <i class="bi bi-house-door"></i> الرئيسية
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:pricelists' %}">
-                            <i class="bi bi-currency-dollar"></i> قوائم الأسعار
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:items' %}">
-                            <i class="bi bi-box"></i> الأصناف
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:stores' %}">
-                            <i class="bi bi-shop"></i> المخازن
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'authentication:agents_manage' %}">
-                            <i class="bi bi-people"></i> إدارة المناديب
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:visitplans_manage' %}">
-                            <i class="bi bi-calendar-check"></i> خطط الزيارات
-                        </a>
-                    </li>
-                    {% if user.is_superuser or user.groups.all|length > 0 %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'core:inventory_management' %}">
-                            <i class="bi bi-boxes"></i> إدارة المخزون
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'authentication:users_list' %}">
-                            <i class="bi bi-people"></i> إدارة المستخدمين
-                        </a>
-                    </li>
-                </ul>
+                <!-- Removed all text buttons from glass-navbar header -->
 
                 <ul class="navbar-nav">
                     <li class="nav-item navbar-user">
