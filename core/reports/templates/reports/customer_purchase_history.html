@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .report-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .customer-selector {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+    
+    .customer-selector label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+    }
+    
+    .summary-card h3 {
+        font-size: 0.875rem;
+        color: #666;
+        margin: 0 0 0.5rem 0;
+        font-weight: 500;
+    }
+    
+    .summary-card .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #333;
+    }
+    
+    .invoice-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .invoice-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .invoice-header {
+        padding: 1.25rem 1.5rem;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .invoice-header:hover {
+        background: #e9ecef;
+    }
+    
+    .invoice-info {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .invoice-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .badge-sales {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-return {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .invoice-meta {
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    .invoice-meta strong {
+        color: #333;
+    }
+    
+    .invoice-total {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+    
+    .invoice-items {
+        padding: 0;
+    }
+    
+    .items-table {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .items-table thead {
+        background: #f8f9fa;
+    }
+    
+    .items-table th {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .items-table td {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .items-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .items-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .net-total-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .net-total-card h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    .net-total-card .amount {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    
+    .empty-state svg {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        color: #666;
+        font-size: 1.25rem;
+    }
+    
+    .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .invoice-card.collapsed .toggle-icon {
+        transform: rotate(-90deg);
+    }
+    
+    .invoice-items {
+        max-height: 1000px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    
+    .invoice-card.collapsed .invoice-items {
+        max-height: 0;
+    }
+</style>
+
+<div class="report-header">
+    <h1>📊 تقرير مشتريات العميل</h1>
+</div>
+
+<div class="customer-selector">
+    <form method="get">
+        <label for="customer" class="form-label">اختر العميل:</label>
+        <div class="d-flex gap-2">
+            <select name="customer" id="customer" class="form-select" style="max-width: 400px;">
+                <option value="">-- اختر عميل --</option>
+                {% for customer in customers %}
+                <option value="{{ customer.id }}" {% if customer.id == selected_customer %}selected{% endif %}>
+                    {{ customer.customerVendorName }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">عرض التقرير</button>
+        </div>
+    </form>
+</div>
+
+{% if grouped_invoices and grouped_invoices|length > 0 %}
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>عدد الفواتير</h3>
+            <div class="value">{{ grouped_invoices|length }}</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #28a745;">
+            <h3>صافي المبيعات</h3>
+            <div class="value">{{ net_total|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <div class="invoices-container">
+        {% for invoice in grouped_invoices %}
+        <div class="invoice-card">
+            <div class="invoice-header" onclick="toggleInvoice(this)">
+                <div class="invoice-info">
+                    <div>
+                        <span class="invoice-badge {% if invoice.invoice.invoiceType == 2 %}badge-sales{% else %}badge-return{% endif %}">
+                            {% if invoice.invoice.invoiceType == 2 %}
+                                ✓ مبيعات
+                            {% elif invoice.invoice.invoiceType == 4 %}
+                                ↩ مردود مبيعات
+                            {% else %}
+                                غير معروف
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="invoice-meta">
+                        <strong>رقم الفاتورة:</strong> #{{ invoice.invoice.id }}
+                    </div>
+                    <div class="invoice-meta">
+                        <strong>التاريخ:</strong> {{ invoice.invoice.createdAt|date:"Y-m-d" }}
+                    </div>
+                    <div class="invoice-meta">
+                        <strong>عدد المنتجات:</strong> {{ invoice.items|length }}
+                    </div>
+                    <div class="invoice-total">
+                        {{ invoice.total|floatformat:2 }} ج.م
+                    </div>
+                </div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            
+            <div class="invoice-items">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>المنتج</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in invoice.items %}
+                        <tr>
+                            <td><strong>{{ item.item.itemName }}</strong></td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.price|floatformat:2 }} ج.م</td>
+                            <td><strong>{{ item.total|floatformat:2 }} ج.م</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="net-total-card">
+        <h3>صافي المبيعات الإجمالي</h3>
+        <div class="amount">{{ net_total|floatformat:2 }} ج.م</div>
+    </div>
+
+{% else %}
+    <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <h3>لا توجد مشتريات لهذا العميل</h3>
+        <p style="color: #999;">الرجاء اختيار عميل آخر أو التحقق من البيانات</p>
+    </div>
+{% endif %}
+
+<script>
+function toggleInvoice(header) {
+    const card = header.closest('.invoice-card');
+    card.classList.toggle('collapsed');
+}
+</script>
+
+{% endblock %}

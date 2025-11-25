@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .reports-dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 16px;
+        margin-bottom: 3rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        text-align: center;
+    }
+    
+    .dashboard-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .dashboard-header p {
+        margin: 0;
+        font-size: 1.1rem;
+        opacity: 0.95;
+    }
+    
+    .reports-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .report-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .report-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--card-gradient-start), var(--card-gradient-end));
+    }
+    
+    .report-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        border-color: var(--card-gradient-start);
+    }
+    
+    .report-card.purple {
+        --card-gradient-start: #667eea;
+        --card-gradient-end: #764ba2;
+    }
+    
+    .report-card.orange {
+        --card-gradient-start: #f093fb;
+        --card-gradient-end: #f5576c;
+    }
+    
+    .report-card.blue {
+        --card-gradient-start: #4facfe;
+        --card-gradient-end: #00f2fe;
+    }
+    
+    .report-card.pink {
+        --card-gradient-start: #fa709a;
+        --card-gradient-end: #fee140;
+    }
+    
+    .report-card.teal {
+        --card-gradient-start: #11998e;
+        --card-gradient-end: #38ef7d;
+    }
+    
+    .report-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, var(--card-gradient-start), var(--card-gradient-end));
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .report-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.75rem 0;
+        color: #2d3748;
+    }
+    
+    .report-card p {
+        font-size: 0.95rem;
+        color: #718096;
+        margin: 0;
+        line-height: 1.6;
+    }
+    
+    .report-arrow {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 2rem;
+        font-size: 1.5rem;
+        color: var(--card-gradient-start);
+        opacity: 0;
+        transform: translateX(-10px);
+        transition: all 0.3s ease;
+    }
+    
+    .report-card:hover .report-arrow {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    @media (max-width: 768px) {
+        .reports-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 2rem;
+        }
+    }
+</style>
+
+<div class="reports-dashboard">
+    <div class="dashboard-header">
+        <h1>📊 لوحة التقارير</h1>
+        <p>تقارير شاملة لتحليل أداء الأعمال ومتابعة العملاء والمبيعات</p>
+    </div>
+    
+    <div class="reports-grid">
+        <a href="{% url 'core:customer_purchase_history' %}" class="report-card purple">
+            <div class="report-icon">📝</div>
+            <h3>تقرير مشتريات العميل</h3>
+            <p>عرض تفصيلي لجميع فواتير ومشتريات العميل مع إجمالي المبيعات والمرتجعات</p>
+            <span class="report-arrow">←</span>
+        </a>
+        
+        <a href="{% url 'core:top_customers' %}" class="report-card orange">
+            <div class="report-icon">🏆</div>
+            <h3>أفضل العملاء</h3>
+            <p>ترتيب العملاء حسب صافي المبيعات مع إحصائيات تفصيلية ومؤشرات الأداء</p>
+            <span class="report-arrow">←</span>
+        </a>
+        
+        <a href="{% url 'core:customer_balance' %}" class="report-card blue">
+            <div class="report-icon">💰</div>
+            <h3>رصيد العميل والمدفوعات المستحقة</h3>
+            <p>متابعة أرصدة العملاء والمدفوعات المستحقة مع إمكانية البحث والفلترة</p>
+            <span class="report-arrow">←</span>
+        </a>
+        
+        <a href="{% url 'core:product_sales_by_customer' %}" class="report-card pink">
+            <div class="report-icon">📦</div>
+            <h3>مبيعات المنتجات حسب العميل</h3>
+            <p>تحليل تفصيلي للمنتجات المشتراة من كل عميل مع الكميات والنسب المئوية</p>
+            <span class="report-arrow">←</span>
+        </a>
+        
+        <a href="{% url 'core:invoice_transaction_summary' %}" class="report-card teal">
+            <div class="report-icon">📊</div>
+            <h3>ملخص الفواتير والمعاملات</h3>
+            <p>نظرة شاملة على جميع الفواتير والمعاملات المالية مع التصنيف حسب النوع</p>
+            <span class="report-arrow">←</span>
+        </a>
+    </div>
+</div>
+
+{% endblock %}

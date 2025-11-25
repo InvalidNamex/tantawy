@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .report-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .filter-controls {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+    
+    .filter-controls label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border-left: 4px solid #4facfe;
+    }
+    
+    .summary-card h3 {
+        font-size: 0.875rem;
+        color: #666;
+        margin: 0 0 0.5rem 0;
+        font-weight: 500;
+    }
+    
+    .summary-card .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #333;
+    }
+    
+    .summary-card .sub-value {
+        font-size: 1rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+    
+    .balance-table {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .balance-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .balance-table thead {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    
+    .balance-table th {
+        padding: 1rem;
+        text-align: right;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .balance-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .balance-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .balance-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    .status-outstanding {
+        background: #fee;
+        color: #c00;
+    }
+    
+    .status-credit {
+        background: #efe;
+        color: #0a0;
+    }
+    
+    .status-paid {
+        background: #eee;
+        color: #666;
+    }
+    
+    .balance-positive {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .balance-negative {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    
+    .balance-zero {
+        color: #6c757d;
+        font-weight: 600;
+    }
+    
+    .customer-name {
+        font-weight: 600;
+        color: #333;
+        font-size: 1.05rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    
+    .empty-state svg {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        color: #666;
+        font-size: 1.25rem;
+    }
+</style>
+
+<div class="report-header">
+    <h1>💰 رصيد العملاء والمدفوعات المستحقة</h1>
+</div>
+
+<div class="filter-controls">
+    <form method="get" class="d-flex align-items-end gap-3 flex-wrap">
+        <div>
+            <label for="search" class="form-label mb-1">بحث عن عميل:</label>
+            <input type="text" name="search" id="search" class="form-control" placeholder="اسم العميل..." value="{{ search_query }}" style="width: 250px;">
+        </div>
+        <div>
+            <label for="status" class="form-label mb-1">حالة الرصيد:</label>
+            <select name="status" id="status" class="form-select" style="width: auto;">
+                <option value="all" {% if selected_status == 'all' %}selected{% endif %}>الكل</option>
+                <option value="outstanding" {% if selected_status == 'outstanding' %}selected{% endif %}>مستحق فقط</option>
+                <option value="credit" {% if selected_status == 'credit' %}selected{% endif %}>رصيد دائن</option>
+                <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>مدفوع بالكامل</option>
+            </select>
+        </div>
+        <div>
+            <label for="sort" class="form-label mb-1">ترتيب حسب:</label>
+            <select name="sort" id="sort" class="form-select" style="width: auto;">
+                <option value="balance" {% if selected_sort == 'balance' %}selected{% endif %}>الرصيد</option>
+                <option value="name" {% if selected_sort == 'name' %}selected{% endif %}>الاسم</option>
+                <option value="last_transaction" {% if selected_sort == 'last_transaction' %}selected{% endif %}>آخر معاملة</option>
+            </select>
+        </div>
+        <div>
+            <label for="direction" class="form-label mb-1">الاتجاه:</label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="direction" id="direction_asc" value="asc" {% if selected_direction == 'asc' %}checked{% endif %} onchange="this.form.submit()">
+                <label class="btn btn-outline-primary" for="direction_asc">تصاعدي ↑</label>
+                
+                <input type="radio" class="btn-check" name="direction" id="direction_desc" value="desc" {% if selected_direction == 'desc' %}checked{% endif %} onchange="this.form.submit()">
+                <label class="btn btn-outline-primary" for="direction_desc">تنازلي ↓</label>
+            </div>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">تطبيق</button>
+            <a href="{% url 'core:customer_balance' %}" class="btn btn-secondary">إعادة تعيين</a>
+        </div>
+    </form>
+</div>
+
+{% if customer_balances and customer_balances|length > 0 %}
+    <div class="summary-cards">
+        <div class="summary-card" style="border-left-color: #dc3545;">
+            <h3>عملاء بمستحقات</h3>
+            <div class="value">{{ outstanding_count }}</div>
+            <div class="sub-value">{{ total_outstanding|floatformat:2 }} ج.م</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #28a745;">
+            <h3>عملاء برصيد دائن</h3>
+            <div class="value">{{ credit_count }}</div>
+            <div class="sub-value">{{ total_credit|floatformat:2 }} ج.م</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #6c757d;">
+            <h3>عملاء مدفوع بالكامل</h3>
+            <div class="value">{{ paid_count }}</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #17a2b8;">
+            <h3>إجمالي العملاء</h3>
+            <div class="value">{{ total_customers }}</div>
+        </div>
+    </div>
+
+    <div class="balance-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم العميل</th>
+                    <th>إجمالي المدفوعات</th>
+                    <th>إجمالي المبيعات</th>
+                    <th>الرصيد</th>
+                    <th>عدد المعاملات</th>
+                    <th>آخر معاملة</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cb in customer_balances %}
+                <tr>
+                    <td>
+                        <div class="customer-name">{{ cb.customer.customerVendorName }}</div>
+                    </td>
+                    <td>
+                        <div class="balance-positive">{{ cb.total_debit|floatformat:2 }} ج.م</div>
+                    </td>
+                    <td>
+                        <div class="balance-negative">{{ cb.total_credit|floatformat:2 }} ج.م</div>
+                    </td>
+                    <td>
+                        {% if cb.balance < -0.01 %}
+                            <div class="balance-negative">{{ cb.balance|floatformat:2 }} ج.م</div>
+                        {% elif cb.balance > 0.01 %}
+                            <div class="balance-positive">+{{ cb.balance|floatformat:2 }} ج.م</div>
+                        {% else %}
+                            <div class="balance-zero">0.00 ج.م</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight: 600;">{{ cb.transaction_count }}</div>
+                    </td>
+                    <td>
+                        {% if cb.last_transaction %}
+                            <div style="color: #666;">{{ cb.last_transaction|date:"Y-m-d" }}</div>
+                        {% else %}
+                            <div style="color: #999;">-</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if cb.status == 'outstanding' %}
+                            <span class="status-badge status-outstanding">مستحق</span>
+                        {% elif cb.status == 'credit' %}
+                            <span class="status-badge status-credit">رصيد دائن</span>
+                        {% else %}
+                            <span class="status-badge status-paid">مدفوع</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+        <h3>لا توجد بيانات</h3>
+        <p style="color: #999;">لا توجد معاملات للعملاء في الفلتر المحدد</p>
+    </div>
+{% endif %}
+
+{% endblock %}

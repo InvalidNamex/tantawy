@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .report-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .customer-selector {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+    
+    .customer-selector label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        border-left: 4px solid #f5576c;
+    }
+    
+    .summary-card h3 {
+        font-size: 0.875rem;
+        color: #666;
+        margin: 0 0 0.5rem 0;
+        font-weight: 500;
+    }
+    
+    .summary-card .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #333;
+    }
+    
+    .summary-card .sub-value {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+    
+    .products-table {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .products-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .products-table thead {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+    
+    .products-table th {
+        padding: 1rem;
+        text-align: right;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .products-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .products-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .products-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .rank-badge {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 32px;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+    
+    .rank-1 {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: white;
+    }
+    
+    .rank-2 {
+        background: linear-gradient(135deg, #C0C0C0, #808080);
+        color: white;
+    }
+    
+    .rank-3 {
+        background: linear-gradient(135deg, #CD7F32, #8B4513);
+        color: white;
+    }
+    
+    .rank-other {
+        background: #e9ecef;
+        color: #666;
+    }
+    
+    .product-name {
+        font-weight: 600;
+        color: #333;
+        font-size: 1.05rem;
+    }
+    
+    .progress-bar-container {
+        width: 100%;
+        height: 24px;
+        background: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 8px;
+    }
+    
+    .progress-bar-text {
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    
+    .empty-state svg {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state h3 {
+        color: #666;
+        font-size: 1.25rem;
+    }
+    
+    .sort-controls {
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+</style>
+
+<div class="report-header">
+    <h1>📦 مبيعات المنتجات حسب العميل</h1>
+</div>
+
+<div class="customer-selector">
+    <form method="get">
+        <label for="customer" class="form-label">اختر العميل:</label>
+        <div class="d-flex gap-2">
+            <select name="customer" id="customer" class="form-select" style="max-width: 400px;">
+                <option value="">-- اختر عميل --</option>
+                {% for customer in customers %}
+                <option value="{{ customer.id }}" {% if customer.id == selected_customer %}selected{% endif %}>
+                    {{ customer.customerVendorName }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">عرض التقرير</button>
+        </div>
+    </form>
+</div>
+
+{% if selected_customer and product_sales %}
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>إجمالي المنتجات</h3>
+            <div class="value">{{ total_products }}</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #f093fb;">
+            <h3>المنتج الأكثر مبيعاً</h3>
+            <div class="value" style="font-size: 1.2rem;">{{ top_product.product.itemName }}</div>
+            <div class="sub-value">{{ top_product.quantity }} وحدة</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #28a745;">
+            <h3>إجمالي المبيعات</h3>
+            <div class="value">{{ total_sales|floatformat:2 }} ج.م</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #17a2b8;">
+            <h3>متوسط المبيعات لكل منتج</h3>
+            <div class="value">{{ average_per_product|floatformat:2 }} ج.م</div>
+        </div>
+    </div>
+
+    <div class="sort-controls">
+        <form method="get" class="d-flex align-items-center gap-3">
+            <input type="hidden" name="customer" value="{{ selected_customer }}">
+            <label for="sort" class="form-label mb-0">ترتيب حسب:</label>
+            <select name="sort" id="sort" class="form-select" onchange="this.form.submit()" style="width: auto;">
+                <option value="quantity" {% if selected_sort == 'quantity' %}selected{% endif %}>الكمية</option>
+                <option value="amount" {% if selected_sort == 'amount' %}selected{% endif %}>المبلغ</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="products-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>الترتيب</th>
+                    <th>اسم المنتج</th>
+                    <th>الكمية</th>
+                    <th>متوسط السعر</th>
+                    <th>إجمالي المبلغ</th>
+                    <th>عدد الفواتير</th>
+                    <th>النسبة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ps in product_sales %}
+                <tr>
+                    <td>
+                        {% if ps.rank == 1 %}
+                            <span class="rank-badge rank-1">{{ ps.rank }}</span>
+                        {% elif ps.rank == 2 %}
+                            <span class="rank-badge rank-2">{{ ps.rank }}</span>
+                        {% elif ps.rank == 3 %}
+                            <span class="rank-badge rank-3">{{ ps.rank }}</span>
+                        {% else %}
+                            <span class="rank-badge rank-other">{{ ps.rank }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="product-name">{{ ps.product.itemName }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #f5576c;">{{ ps.quantity }}</div>
+                    </td>
+                    <td>
+                        <div>{{ ps.avg_price|floatformat:2 }} ج.م</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #28a745;">{{ ps.total_amount|floatformat:2 }} ج.م</div>
+                    </td>
+                    <td>
+                        <div>{{ ps.invoice_count }}</div>
+                    </td>
+                    <td style="min-width: 150px;">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" style="width: {{ ps.percentage }}%;">
+                                <span class="progress-bar-text">{{ ps.percentage|floatformat:1 }}%</span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% elif selected_customer %}
+    <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <h3>لا توجد مشتريات</h3>
+        <p style="color: #999;">هذا العميل لم يقم بشراء أي منتجات بعد</p>
+    </div>
+{% else %}
+    <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <h3>اختر عميل لعرض مبيعات المنتجات</h3>
+        <p style="color: #999;">استخدم القائمة المنسدلة أعلاه لاختيار عميل</p>
+    </div>
+{% endif %}
+
+{% endblock %}

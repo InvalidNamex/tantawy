@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from . import invoice_api
 
@@ -7,6 +7,8 @@ app_name = 'core'
 
 urlpatterns = [
     # Frontend Template-based URLs
+    # Reports URLs
+    path('reports/', include('core.reports.urls')),
     
     # Invoice Management URLs (Template-based for frontend)
     path('invoices/', views.invoices_main_view, name='invoices_main'),

@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .report-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .date-filters {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid #11998e;
+        transition: transform 0.2s;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .summary-card h3 {
+        font-size: 0.875rem;
+        color: #666;
+        margin: 0 0 0.5rem 0;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .summary-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 0.25rem;
+    }
+    
+    .summary-card .sub-value {
+        font-size: 0.875rem;
+        color: #999;
+    }
+    
+    .breakdown-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .breakdown-section h2 {
+        font-size: 1.5rem;
+        margin: 0 0 1.5rem 0;
+        color: #333;
+        font-weight: 600;
+    }
+    
+    .invoice-type-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .invoice-type-card {
+        padding: 1.25rem;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: all 0.2s;
+    }
+    
+    .invoice-type-card:hover {
+        border-color: #11998e;
+        box-shadow: 0 2px 8px rgba(17, 153, 142, 0.2);
+    }
+    
+    .invoice-type-card .type-name {
+        font-size: 0.875rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .invoice-type-card .count {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #11998e;
+        margin-bottom: 0.25rem;
+    }
+    
+    .invoice-type-card .total {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+    
+    .data-table thead {
+        background: #f8f9fa;
+    }
+    
+    .data-table th {
+        padding: 0.75rem 1rem;
+        text-align: right;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.875rem;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .data-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .badge-sales {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-returns {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .badge-purchases {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .badge-return-purchases {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .positive {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .negative {
+        color: #dc3545;
+        font-weight: 600;
+    }
+</style>
+
+<div class="report-header">
+    <h1>📊 ملخص الفواتير والمعاملات</h1>
+</div>
+
+<div class="date-filters">
+    <form method="get" class="d-flex align-items-end gap-3 flex-wrap">
+        <div>
+            <label for="date_from" class="form-label mb-1">من تاريخ:</label>
+            <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
+        </div>
+        <div>
+            <label for="date_to" class="form-label mb-1">إلى تاريخ:</label>
+            <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">تطبيق الفلتر</button>
+            <a href="{% url 'core:invoice_transaction_summary' %}" class="btn btn-secondary">إعادة تعيين</a>
+        </div>
+    </form>
+</div>
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <h3>إجمالي الفواتير</h3>
+        <div class="value">{{ total_invoices }}</div>
+        <div class="sub-value">جميع الأنواع</div>
+    </div>
+    <div class="summary-card" style="border-left-color: #28a745;">
+        <h3>صافي المبيعات</h3>
+        <div class="value">{{ net_sales|floatformat:2 }} ج.م</div>
+        <div class="sub-value">المبيعات - المرتجعات</div>
+    </div>
+    <div class="summary-card" style="border-left-color: #17a2b8;">
+        <h3>إجمالي المعاملات</h3>
+        <div class="value">{{ total_transactions }}</div>
+        <div class="sub-value">المدفوعات والتحويلات</div>
+    </div>
+    <div class="summary-card" style="border-left-color: {% if net_balance < 0 %}#dc3545{% else %}#28a745{% endif %};">
+        <h3>صافي الرصيد</h3>
+        <div class="value {% if net_balance < 0 %}negative{% else %}positive{% endif %}">
+            {{ net_balance|floatformat:2 }} ج.م
+        </div>
+        <div class="sub-value">المدفوعات - المستحقات</div>
+    </div>
+</div>
+
+<div class="breakdown-section">
+    <h2>تفصيل الفواتير حسب النوع</h2>
+    <div class="invoice-type-grid">
+        <div class="invoice-type-card">
+            <div class="type-name">فواتير المبيعات</div>
+            <div class="count">{{ invoice_stats.sales.count }}</div>
+            <div class="total">{{ invoice_stats.sales.total|floatformat:2 }} ج.م</div>
+        </div>
+        <div class="invoice-type-card">
+            <div class="type-name">مرتجعات المبيعات</div>
+            <div class="count">{{ invoice_stats.returns.count }}</div>
+            <div class="total">{{ invoice_stats.returns.total|floatformat:2 }} ج.م</div>
+        </div>
+        <div class="invoice-type-card">
+            <div class="type-name">فواتير المشتريات</div>
+            <div class="count">{{ invoice_stats.purchases.count }}</div>
+            <div class="total">{{ invoice_stats.purchases.total|floatformat:2 }} ج.م</div>
+        </div>
+        <div class="invoice-type-card">
+            <div class="type-name">مرتجعات المشتريات</div>
+            <div class="count">{{ invoice_stats.return_purchases.count }}</div>
+            <div class="total">{{ invoice_stats.return_purchases.total|floatformat:2 }} ج.م</div>
+        </div>
+    </div>
+</div>
+
+<div class="breakdown-section">
+    <h2>ملخص المعاملات المالية</h2>
+    <div class="invoice-type-grid">
+        <div class="invoice-type-card" style="border-color: #28a745;">
+            <div class="type-name">إجمالي المدفوعات المستلمة</div>
+            <div class="count positive">{{ total_debit|floatformat:2 }} ج.م</div>
+            <div class="sub-value">المبالغ المحصلة</div>
+        </div>
+        <div class="invoice-type-card" style="border-color: #dc3545;">
+            <div class="type-name">إجمالي المستحقات</div>
+            <div class="count negative">{{ total_credit|floatformat:2 }} ج.م</div>
+            <div class="sub-value">المبالغ المطلوبة</div>
+        </div>
+    </div>
+</div>
+
+{% if top_invoices %}
+<div class="breakdown-section">
+    <h2>أعلى الفواتير قيمة</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>رقم الفاتورة</th>
+                <th>العميل/المورد</th>
+                <th>النوع</th>
+                <th>التاريخ</th>
+                <th>المبلغ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in top_invoices %}
+            <tr>
+                <td><strong>#{{ item.invoice.id }}</strong></td>
+                <td>{{ item.invoice.customerOrVendorID.customerVendorName }}</td>
+                <td>
+                    {% if item.invoice.invoiceType == 1 %}
+                        <span class="badge badge-purchases">مشتريات</span>
+                    {% elif item.invoice.invoiceType == 2 %}
+                        <span class="badge badge-sales">مبيعات</span>
+                    {% elif item.invoice.invoiceType == 3 %}
+                        <span class="badge badge-return-purchases">مرتجع مشتريات</span>
+                    {% elif item.invoice.invoiceType == 4 %}
+                        <span class="badge badge-returns">مرتجع مبيعات</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.invoice.createdAt|date:"Y-m-d" }}</td>
+                <td><strong>{{ item.total|floatformat:2 }} ج.م</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if recent_transactions %}
+<div class="breakdown-section">
+    <h2>أحدث المعاملات</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>التاريخ</th>
+                <th>العميل/المورد</th>
+                <th>الفاتورة</th>
+                <th>المبلغ</th>
+                <th>الملاحظات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trans in recent_transactions %}
+            <tr>
+                <td>{{ trans.createdAt|date:"Y-m-d H:i" }}</td>
+                <td>
+                    {% if trans.customerVendorID %}
+                        {{ trans.customerVendorID.customerVendorName }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if trans.invoiceID %}
+                        #{{ trans.invoiceID.id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="{% if trans.amount > 0 %}positive{% else %}negative{% endif %}">
+                        {{ trans.amount|floatformat:2 }} ج.م
+                    </span>
+                </td>
+                <td>{{ trans.notes|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

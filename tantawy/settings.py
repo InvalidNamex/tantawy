@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'core',
     'authentication',
     'smart_selects'
+    , 'core.reports'
 ]
 
 # Add debug toolbar only in development
