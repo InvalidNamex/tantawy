@@ -211,6 +211,9 @@ def customer_balance(request):
                 'status': status,
             })
     
+    # Calculate total customers before applying filter
+    total_customers = len(customer_balances)
+    
     # Apply status filter
     if status_filter != 'all':
         customer_balances = [cb for cb in customer_balances if cb['status'] == status_filter]
@@ -226,7 +229,7 @@ def customer_balance(request):
     
     return render(request, 'reports/customer_balance.html', {
         'customer_balances': customer_balances,
-        'total_customers': len(customer_balances),
+        'total_customers': total_customers,
         'outstanding_count': outstanding_count,
         'total_outstanding': total_outstanding,
         'credit_count': credit_count,
