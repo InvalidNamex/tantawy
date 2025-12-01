@@ -4564,26 +4564,14 @@ def batch_create_vouchers(request):
                         notes=f"Cash received - Voucher {voucher_id} - {customer_name}" if notes == '' else notes,
                         type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent, createdBy=request.agent.createdBy, createdAt=voucher_datetime
                     )
-                    t2 = Transaction.objects.create(
-                        accountID=Account.objects.get(id=36), amount=-amount,
-                        notes=f"Payment received - Voucher {voucher_id} - Agent {request.agent.agentName}" if notes == '' else notes,
-                        type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent,
-                        createdBy=request.agent.createdBy, createdAt=voucher_datetime
-                    )
-                    transaction_ids = [t1.id, t2.id]
+                    transaction_ids = [t1.id]
                 else:  # Payment
-                    t1 = Transaction.objects.create(
-                        accountID=Account.objects.get(id=37), amount=amount,
-                        notes=f"Payment made - Voucher {voucher_id} - {customer_name}" if notes == '' else notes,
-                        type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent,
-                        createdBy=request.agent.createdBy, createdAt=voucher_datetime
-                    )
                     t2 = Transaction.objects.create(
                         accountID=cash_account, amount=-amount,
                         notes=f"Cash payment - Voucher {voucher_id} - {customer_name}" if notes == '' else notes,
                         type=voucher_type, customerVendorID=customer_vendor, agentID=request.agent, createdBy=request.agent.createdBy, createdAt=voucher_datetime
                     )
-                    transaction_ids = [t1.id, t2.id]
+                    transaction_ids = [t2.id]
                 
                 created_vouchers.append({
                     'voucherId': voucher_id,

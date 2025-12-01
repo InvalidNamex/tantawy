@@ -1230,7 +1230,7 @@ def customer_transactions_api(request):
         transactions = Transaction.objects.filter(
             customerVendorID__id__in=customer_ids,
             isDeleted=False,
-            type__in=[1, 2]  # 1=Purchase/Receipt, 2=Sales/Payment
+            # type__in=[1, 2]  # 1=Purchase/Receipt, 2=Sales/Payment
         ).select_related('customerVendorID', 'invoiceID').order_by('customerVendorID__id', '-createdAt')
 
         # 5. Format Response - Group by customer
