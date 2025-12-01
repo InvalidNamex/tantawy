@@ -40,7 +40,7 @@ from authentication.views import agent_transactions_filtered_api as agent_transa
 def itemsgroup_list(request):
     """Get all items groups"""
     queryset = ItemsGroup.objects.filter(isDeleted=False)
-    serializer = ItemsGroupSerializer(queryset, many=True, context={'request': request})
+    serializer = ItemsGroupListSerializer(queryset, many=True, context={'request': request})
     return Response(serializer.data)
 
 @extend_schema(
@@ -1745,8 +1745,8 @@ def items_update_main_info_view(request, item_id):
             item.mainUnitName = main_unit_name if main_unit_name else None
             item.subUnitName = sub_unit_name if sub_unit_name else None
             item.smallUnitName = small_unit_name if small_unit_name else None
-            item.subUnitPack = sub_unit_pack_decimal
-            item.mainUnitPack = main_unit_pack_decimal
+            item.subUnitPack = main_unit_pack_decimal
+            item.mainUnitPack = sub_unit_pack_decimal
             item.subUnitBarCode = sub_unit_barcode if sub_unit_barcode else None
             item.smallUnitBarCode = small_unit_barcode if small_unit_barcode else None
             
@@ -5934,6 +5934,8 @@ def agent_stock(request):
 def agent_cash_balance(request):
     """Get cash balance for a specific agent with optional date filtering"""
     try:
+        from datetime import datetime
+        
         agent_id = request.query_params.get('agent_id')
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
@@ -5943,6 +5945,39 @@ def agent_cash_balance(request):
                 'success': False,
                 'message': 'agent_id parameter is required'
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Parse and convert date format from DD/MM/YYYY to YYYY-MM-DD
+        if date_from:
+            try:
+                # Try DD/MM/YYYY format first
+                date_from_obj = datetime.strptime(date_from, '%d/%m/%Y')
+                date_from = date_from_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                # If that fails, try YYYY-MM-DD format
+                try:
+                    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+                    date_from = date_from_obj.strftime('%Y-%m-%d')
+                except ValueError:
+                    return Response({
+                        'success': False,
+                        'message': 'Invalid date_from format. Use DD/MM/YYYY or YYYY-MM-DD'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if date_to:
+            try:
+                # Try DD/MM/YYYY format first
+                date_to_obj = datetime.strptime(date_to, '%d/%m/%Y')
+                date_to = date_to_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                # If that fails, try YYYY-MM-DD format
+                try:
+                    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
+                    date_to = date_to_obj.strftime('%Y-%m-%d')
+                except ValueError:
+                    return Response({
+                        'success': False,
+                        'message': 'Invalid date_to format. Use DD/MM/YYYY or YYYY-MM-DD'
+                    }, status=status.HTTP_400_BAD_REQUEST)
         
         # Validate agent exists
         try:

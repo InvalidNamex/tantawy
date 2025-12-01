@@ -10,11 +10,23 @@ from core.models import *
 class ItemsGroupSerializer(serializers.ModelSerializer):
     """Serializer for ItemsGroup model with all audit fields."""
     
+    group_name = serializers.CharField(source='itemsGroupName', read_only=True)
+    
     class Meta:
         model = ItemsGroup
-        fields = ['id', 'itemsGroupName', 'createdAt', 'updatedAt', 'deletedAt', 
+        fields = ['id', 'itemsGroupName', 'group_name', 'createdAt', 'updatedAt', 'deletedAt', 
                  'createdBy', 'updatedBy', 'deletedBy', 'isDeleted']
         read_only_fields = ['createdAt', 'updatedAt']
+
+
+class ItemsGroupListSerializer(serializers.ModelSerializer):
+    """Serializer for ItemsGroup list view with limited fields."""
+    
+    group_name = serializers.CharField(source='itemsGroupName', read_only=True)
+    
+    class Meta:
+        model = ItemsGroup
+        fields = ['id', 'group_name']
 
 
 class ItemSerializer(serializers.ModelSerializer):

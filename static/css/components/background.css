@@ -24,24 +24,20 @@ body::before {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.1) 0%,
-        rgba(255, 255, 255, 0.05) 50%,
-        rgba(39, 174, 96, 0.1) 100%
-    );
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            rgba(255, 255, 255, 0.05) 50%,
+            rgba(39, 174, 96, 0.1) 100%);
     pointer-events: none;
     z-index: -1;
 }
 
 /* Dark Theme Background Overlay */
 [data-theme="dark"] body::before {
-    background: linear-gradient(
-        135deg,
-        rgba(0, 0, 0, 0.3) 0%,
-        rgba(0, 0, 0, 0.4) 50%,
-        rgba(39, 174, 96, 0.2) 100%
-    );
+    background: linear-gradient(135deg,
+            rgba(0, 0, 0, 0.3) 0%,
+            rgba(0, 0, 0, 0.4) 50%,
+            rgba(39, 174, 96, 0.2) 100%);
 }
 
 /* Enhanced Glass Effects for Background */
@@ -90,11 +86,9 @@ body::before {
 
 /* Hero Section Enhancement */
 .hero-section {
-    background: linear-gradient(
-        135deg,
-        var(--glass-bg-light) 0%,
-        var(--glass-bg-lightest) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--glass-bg-light) 0%,
+            var(--glass-bg-lightest) 100%);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
     border: 1px solid var(--glass-border);
@@ -146,7 +140,8 @@ body::before {
 }
 
 /* High DPI / Retina Display Support */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
     body {
         background-image: url('/media/background.jpg');
     }
@@ -157,11 +152,11 @@ body::before {
     body {
         background: white !important;
     }
-    
+
     body::before {
         display: none !important;
     }
-    
+
     .glass-card,
     .glass-dashboard-card,
     .glass-stats-card,
@@ -206,11 +201,9 @@ body::before {
 }
 
 [data-theme="dark"] .hero-section {
-    background: linear-gradient(
-        135deg,
-        var(--glass-bg-dark) 0%,
-        var(--glass-bg-darker) 100%
-    );
+    background: linear-gradient(135deg,
+            var(--glass-bg-dark) 0%,
+            var(--glass-bg-darker) 100%);
     backdrop-filter: blur(22px);
     -webkit-backdrop-filter: blur(22px);
 }
