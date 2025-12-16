@@ -205,19 +205,158 @@
             text-decoration: underline;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .login-card {
-                margin: 0.5rem;
+        /* Responsive - Tablet */
+        @media (max-width: 991.98px) {
+            .login-container {
+                padding: 1rem;
             }
             
-            .brand-section,
-            .form-section {
-                padding: 2rem 1.5rem;
+            .login-card {
+                margin: 0.5rem;
+                max-width: 100%;
+            }
+            
+            .brand-section .features .col-4 {
+                padding: 0 0.25rem;
+            }
+            
+            .brand-section .features i {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Responsive - Mobile */
+        @media (max-width: 767.98px) {
+            .login-container {
+                padding: 0.5rem;
+                min-height: auto;
+            }
+            
+            .login-card {
+                margin: 0;
+                border-radius: 0.75rem;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            }
+            
+            .login-card .row {
+                flex-direction: column;
+            }
+            
+            .brand-section {
+                padding: 1.5rem 1rem;
+                order: 1;
+            }
+            
+            .brand-section .logo {
+                width: 60px;
+                height: 60px;
+                margin-bottom: 1rem;
             }
             
             .brand-section h2 {
-                font-size: 1.5rem;
+                font-size: 1.25rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .brand-section .lead {
+                font-size: 0.875rem;
+                margin-bottom: 0;
+            }
+            
+            .brand-section .features {
+                margin-top: 1rem;
+            }
+            
+            .brand-section .features i {
+                font-size: 1.25rem;
+            }
+            
+            .brand-section .features .small {
+                font-size: 0.7rem;
+            }
+            
+            .brand-section > .mt-4 {
+                display: none; /* Hide feature list on mobile */
+            }
+            
+            .form-section {
+                padding: 1.5rem 1rem;
+                order: 2;
+            }
+            
+            .form-section h3 {
+                font-size: 1.25rem;
+            }
+            
+            .form-section .text-muted {
+                font-size: 0.875rem;
+                margin-bottom: 1rem;
+            }
+            
+            .form-control {
+                font-size: 16px; /* Prevent iOS zoom */
+                padding: 0.875rem 1rem;
+            }
+            
+            .btn-primary {
+                padding: 0.875rem 2rem;
+                font-size: 1rem;
+            }
+            
+            .footer-links {
+                margin-top: 1.5rem;
+            }
+            
+            .footer-links a {
+                margin: 0 0.5rem;
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Responsive - Small Mobile */
+        @media (max-width: 575.98px) {
+            .login-container {
+                padding: 0;
+            }
+            
+            .login-card {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .brand-section {
+                padding: 1.25rem 1rem;
+            }
+            
+            .form-section {
+                padding: 1.25rem 1rem;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .form-section form {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .form-section form .btn-primary {
+                margin-top: auto;
+            }
+        }
+        
+        /* Touch-friendly tap targets */
+        .form-control,
+        .btn {
+            min-height: 44px;
+        }
+        
+        /* Safe area for notched devices */
+        @supports (padding: max(0px)) {
+            .login-container {
+                padding-top: max(1rem, env(safe-area-inset-top));
+                padding-bottom: max(1rem, env(safe-area-inset-bottom));
             }
         }
     </style>

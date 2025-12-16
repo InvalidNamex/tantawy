@@ -103,6 +103,41 @@ def dashboard_view(request):
         purchase_invoices_count = sales_invoices_count = return_purchase_invoices_count = return_sales_invoices_count = total_invoices_count = 0
         messages.warning(request, 'لا يمكن تحميل الإحصائيات. يرجى التحقق من اتصال قاعدة البيانات.')
     
+    # Get user's groups for permission checking
+    user = request.user
+    user_groups = list(user.groups.values_list('name', flat=True))
+    is_superuser = user.is_superuser
+    
+    # Check for specific groups
+    # Available groups: إدارة, أمناء مخازن, مدخلوا بيانات, مناديب
+    is_admin = 'إدارة' in user_groups
+    is_store_keeper = 'أمناء مخازن' in user_groups
+    is_data_entry = 'مدخلوا بيانات' in user_groups
+    is_agent = 'مناديب' in user_groups
+    
+    # Card visibility dictionary - controls which dashboard cards each user group can see
+    # Superusers and إدارة can see all cards
+    # أمناء مخازن can ONLY see إدارة المخزون
+    card_visibility = {
+        # Statistics Row 1
+        'items_groups': is_superuser or is_admin or (not is_store_keeper and True),      # مجموعات الأصناف
+        'items': is_superuser or is_admin or (not is_store_keeper and True),              # الأصناف
+        'customers': is_superuser or is_admin or (not is_store_keeper and True),          # العملاء
+        'vendors': is_superuser or is_admin or (not is_store_keeper and True),            # الموردين
+        
+        # Statistics Row 2
+        'price_lists': is_superuser or is_admin or (not is_store_keeper and True),        # قوائم الأسعار
+        'store_groups': is_superuser or is_admin or (not is_store_keeper and True),       # مجموعات المخازن
+        'stores': is_superuser or is_admin or (not is_store_keeper and True),             # المخازن
+        'invoices': is_superuser or is_admin or (not is_store_keeper and True),           # إجمالي الفواتير
+        
+        # Management Row
+        'agents_manage': is_superuser or is_admin or (not is_store_keeper and True),      # إدارة المناديب
+        'visit_plans': is_superuser or is_admin or (not is_store_keeper and True),        # خطط الزيارات
+        'inventory': is_superuser or is_admin or is_store_keeper,                          # إدارة المخزون
+        'users_manage': is_superuser or is_admin or (not is_store_keeper and True),       # إدارة المستخدمين
+    }
+    
     context = {
         'items_groups_count': items_groups_count,
         'items_count': items_count,
@@ -117,6 +152,8 @@ def dashboard_view(request):
         'return_sales_invoices_count': return_sales_invoices_count,
         'total_invoices_count': total_invoices_count,
         'user': request.user,
+        'card_visibility': card_visibility,
+        'user_groups': user_groups,
     }
     
     return render(request, 'authentication/dashboard.html', context)

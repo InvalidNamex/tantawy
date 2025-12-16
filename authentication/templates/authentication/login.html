@@ -86,15 +86,20 @@
                         <label for="password" class="form-label">
                             <i class="bi bi-lock me-2"></i>كلمة المرور
                         </label>
-                        <input 
-                            type="password" 
-                            class="form-control" 
-                            id="password" 
-                            name="password"
-                            placeholder="أدخل كلمة المرور"
-                            required
-                            autocomplete="current-password"
-                        >
+                        <div class="input-group">
+                            <input 
+                                type="password" 
+                                class="form-control" 
+                                id="password" 
+                                name="password"
+                                placeholder="أدخل كلمة المرور"
+                                required
+                                autocomplete="current-password"
+                            >
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" title="إظهار/إخفاء كلمة المرور">
+                                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <button type="submit" class="btn btn-primary">
@@ -129,6 +134,24 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         passwordField.focus();
     }
+    
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+    
+    togglePassword.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        
+        // Toggle icon
+        if (type === 'text') {
+            togglePasswordIcon.classList.remove('bi-eye');
+            togglePasswordIcon.classList.add('bi-eye-slash');
+        } else {
+            togglePasswordIcon.classList.remove('bi-eye-slash');
+            togglePasswordIcon.classList.add('bi-eye');
+        }
+    });
     
     // Add loading state to form submission
     const loginForm = document.querySelector('form');

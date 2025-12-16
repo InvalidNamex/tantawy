@@ -17,6 +17,7 @@
 @import url('./components/timeline.css');
 @import url('./components/alerts.css');
 @import url('./components/background.css');
+@import url('./components/responsive.css');
 
 /* Layout Styles */
 @import url('./layout/layout.css');

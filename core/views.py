@@ -6053,8 +6053,9 @@ def agent_cash_balance(request):
 # =============================================
 
 def user_is_store_admin(user):
-    """Check if user is in StoreAdmins group"""
-    return user.groups.filter(name='StoreAdmins').exists() or user.is_superuser
+    """Check if user has access to inventory management"""
+    # Allow: superusers, إدارة group, or أمناء مخازن group
+    return user.is_superuser or user.groups.filter(name__in=['إدارة', 'أمناء مخازن']).exists()
 
 @login_required
 def inventory_management_view(request):

@@ -164,6 +164,170 @@
         color: #666;
         font-size: 1.25rem;
     }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 991.98px) {
+        .report-header {
+            padding: 1.5rem;
+        }
+        
+        .report-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .filter-controls form {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        
+        .filter-controls form > div {
+            width: 100%;
+        }
+        
+        .filter-controls input,
+        .filter-controls select {
+            width: 100% !important;
+        }
+        
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .summary-card {
+            padding: 1rem;
+        }
+        
+        .summary-card .value {
+            font-size: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 767.98px) {
+        .report-header {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .report-header h1 {
+            font-size: 1.25rem;
+        }
+        
+        .filter-controls {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-controls .btn-group {
+            width: 100%;
+            display: flex;
+        }
+        
+        .filter-controls .btn-group .btn {
+            flex: 1;
+        }
+        
+        .filter-controls form > div:last-child {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .filter-controls form > div:last-child .btn {
+            flex: 1;
+        }
+        
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .summary-card h3 {
+            font-size: 0.75rem;
+        }
+        
+        .summary-card .value {
+            font-size: 1.25rem;
+        }
+        
+        .summary-card .sub-value {
+            font-size: 0.8rem;
+        }
+        
+        .balance-table {
+            border-radius: 8px;
+        }
+        
+        .balance-table th,
+        .balance-table td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        /* Hide less important columns */
+        .balance-table th:nth-child(2),
+        .balance-table td:nth-child(2),
+        .balance-table th:nth-child(3),
+        .balance-table td:nth-child(3),
+        .balance-table th:nth-child(5),
+        .balance-table td:nth-child(5),
+        .balance-table th:nth-child(6),
+        .balance-table td:nth-child(6) {
+            display: none;
+        }
+        
+        .status-badge {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .customer-name {
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 575.98px) {
+        .summary-cards {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        
+        .summary-card {
+            padding: 0.75rem;
+            border-radius: 8px;
+            border-left-width: 3px;
+        }
+        
+        .summary-card h3 {
+            font-size: 0.7rem;
+        }
+        
+        .summary-card .value {
+            font-size: 1.1rem;
+        }
+        
+        .summary-card .sub-value {
+            font-size: 0.7rem;
+        }
+        
+        .balance-table th,
+        .balance-table td {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .empty-state {
+            padding: 2rem 1rem;
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .empty-state h3 {
+            font-size: 1rem;
+        }
+    }
 </style>
 
 <div class="report-header">
@@ -175,6 +339,15 @@
         <div>
             <label for="search" class="form-label mb-1">بحث عن عميل:</label>
             <input type="text" name="search" id="search" class="form-control" placeholder="اسم العميل..." value="{{ search_query }}" style="width: 250px;">
+        </div>
+        <div>
+            <label for="agent" class="form-label mb-1">المندوب:</label>
+            <select name="agent" id="agent" class="form-select" style="width: auto;">
+                <option value="">الكل</option>
+                {% for agent in agents %}
+                    <option value="{{ agent.id }}" {% if selected_agent == agent.id|stringformat:"i" %}selected{% endif %}>{{ agent.agentName }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div>
             <label for="status" class="form-label mb-1">حالة الرصيد:</label>
@@ -233,15 +406,16 @@
     </div>
 
     <div class="balance-table">
+        <div class="table-responsive">
         <table>
             <thead>
                 <tr>
                     <th>اسم العميل</th>
-                    <th>إجمالي المدفوعات</th>
-                    <th>إجمالي المبيعات</th>
+                    <th class="d-none d-md-table-cell">إجمالي المدفوعات</th>
+                    <th class="d-none d-md-table-cell">إجمالي المبيعات</th>
                     <th>الرصيد</th>
-                    <th>عدد المعاملات</th>
-                    <th>آخر معاملة</th>
+                    <th class="d-none d-lg-table-cell">عدد المعاملات</th>
+                    <th class="d-none d-lg-table-cell">آخر معاملة</th>
                     <th>الحالة</th>
                 </tr>
             </thead>
@@ -251,10 +425,10 @@
                     <td>
                         <div class="customer-name">{{ cb.customer.customerVendorName }}</div>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         <div class="balance-positive">{{ cb.total_debit|floatformat:2 }} ج.م</div>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         <div class="balance-negative">{{ cb.total_credit|floatformat:2 }} ج.م</div>
                     </td>
                     <td>
@@ -266,10 +440,10 @@
                             <div class="balance-zero">0.00 ج.م</div>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="d-none d-lg-table-cell">
                         <div style="font-weight: 600;">{{ cb.transaction_count }}</div>
                     </td>
-                    <td>
+                    <td class="d-none d-lg-table-cell">
                         {% if cb.last_transaction %}
                             <div style="color: #666;">{{ cb.last_transaction|date:"Y-m-d" }}</div>
                         {% else %}
@@ -289,6 +463,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 
 {% else %}

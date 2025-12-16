@@ -67,6 +67,7 @@
                                    name="dateFrom" 
                                    value="{{ visit_plan.dateFrom|date:'Y-m-d' }}"
                                    min="{{ today }}"
+                                   dir="ltr"
                                    required>
                         </div>
                         
@@ -82,6 +83,7 @@
                                    name="dateTo" 
                                    value="{{ visit_plan.dateTo|date:'Y-m-d' }}"
                                    min="{{ visit_plan.dateFrom|date:'Y-m-d' }}"
+                                   dir="ltr"
                                    required>
                         </div>
                     </div>

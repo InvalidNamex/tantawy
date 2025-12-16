@@ -44,13 +44,13 @@ This applies to ALL operators: ==, !=, <,>, <=,>=
 {% endblock %}
 
             {% block content %}
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="mb-1">إدارة الأصناف</h2>
-                    <p class="text-muted mb-0">عرض وإدارة جميع الأصناف في النظام</p>
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-column flex-md-row gap-3">
+                <div class="text-center text-md-start">
+                    <h2 class="mb-1 fs-4 fs-md-2">إدارة الأصناف</h2>
+                    <p class="text-muted mb-0 small">عرض وإدارة جميع الأصناف في النظام</p>
                 </div>
-                <div>
-                    <button type="button" class="btn btn-primary" onclick="openAddModal()">
+                <div class="w-100 w-md-auto">
+                    <button type="button" class="btn btn-primary w-100 w-md-auto" onclick="openAddModal()">
                         <i class="bi bi-plus-circle me-2"></i>إضافة صنف جديد
                     </button>
                 </div>
@@ -58,38 +58,38 @@ This applies to ALL operators: ==, !=, <,>, <=,>=
 
             <!-- Search and Filter Section -->
             <div class="card mb-4">
-                <div class="card-body">
-                    <form method="GET" class="row g-3">
-                        <div class="col-md-6">
+                <div class="card-body p-2 p-md-3">
+                    <form method="GET" class="row g-2 g-md-3">
+                        <div class="col-12 col-md-6">
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="bi bi-search"></i>
                                 </span>
                                 <input type="text" class="form-control" name="search" value="{{ search_query }}"
-                                    placeholder="البحث في الأصناف (الاسم، المجموعة، الرمز، الرقم)"
+                                    placeholder="البحث (الاسم، المجموعة، الرمز)"
                                     list="searchSuggestions">
                                 <datalist id="searchSuggestions">
                                     <!-- Will be populated via JavaScript -->
                                 </datalist>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-6 col-md-3">
                             <select class="form-select" name="sort">
-                                <option value="itemName" {% if sort_by == 'itemName' %}selected{% endif %}>ترتيب حسب الاسم</option>
-                                <option value="id" {% if sort_by == 'id' %}selected{% endif %}>ترتيب حسب الرقم</option>
-                                <option value="itemGroupId__itemsGroupName" {% if sort_by == 'itemGroupId__itemsGroupName' %}selected{% endif %}>ترتيب حسب المجموعة</option>
-                                <option value="sign" {% if sort_by == 'sign' %}selected{% endif %}>ترتيب حسب الرمز</option>
-                                <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>ترتيب حسب تاريخ الإنشاء</option>
-                                <option value="updatedAt" {% if sort_by == 'updatedAt' %}selected{% endif %}>ترتيب حسب تاريخ التحديث</option>
+                                <option value="itemName" {% if sort_by == 'itemName' %}selected{% endif %}>الاسم</option>
+                                <option value="id" {% if sort_by == 'id' %}selected{% endif %}>الرقم</option>
+                                <option value="itemGroupId__itemsGroupName" {% if sort_by == 'itemGroupId__itemsGroupName' %}selected{% endif %}>المجموعة</option>
+                                <option value="sign" {% if sort_by == 'sign' %}selected{% endif %}>الرمز</option>
+                                <option value="createdAt" {% if sort_by == 'createdAt' %}selected{% endif %}>تاريخ الإنشاء</option>
+                                <option value="updatedAt" {% if sort_by == 'updatedAt' %}selected{% endif %}>تاريخ التحديث</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-4 col-md-2">
                             <select class="form-select" name="direction">
                                 <option value="asc" {% if sort_direction == 'asc' %}selected{% endif %}>تصاعدي</option>
                                 <option value="desc" {% if sort_direction == 'desc' %}selected{% endif %}>تنازلي</option>
                             </select>
                         </div>
-                        <div class="col-md-1">
+                        <div class="col-2 col-md-1">
                             <button type="submit" class="btn btn-outline-primary w-100">
                                 <i class="bi bi-funnel"></i>
                             </button>
@@ -99,19 +99,19 @@ This applies to ALL operators: ==, !=, <,>, <=,>=
             </div>
 
             <!-- Results Summary -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <span class="text-muted">إجمالي النتائج: </span>
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="text-muted small">إجمالي النتائج: </span>
                     <span class="badge bg-primary">{{ total_count }}</span>
                     {% if search_query %}
-                    <span class="text-muted ms-3">البحث عن: </span>
+                    <span class="text-muted ms-sm-3 d-none d-sm-inline">البحث عن: </span>
                     <span class="badge bg-info">"{{ search_query }}"</span>
-                    <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                        <i class="bi bi-x-circle me-1"></i>إلغاء البحث
+                    <a href="{% url 'core:items' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle me-1"></i><span class="d-none d-sm-inline">إلغاء البحث</span>
                     </a>
                     {% endif %}
                 </div>
-                <div class="text-muted">
+                <div class="text-muted small">
                     صفحة {{ items.number }} من {{ items.paginator.num_pages }}
                 </div>
             </div>
@@ -126,67 +126,73 @@ This applies to ALL operators: ==, !=, <,>, <=,>=
                                 <tr>
                                     <th>الرقم</th>
                                     <th>اسم الصنف</th>
-                                    <th>المجموعة</th>
-                                    <th>الرمز</th>
-                                    <th>تاريخ الإنشاء</th>
-                                    <th>من قام بالإنشاء</th>
+                                    <th class="d-none d-md-table-cell">المجموعة</th>
+                                    <th class="d-none d-lg-table-cell">الرمز</th>
+                                    <th class="d-none d-lg-table-cell">تاريخ الإنشاء</th>
+                                    <th class="d-none d-xl-table-cell">من قام بالإنشاء</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in items %}
                                 <tr>
-                                    <td>
+                                    <td data-label="الرقم">
                                         <span class="badge bg-light text-dark">#{{ item.id }}</span>
                                     </td>
-                                    <td>
+                                    <td data-label="اسم الصنف">
                                         <div class="d-flex align-items-center">
-                                            <i class="bi bi-box text-primary me-2"></i>
+                                            <i class="bi bi-box text-primary me-2 d-none d-sm-inline"></i>
                                             <div>
                                                 <a href="{% url 'core:items_detail' item.id %}"
                                                     class="fw-semibold text-decoration-none">
                                                     {{ item.itemName }}
                                                 </a>
+                                                <!-- Show group on mobile -->
+                                                <div class="d-md-none small text-muted">
+                                                    {% if item.itemGroupId %}
+                                                        {{ item.itemGroupId.itemsGroupName }}
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="المجموعة" class="d-none d-md-table-cell">
                                         {% if item.itemGroupId %}
                                         <span class="badge bg-info">{{ item.itemGroupId.itemsGroupName }}</span>
                                         {% else %}
                                         <span class="text-muted">غير محدد</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="الرمز" class="d-none d-lg-table-cell">
                                         {% if item.sign %}
                                         <span class="badge bg-secondary">{{ item.sign }}</span>
                                         {% else %}
                                         <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="تاريخ الإنشاء" class="d-none d-lg-table-cell">
                                         <small class="text-muted">{{ item.createdAt|date:"j M Y" }}</small><br>
                                         <small class="text-muted">{{ item.createdAt|time:"H:i" }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="من قام بالإنشاء" class="d-none d-xl-table-cell">
                                         {% if item.createdBy %}
                                         <span class="badge bg-success">{{ item.createdBy.get_full_name|default:item.createdBy.username }}</span>
                                         {% else %}
                                         <span class="text-muted">غير محدد</span>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
+                                    <td data-label="الإجراءات">
+                                        <div class="btn-group btn-group-sm" role="group">
                                             <a href="{% url 'core:items_detail' item.id %}"
-                                                class="btn btn-outline-info btn-sm" title="عرض التفاصيل">
+                                                class="btn btn-outline-info" title="عرض التفاصيل">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                             <a href="{% url 'core:items_edit' item.id %}"
-                                                class="btn btn-outline-warning btn-sm" title="تعديل">
+                                                class="btn btn-outline-warning" title="تعديل">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <a href="{% url 'core:items_delete' item.id %}"
-                                                class="btn btn-outline-danger btn-sm" title="حذف">
+                                                class="btn btn-outline-danger d-none d-sm-inline-block" title="حذف">
                                                 <i class="bi bi-trash"></i>
                                             </a>
                                         </div>

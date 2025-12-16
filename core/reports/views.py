@@ -137,16 +137,40 @@ def top_customers(request):
 @login_required
 def customer_balance(request):
     """Customer balance and outstanding payments report."""
-    from core.models import Transaction
+    from core.models import Transaction, Agent, VisitPlan
     from django.db import connection
     
     status_filter = request.GET.get('status', 'all')
     sort_by = request.GET.get('sort', 'balance')
     sort_direction = request.GET.get('direction', 'asc')
     search_query = request.GET.get('search', '').strip()
+    agent_filter = request.GET.get('agent', '')
+    
+    # Get all agents for the dropdown
+    agents = Agent.objects.filter(isDeleted=False, isActive=True).order_by('agentName')
     
     # Get all customers
     customers = CustomerVendor.objects.filter(type__in=[1, 3], isDeleted=False)
+    
+    # Apply agent filter - get customers from agent's active visit plan
+    if agent_filter:
+        try:
+            agent_id = int(agent_filter)
+            active_plan = VisitPlan.objects.filter(
+                agentID_id=agent_id,
+                isActive=True,
+                isDeleted=False
+            ).first()
+            
+            if active_plan and active_plan.customers:
+                # Filter customers to only those in the active visit plan
+                customer_ids = active_plan.customers  # This is a JSON array of customer IDs
+                customers = customers.filter(id__in=customer_ids)
+            else:
+                # Agent has no active plan, show no customers
+                customers = customers.none()
+        except (ValueError, TypeError):
+            pass
     
     # Apply search filter
     if search_query:
@@ -239,6 +263,8 @@ def customer_balance(request):
         'selected_sort': sort_by,
         'selected_direction': sort_direction,
         'search_query': search_query,
+        'agents': agents,
+        'selected_agent': agent_filter,
     })
 
 

@@ -18,18 +18,18 @@
 <div class="row">
     <div class="col-12">
         <div class="hero-section glass-card-primary mb-4">
-            <div class="row align-items-center">
-                <div class="col-md-8">
+            <div class="row align-items-center flex-column-reverse flex-md-row">
+                <div class="col-12 col-md-8 text-center text-md-start">
                     <h1 class="hero-title text-white mb-2">
-                        <i class="bi bi-house-door me-2"></i>
+                        <i class="bi bi-house-door me-2 d-none d-sm-inline"></i>
                         مرحباً، {{ user.get_full_name|default:user.username }}!
                     </h1>
-                    <p class="hero-subtitle text-white mb-3">
+                    <p class="hero-subtitle text-white mb-3 d-none d-md-block">
                         لوحة تحكم نظام إدارة الطنطاوي - مركزك الرئيسي لإدارة المخزون والمتاجر
                     </p>
-                    <div class="d-flex align-items-center text-white">
+                    <div class="d-flex align-items-center justify-content-center justify-content-md-start text-white flex-wrap">
                         <i class="bi bi-calendar me-2"></i>
-                        <span>آخر تسجيل دخول: 
+                        <span class="small">آخر تسجيل دخول: 
                             {% if user.last_login %}
                                 {{ user.last_login|date:"j F Y - H:i" }}
                             {% else %}
@@ -38,8 +38,8 @@
                         </span>
                     </div>
                 </div>
-                <div class="col-md-4 text-center">
-                    <img src="/media/logo.png" alt="شعار الطنطاوي" class="img-fluid" style="max-height: 100px; filter: brightness(0) invert(1);">
+                <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
+                    <img src="/media/logo.png" alt="شعار الطنطاوي" class="img-fluid d-none d-sm-inline-block" style="max-height: 80px; filter: brightness(0) invert(1);">
                 </div>
             </div>
         </div>
@@ -48,6 +48,7 @@
 
 <!-- Quick Stats Cards with Glass Effects -->
 <div class="dashboard-stats">
+    {% if card_visibility.items_groups %}
     <div class="glass-dashboard-card glass-slide-up">
         <div class="card-icon">
             <i class="bi bi-collection"></i>
@@ -59,7 +60,9 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.items %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.1s;">
         <div class="card-icon">
             <i class="bi bi-box"></i>
@@ -71,7 +74,9 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.customers %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.2s;">
         <div class="card-icon">
             <i class="bi bi-person-check"></i>
@@ -83,7 +88,9 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.vendors %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.3s;">
         <div class="card-icon">
             <i class="bi bi-truck"></i>
@@ -95,10 +102,12 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
 </div>
 
 <!-- Additional Stats Row with Glass Effects -->
 <div class="dashboard-stats">
+    {% if card_visibility.price_lists %}
     <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.4s;">
         <div class="card-icon">
             <i class="bi bi-currency-dollar"></i>
@@ -110,7 +119,9 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.store_groups %}
     <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.5s;">
         <div class="card-icon">
             <i class="bi bi-building"></i>
@@ -122,7 +133,9 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.stores %}
     <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.6s;">
         <div class="card-icon">
             <i class="bi bi-shop"></i>
@@ -134,7 +147,9 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.invoices %}
     <div class="glass-dashboard-card glass-scale-in" style="animation-delay: 0.7s;">
         <div class="card-icon">
             <i class="bi bi-receipt"></i>
@@ -146,10 +161,12 @@
             <i class="bi bi-eye me-1"></i> عرض الكل
         </a>
     </div>
+    {% endif %}
 </div>
 
 <!-- Management Tools Row with Glass Effects -->
 <div class="dashboard-stats">
+    {% if card_visibility.agents_manage %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.8s;">
         <div class="card-icon">
             <i class="bi bi-people"></i>
@@ -161,7 +178,9 @@
             <i class="bi bi-arrow-right me-1"></i> إدارة
         </a>
     </div>
+    {% endif %}
     
+    {% if card_visibility.visit_plans %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 0.9s;">
         <div class="card-icon">
             <i class="bi bi-calendar-check"></i>
@@ -173,8 +192,9 @@
             <i class="bi bi-arrow-right me-1"></i> إدارة
         </a>
     </div>
+    {% endif %}
     
-    {% if user.is_superuser or user.groups.all|length > 0 %}
+    {% if card_visibility.inventory %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 1.0s;">
         <div class="card-icon">
             <i class="bi bi-boxes"></i>
@@ -188,6 +208,7 @@
     </div>
     {% endif %}
     
+    {% if card_visibility.users_manage %}
     <div class="glass-dashboard-card glass-slide-up" style="animation-delay: 1.1s;">
         <div class="card-icon">
             <i class="bi bi-people"></i>
@@ -199,100 +220,8 @@
             <i class="bi bi-arrow-right me-1"></i> إدارة
         </a>
     </div>
+    {% endif %}
 </div>
 
-<!-- Invoice Management Section with Glass Effects -->
-</div>
 
-<!-- Quick Actions with Glass Effects -->
-</div>
-
-<!-- Recent Activity with Glass Effects -->
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="glass-card">
-            <div class="glass-card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-clock-history me-2"></i> النشاط الأخير
-                </h5>
-            </div>
-            <div class="glass-card-body">
-                <div class="glass-timeline">
-                    <div class="glass-timeline-item glass-animation-delay-1">
-                        <div class="glass-timeline-icon glass-icon-primary">
-                            <i class="bi bi-person"></i>
-                        </div>
-                        <div class="glass-timeline-content">
-                            <div class="fw-semibold">تسجيل دخول</div>
-                            <small class="text-muted">{{ user.last_login|date:"j F Y - H:i"|default:"الآن" }}</small>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-timeline-item glass-animation-delay-2">
-                        <div class="glass-timeline-icon glass-icon-success">
-                            <i class="bi bi-currency-dollar"></i>
-                        </div>
-                        <div class="glass-timeline-content">
-                            <div class="fw-semibold">عرض قوائم الأسعار</div>
-                            <small class="text-muted">{{ price_lists_count }} قائمة متاحة</small>
-                        </div>
-                    </div>
-                    
-                    <a href="{% url 'core:items' %}" class="glass-timeline-item glass-timeline-link glass-animation-delay-3">
-                        <div class="glass-timeline-icon glass-icon-info">
-                            <i class="bi bi-box"></i>
-                        </div>
-                        <div class="glass-timeline-content">
-                            <div class="fw-semibold">إدارة الأصناف</div>
-                            <small class="text-muted">{{ items_count }} صنف مسجل</small>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="glass-card">
-            <div class="glass-card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-info-circle me-2"></i> نصائح سريعة
-                </h5>
-            </div>
-            <div class="glass-card-body">
-                <div class="glass-tips-list">
-                    <div class="glass-tip-item glass-animation-delay-1">
-                        <div class="glass-tip-icon">
-                            <i class="bi bi-lightbulb"></i>
-                        </div>
-                        <div class="glass-tip-content">
-                            <strong>إدارة قوائم الأسعار:</strong>
-                            <small class="d-block text-muted">يمكنك إنشاء قوائم أسعار متعددة لعملاء مختلفين</small>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-tip-item glass-animation-delay-2">
-                        <div class="glass-tip-icon">
-                            <i class="bi bi-lightbulb"></i>
-                        </div>
-                        <div class="glass-tip-content">
-                            <strong>البحث السريع:</strong>
-                            <small class="d-block text-muted">استخدم شريط البحث للعثور بسرعة على الأصناف والأسعار</small>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-tip-item glass-animation-delay-3">
-                        <div class="glass-tip-icon">
-                            <i class="bi bi-lightbulb"></i>
-                        </div>
-                        <div class="glass-tip-content">
-                            <strong>الصلاحيات:</strong>
-                            <small class="d-block text-muted">تأكد من صلاحياتك قبل تعديل أو حذف البيانات</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
