@@ -266,20 +266,82 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', updateSelectedCount);
     });
     
-    // Search functionality
+    // Search functionality - filter and reorder list
+    const customerList = document.getElementById('customerList');
+    let noResultsMsg = null;
+    
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
+        
+        // Remove existing "no results" message if any
+        if (noResultsMsg) {
+            noResultsMsg.remove();
+            noResultsMsg = null;
+        }
+        
+        // Get all customer items and their following hr elements
+        const allElements = customerList.querySelectorAll('.customer-item, hr');
+        
+        // Arrays to hold matching and non-matching items
+        const matchingItems = [];
+        const nonMatchingItems = [];
         
         customerItems.forEach(item => {
             const customerName = item.dataset.customerName;
             const customerPhone = item.dataset.customerPhone;
             
-            if (customerName.includes(searchTerm) || customerPhone.includes(searchTerm)) {
+            if (searchTerm === '' || customerName.includes(searchTerm) || customerPhone.includes(searchTerm)) {
+                matchingItems.push(item);
                 item.style.display = 'block';
             } else {
+                nonMatchingItems.push(item);
                 item.style.display = 'none';
             }
         });
+        
+        // Remove all hr elements first
+        customerList.querySelectorAll('hr').forEach(hr => hr.remove());
+        
+        // Reorder: move matching items to the top
+        matchingItems.forEach((item, index) => {
+            customerList.insertBefore(item, customerList.firstChild);
+            // Add an hr separator after each visible item (except the last one)
+            if (index < matchingItems.length - 1) {
+                const hr = document.createElement('hr');
+                hr.className = 'my-2';
+                item.after(hr);
+            }
+        });
+        
+        // Move non-matching items after matching ones (they're hidden)
+        nonMatchingItems.forEach(item => {
+            customerList.appendChild(item);
+        });
+        
+        // Re-add hr separators between visible matching items (reorder fix)
+        customerList.querySelectorAll('hr').forEach(hr => hr.remove());
+        const visibleItems = Array.from(customerList.querySelectorAll('.customer-item')).filter(
+            item => item.style.display !== 'none'
+        );
+        visibleItems.forEach((item, index) => {
+            if (index < visibleItems.length - 1) {
+                const hr = document.createElement('hr');
+                hr.className = 'my-2';
+                item.after(hr);
+            }
+        });
+        
+        // Show "no results" message if no matches found
+        if (searchTerm !== '' && matchingItems.length === 0) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.className = 'text-center text-muted py-4';
+            noResultsMsg.id = 'noResultsMessage';
+            noResultsMsg.innerHTML = `
+                <i class="bi bi-search display-4"></i>
+                <p class="mt-2">لا توجد نتائج للبحث "${searchTerm}"</p>
+            `;
+            customerList.insertBefore(noResultsMsg, customerList.firstChild);
+        }
     });
     
     // Select all visible customers
