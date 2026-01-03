@@ -183,8 +183,17 @@
                                     <small class="text-muted">كود: {{ item.detail.item.barcode|default:"غير محدد" }}</small>
                                 </td>
                                 <td class="text-center">
+                                    {% if item.quantity_breakdown.has_breakdown %}
+                                    <div class="quantity-breakdown">
+                                        {% for part in item.quantity_breakdown.display_parts %}
+                                        <span class="badge bg-light text-dark me-1">{{ part }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted d-block mt-1">إجمالي: {{ item.detail.quantity|floatformat:2 }}</small>
+                                    {% else %}
                                     <span class="badge bg-light text-dark">{{ item.detail.quantity|floatformat:2 }}</span>
-                                    <small class="text-muted d-block">{{ item.detail.item.mainUnitName|default:"وحدة" }}</small>
+                                    <small class="text-muted d-block">{{ item.quantity_breakdown.small_unit_name }}</small>
+                                    {% endif %}
                                 </td>
                                 <td class="text-end">{{ item.detail.price|floatformat:2 }} ج.م</td>
                                 <td class="text-end">

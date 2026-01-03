@@ -2888,6 +2888,65 @@ def invoices_main_view(request):
     return render(request, 'core/invoices/main.html', context)
 
 
+def calculate_quantity_breakdown(total_quantity, item):
+    """
+    Calculate quantity breakdown into main, sub, and small units.
+    The total_quantity is stored in the smallest unit.
+    
+    Example: If mainUnitPack=12 (12 small units per main), subUnitPack=6 (6 small units per sub)
+    And total_quantity=27, then: 2 main (24) + 0 sub + 3 small = 27
+    """
+    from decimal import Decimal, ROUND_DOWN
+    
+    result = {
+        'main_qty': 0,
+        'sub_qty': 0,
+        'small_qty': 0,
+        'main_unit_name': item.mainUnitName or '',
+        'sub_unit_name': item.subUnitName or '',
+        'small_unit_name': item.smallUnitName or 'وحدة',
+        'display_parts': [],
+        'has_breakdown': False
+    }
+    
+    if not total_quantity:
+        return result
+    
+    remaining = Decimal(str(total_quantity))
+    main_pack = Decimal(str(item.mainUnitPack)) if item.mainUnitPack else Decimal('0')
+    sub_pack = Decimal(str(item.subUnitPack)) if item.subUnitPack else Decimal('0')
+    
+    # Calculate main units (if mainUnitPack > 0)
+    if main_pack > 0:
+        main_qty = (remaining / main_pack).to_integral_value(rounding=ROUND_DOWN)
+        remaining = remaining - (main_qty * main_pack)
+        result['main_qty'] = int(main_qty)
+        if main_qty > 0 and item.mainUnitName:
+            result['display_parts'].append(f"{int(main_qty)} {item.mainUnitName}")
+            result['has_breakdown'] = True
+    
+    # Calculate sub units (if subUnitPack > 0 and less than mainUnitPack)
+    if sub_pack > 0 and (main_pack == 0 or sub_pack < main_pack):
+        sub_qty = (remaining / sub_pack).to_integral_value(rounding=ROUND_DOWN)
+        remaining = remaining - (sub_qty * sub_pack)
+        result['sub_qty'] = int(sub_qty)
+        if sub_qty > 0 and item.subUnitName:
+            result['display_parts'].append(f"{int(sub_qty)} {item.subUnitName}")
+            result['has_breakdown'] = True
+    
+    # Remaining is in small units
+    result['small_qty'] = float(remaining)
+    if remaining > 0:
+        small_unit_name = item.smallUnitName or 'وحدة'
+        # Format: show decimal only if needed
+        if remaining == int(remaining):
+            result['display_parts'].append(f"{int(remaining)} {small_unit_name}")
+        else:
+            result['display_parts'].append(f"{float(remaining):.2f} {small_unit_name}")
+    
+    return result
+
+
 @login_required
 def invoice_detail_view(request, invoice_id):
     """
@@ -2933,9 +2992,14 @@ def invoice_detail_view(request, invoice_id):
         invoice_details_with_totals = []
         for detail in invoice_details:
             detail_total = detail.quantity * detail.price
+            
+            # Calculate quantity breakdown into main, sub, and small units
+            quantity_breakdown = calculate_quantity_breakdown(detail.quantity, detail.item)
+            
             invoice_details_with_totals.append({
                 'detail': detail,
-                'total': detail_total
+                'total': detail_total,
+                'quantity_breakdown': quantity_breakdown
             })
         
         # Get related object names safely
