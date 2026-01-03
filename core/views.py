@@ -2891,10 +2891,17 @@ def invoices_main_view(request):
 def calculate_quantity_breakdown(total_quantity, item):
     """
     Calculate quantity breakdown into main, sub, and small units.
-    The total_quantity is stored in the smallest unit.
+    The total_quantity is stored in MAIN UNITS (base unit).
     
-    Example: If mainUnitPack=12 (12 small units per main), subUnitPack=6 (6 small units per sub)
-    And total_quantity=27, then: 2 main (24) + 0 sub + 3 small = 27
+    Unit hierarchy:
+    - mainUnitPack = number of sub units in one main unit
+    - subUnitPack = number of small units in one sub unit
+    
+    Example: If mainUnitPack=12 (12 packs per box), subUnitPack=10 (10 pieces per pack)
+    And total_quantity=2.5417 boxes:
+    - Main: 2 boxes (integer part)
+    - Remainder: 0.5417 boxes × 12 = 6.5 packs → 6 packs
+    - Remainder: 0.5 packs × 10 = 5 pieces
     """
     from decimal import Decimal, ROUND_DOWN
     
@@ -2902,9 +2909,9 @@ def calculate_quantity_breakdown(total_quantity, item):
         'main_qty': 0,
         'sub_qty': 0,
         'small_qty': 0,
-        'main_unit_name': item.mainUnitName or '',
+        'main_unit_name': item.mainUnitName or 'وحدة',
         'sub_unit_name': item.subUnitName or '',
-        'small_unit_name': item.smallUnitName or 'وحدة',
+        'small_unit_name': item.smallUnitName or '',
         'display_parts': [],
         'has_breakdown': False
     }
@@ -2912,37 +2919,59 @@ def calculate_quantity_breakdown(total_quantity, item):
     if not total_quantity:
         return result
     
-    remaining = Decimal(str(total_quantity))
+    total = Decimal(str(total_quantity))
     main_pack = Decimal(str(item.mainUnitPack)) if item.mainUnitPack else Decimal('0')
     sub_pack = Decimal(str(item.subUnitPack)) if item.subUnitPack else Decimal('0')
     
-    # Calculate main units (if mainUnitPack > 0)
-    if main_pack > 0:
-        main_qty = (remaining / main_pack).to_integral_value(rounding=ROUND_DOWN)
-        remaining = remaining - (main_qty * main_pack)
-        result['main_qty'] = int(main_qty)
-        if main_qty > 0 and item.mainUnitName:
-            result['display_parts'].append(f"{int(main_qty)} {item.mainUnitName}")
-            result['has_breakdown'] = True
+    # Step 1: Extract main units (integer part of total)
+    main_qty = int(total.to_integral_value(rounding=ROUND_DOWN))
+    remainder = total - main_qty
     
-    # Calculate sub units (if subUnitPack > 0 and less than mainUnitPack)
-    if sub_pack > 0 and (main_pack == 0 or sub_pack < main_pack):
-        sub_qty = (remaining / sub_pack).to_integral_value(rounding=ROUND_DOWN)
-        remaining = remaining - (sub_qty * sub_pack)
-        result['sub_qty'] = int(sub_qty)
-        if sub_qty > 0 and item.subUnitName:
-            result['display_parts'].append(f"{int(sub_qty)} {item.subUnitName}")
-            result['has_breakdown'] = True
+    result['main_qty'] = main_qty
     
-    # Remaining is in small units
-    result['small_qty'] = float(remaining)
-    if remaining > 0:
-        small_unit_name = item.smallUnitName or 'وحدة'
-        # Format: show decimal only if needed
-        if remaining == int(remaining):
-            result['display_parts'].append(f"{int(remaining)} {small_unit_name}")
+    # If there's no remainder and no sub-units defined, just show main unit
+    if remainder == 0 or main_pack == 0:
+        main_unit_name = item.mainUnitName or 'وحدة'
+        if total == int(total):
+            result['display_parts'].append(f"{int(total)} {main_unit_name}")
         else:
-            result['display_parts'].append(f"{float(remaining):.2f} {small_unit_name}")
+            result['display_parts'].append(f"{float(total):.2f} {main_unit_name}")
+        return result
+    
+    # We have a breakdown
+    result['has_breakdown'] = True
+    
+    # Add main units if > 0
+    if main_qty > 0 and item.mainUnitName:
+        result['display_parts'].append(f"{main_qty} {item.mainUnitName}")
+    
+    # Step 2: Convert remainder (in main units) to sub units
+    # remainder_in_sub = remainder × mainUnitPack
+    sub_total = remainder * main_pack
+    sub_qty = int(sub_total.to_integral_value(rounding=ROUND_DOWN))
+    sub_remainder = sub_total - sub_qty
+    
+    result['sub_qty'] = sub_qty
+    
+    # Add sub units if > 0
+    if sub_qty > 0 and item.subUnitName:
+        result['display_parts'].append(f"{sub_qty} {item.subUnitName}")
+    
+    # Step 3: Convert sub remainder to small units
+    # small_qty = sub_remainder × subUnitPack
+    if sub_pack > 0 and sub_remainder > 0:
+        small_qty = sub_remainder * sub_pack
+        result['small_qty'] = float(small_qty)
+        
+        if item.smallUnitName:
+            if small_qty == int(small_qty):
+                result['display_parts'].append(f"{int(small_qty)} {item.smallUnitName}")
+            else:
+                result['display_parts'].append(f"{float(small_qty):.2f} {item.smallUnitName}")
+    elif sub_remainder > 0:
+        # No small unit defined, show remainder in sub units
+        if item.subUnitName:
+            result['display_parts'].append(f"{float(sub_remainder):.2f} {item.subUnitName}")
     
     return result
 
