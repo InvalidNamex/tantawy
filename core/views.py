@@ -2929,13 +2929,40 @@ def invoice_detail_view(request, invoice_id):
             
         remaining_amount = invoice.netTotal - invoice.totalPaid
         
-        # Calculate item totals for display
+        # Calculate item totals and quantity breakdown for display
         invoice_details_with_totals = []
         for detail in invoice_details:
             detail_total = detail.quantity * detail.price
+            
+            # Calculate quantity breakdown
+            qty = detail.quantity
+            main_pack = detail.item.mainUnitPack
+            sub_pack = detail.item.subUnitPack
+            
+            main_qty = 0
+            sub_qty = 0
+            small_qty = 0
+            
+            remaining = qty
+            
+            if main_pack > 0:
+                main_qty = int(remaining // main_pack)
+                remaining = remaining % main_pack
+            
+            if sub_pack > 0:
+                sub_qty = int(remaining // sub_pack)
+                remaining = remaining % sub_pack
+            
+            small_qty = remaining
+            
             invoice_details_with_totals.append({
                 'detail': detail,
-                'total': detail_total
+                'total': detail_total,
+                'breakdown': {
+                    'main': {'qty': main_qty, 'name': detail.item.mainUnitName},
+                    'sub': {'qty': sub_qty, 'name': detail.item.subUnitName},
+                    'small': {'qty': small_qty, 'name': detail.item.smallUnitName}
+                }
             })
         
         # Get related object names safely

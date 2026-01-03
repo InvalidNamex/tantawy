@@ -183,8 +183,28 @@
                                     <small class="text-muted">كود: {{ item.detail.item.barcode|default:"غير محدد" }}</small>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-light text-dark">{{ item.detail.quantity|floatformat:2 }}</span>
-                                    <small class="text-muted d-block">{{ item.detail.item.mainUnitName|default:"وحدة" }}</small>
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        {% if item.breakdown.main.qty > 0 %}
+                                        <div class="quantity-item">
+                                            <span class="badge bg-primary">{{ item.breakdown.main.qty }}</span>
+                                            <small class="text-muted">{{ item.breakdown.main.name|default:"وحدة كبرى" }}</small>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if item.breakdown.sub.qty > 0 %}
+                                        <div class="quantity-item">
+                                            <span class="badge bg-info text-dark">{{ item.breakdown.sub.qty }}</span>
+                                            <small class="text-muted">{{ item.breakdown.sub.name|default:"وحدة وسطى" }}</small>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if item.breakdown.small.qty > 0 or item.detail.quantity == 0 %}
+                                        <div class="quantity-item">
+                                            <span class="badge bg-light text-dark">{{ item.breakdown.small.qty|floatformat:2 }}</span>
+                                            <small class="text-muted">{{ item.breakdown.small.name|default:"وحدة صغرى" }}</small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 <td class="text-end">{{ item.detail.price|floatformat:2 }} ج.م</td>
                                 <td class="text-end">
