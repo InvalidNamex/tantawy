@@ -104,29 +104,46 @@
     <!-- Payment Info -->
     <div class="col-lg-6">
         <div class="glass-card">
-            <div class="glass-card-header">
+            <div class="glass-card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="bi bi-credit-card me-2"></i> معلومات الدفع
                 </h5>
+                <div>
+                    <span class="text-muted small me-2" id="last-updated">
+                        آخر تحديث: {{ invoice.updatedAt|date:"d/m/Y H:i" }}
+                    </span>
+                </div>
             </div>
             <div class="glass-card-body">
                 <div class="info-grid">
                     <div class="info-item">
+                        <label class="info-label">الإجمالي قبل الخصم:</label>
+                        <span class="info-value">
+                            <span class="fw-bold" id="display-subtotal">{{ subtotal|floatformat:2 }}</span> ج.م
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <label class="info-label">الخصم:</label>
+                        <span class="info-value">
+                            <span class="fw-bold text-danger" id="display-discount">{{ invoice.discountAmount|default:0|floatformat:2 }}</span> ج.م
+                        </span>
+                    </div>
+                    <div class="info-item">
                         <label class="info-label">إجمالي الصافي:</label>
                         <span class="info-value">
-                            <span class="fw-bold text-success">{{ invoice.netTotal }} ج.م</span>
+                            <span class="fw-bold text-success fs-5" id="display-netTotal">{{ invoice.netTotal|floatformat:2 }}</span> ج.م
                         </span>
                     </div>
                     <div class="info-item">
                         <label class="info-label">إجمالي المدفوع:</label>
                         <span class="info-value">
-                            <span class="fw-bold">{{ invoice.totalPaid }} ج.م</span>
+                            <span class="fw-bold">{{ invoice.totalPaid|floatformat:2 }} ج.م</span>
                         </span>
                     </div>
                     <div class="info-item">
                         <label class="info-label">المتبقي:</label>
                         <span class="info-value">
-                            <span class="fw-bold {% if remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                            <span class="fw-bold {% if remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}" id="display-remaining">
                                 {{ remaining_amount|floatformat:2 }} ج.م
                             </span>
                         </span>
@@ -134,7 +151,7 @@
                     <div class="info-item">
                         <label class="info-label">حالة الدفع:</label>
                         <span class="info-value">
-                            <span class="badge {% if payment_status == 'مدفوع' %}bg-success{% elif payment_status == 'غير مدفوع' %}bg-danger{% else %}bg-warning{% endif %}">
+                            <span class="badge {% if payment_status == 'مدفوع' %}bg-success{% elif payment_status == 'غير مدفوع' %}bg-danger{% else %}bg-warning{% endif %}" id="payment-status-badge">
                                 {{ payment_status }}
                             </span>
                         </span>
@@ -150,57 +167,133 @@
         </div>
     </div>
 </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Invoice Items -->
 <div class="row">
     <div class="col-12">
         <div class="glass-card">
-            <div class="glass-card-header">
+            <div class="glass-card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="bi bi-list-ul me-2"></i> تفاصيل الأصناف
                 </h5>
+                <!--
+                <button class="btn btn-success btn-sm" onclick="openAddItemModal()">
+                    <i class="bi bi-plus-lg me-1"></i> إضافة صنف
+                </button>
+                -->
             </div>
             <div class="glass-card-body">
                 {% if invoice_details %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="invoice-items-table">
                         <thead>
                             <tr>
                                 <th width="5%">#</th>
-                                <th width="30%">الصنف</th>
+                                <th width="28%">الصنف</th>
                                 <th width="15%">الكمية</th>
                                 <th width="15%">سعر الوحدة</th>
                                 <th width="15%">الإجمالي</th>
-                                <th width="20%">ملاحظات</th>
+                                <th width="14%">ملاحظات</th>
+                                <!--
+                                <th width="8%"></th>
+                                -->
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="invoice-items-tbody">
                             {% for item in invoice_details_with_totals %}
-                            <tr>
+                            <tr data-detail-id="{{ item.detail.id }}" 
+                                data-main-pack="{{ item.main_pack }}" 
+                                data-sub-pack="{{ item.sub_pack }}"
+                                data-unit-count="{{ item.unit_count }}">
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     <div class="fw-bold">{{ item.detail.item.itemName }}</div>
                                     <small class="text-muted">كود: {{ item.detail.item.barcode|default:"غير محدد" }}</small>
                                 </td>
-                                <td class="text-center">
-                                    {% if item.quantity_breakdown.has_breakdown %}
-                                    <div class="quantity-breakdown">
-                                        {% for part in item.quantity_breakdown.display_parts %}
-                                        <span class="badge bg-light text-dark me-1">{{ part }}</span>
-                                        {% endfor %}
+                                <td>
+                                    <div class="quantity-inputs d-flex flex-wrap gap-1 align-items-center justify-content-center">
+                                        <!-- Main Unit (always shown) -->
+                                        <div class="quantity-field">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm text-center qty-main" 
+                                                   value="{{ item.quantity_breakdown.main_qty }}" 
+                                                   step="1" 
+                                                   min="0"
+                                                   style="width: 60px;"
+                                                   onchange="updateItemQuantity({{ item.detail.id }})"
+                                                   data-field="main">
+                                            <small class="text-muted d-block text-center">{{ item.detail.item.mainUnitName|default:"وحدة" }}</small>
+                                        </div>
+                                        
+                                        {% if item.unit_count >= 2 %}
+                                        <!-- Sub Unit -->
+                                        <div class="quantity-field">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm text-center qty-sub" 
+                                                   value="{{ item.quantity_breakdown.sub_qty }}" 
+                                                   step="1" 
+                                                   min="0"
+                                                   max="{{ item.main_pack|add:'-1' }}"
+                                                   style="width: 60px;"
+                                                   onchange="updateItemQuantity({{ item.detail.id }})"
+                                                   data-field="sub">
+                                            <small class="text-muted d-block text-center">{{ item.detail.item.subUnitName }}</small>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if item.unit_count >= 3 %}
+                                        <!-- Small Unit -->
+                                        <div class="quantity-field">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm text-center qty-small" 
+                                                   value="{{ item.quantity_breakdown.small_qty|floatformat:0 }}" 
+                                                   step="1" 
+                                                   min="0"
+                                                   max="{{ item.sub_pack|add:'-1' }}"
+                                                   style="width: 60px;"
+                                                   onchange="updateItemQuantity({{ item.detail.id }})"
+                                                   data-field="small">
+                                            <small class="text-muted d-block text-center">{{ item.detail.item.smallUnitName }}</small>
+                                        </div>
+                                        {% endif %}
                                     </div>
-                                    <small class="text-muted d-block mt-1">إجمالي: {{ item.detail.quantity|floatformat:2 }}</small>
-                                    {% else %}
-                                    <span class="badge bg-light text-dark">{{ item.detail.quantity|floatformat:2 }}</span>
-                                    <small class="text-muted d-block">{{ item.quantity_breakdown.small_unit_name }}</small>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">{{ item.detail.price|floatformat:2 }} ج.م</td>
-                                <td class="text-end">
-                                    <span class="fw-bold">{{ item.total|floatformat:2 }} ج.م</span>
+                                    <input type="hidden" class="total-quantity" value="{{ item.detail.quantity }}">
                                 </td>
                                 <td>
-                                    <small class="text-muted">{{ item.detail.notes|default:"-" }}</small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" 
+                                               class="form-control text-end item-price-input" 
+                                               value="{{ item.detail.price }}" 
+                                               step="0.01" 
+                                               min="0"
+                                               onchange="updateItem({{ item.detail.id }})"
+                                               data-field="price">
+                                        <span class="input-group-text">ج.م</span>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold item-total">{{ item.total|floatformat:2 }}</span> ج.م
+                                </td>
+                                <td>
+                                    <input type="text" 
+                                           class="form-control form-control-sm item-notes-input" 
+                                           value="{{ item.detail.notes|default:'' }}"
+                                           placeholder="-"
+                                           onchange="updateItem({{ item.detail.id }})"
+                                           data-field="notes">
+                                </td>
+                                <!--
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="confirmDeleteItem({{ item.detail.id }}, '{{ item.detail.item.itemName|escapejs }}')" 
+                                            title="حذف">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                -->
                                 </td>
                             </tr>
                             {% endfor %}
@@ -208,22 +301,52 @@
                         <tfoot class="table-light">
                             <tr>
                                 <th colspan="4" class="text-end">الإجمالي الفرعي:</th>
-                                <th class="text-end">{{ subtotal|floatformat:2 }} ج.م</th>
-                                <th></th>
+                                <th class="text-end" id="table-subtotal">{{ subtotal|floatformat:2 }} ج.م</th>
+                                <th colspan="2"></th>
+                            </tr>
+                            <tr>
+                                <th colspan="4" class="text-end align-middle">الخصم:</th>
+                                <th class="text-end">
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" 
+                                               class="form-control text-end" 
+                                               id="discount-amount-input"
+                                               value="{{ invoice.discountAmount|default:0 }}" 
+                                               step="0.01" 
+                                               min="0"
+                                               onchange="recalculateNetTotal()">
+                                        <span class="input-group-text">ج.م</span>
+                                    </div>
+                                </th>
+                                <th colspan="2"></th>
                             </tr>
                             <tr>
                                 <th colspan="4" class="text-end">صافي المبلغ:</th>
-                                <th class="text-end text-success">{{ invoice.netTotal|floatformat:2 }} ج.م</th>
-                                <th></th>
+                                <th class="text-end text-success fs-5" id="table-netTotal">{{ invoice.netTotal|floatformat:2 }} ج.م</th>
+                                <th colspan="2"></th>
+                            </tr>
+                            <tr>
+                                <th colspan="4"></th>
+                                <th colspan="3">
+                                    <button class="btn btn-primary w-100" id="save-invoice-btn" onclick="saveInvoice()">
+                                        <i class="bi bi-check-lg me-2"></i> حفظ التغييرات
+                                    </button>
+                                    <div class="text-center mt-1">
+                                        <small class="text-muted" id="save-status"></small>
+                                    </div>
+                                </th>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
                 {% else %}
-                <div class="text-center py-5">
+                <div class="text-center py-5" id="empty-items-message">
                     <i class="bi bi-inbox display-1 text-muted"></i>
                     <h4 class="text-muted mt-3">لا توجد أصناف</h4>
                     <p class="text-muted">لا توجد تفاصيل أصناف مرتبطة بهذه الفاتورة</p>
+                    <button class="btn btn-success" onclick="openAddItemModal()">
+                        <i class="bi bi-plus-lg me-1"></i> إضافة صنف
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -270,6 +393,576 @@
         border: 1px solid #dee2e6 !important;
         background: white !important;
     }
+    
+    .btn {
+        display: none !important;
+    }
+    
+    input.form-control {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+    }
+}
+
+.quantity-breakdown-text {
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+.quantity-inputs {
+    min-width: 180px;
+}
+
+.quantity-field {
+    text-align: center;
+}
+
+.quantity-field input {
+    font-weight: 500;
+}
+
+.quantity-field small {
+    font-size: 0.7rem;
+}
+
+.qty-main,
+.qty-sub,
+.qty-small,
+.item-price-input,
+.item-notes-input {
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.qty-main:focus,
+.qty-sub:focus,
+.qty-small:focus,
+.item-price-input:focus,
+.item-notes-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.qty-main.is-saving,
+.qty-sub.is-saving,
+.qty-small.is-saving,
+.item-price-input.is-saving,
+.item-notes-input.is-saving {
+    background-color: #fff3cd !important;
+}
+
+.qty-main.is-saved,
+.qty-sub.is-saved,
+.qty-small.is-saved,
+.item-price-input.is-saved,
+.item-notes-input.is-saved {
+    background-color: #d1e7dd !important;
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
 }
 </style>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalLabel">إضافة صنف جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="add-item-select" class="form-label">اختر الصنف</label>
+                    <select class="form-select" id="add-item-select" required>
+                        <option value="">-- اختر صنف --</option>
+                        {% for item in all_items %}
+                        <option value="{{ item.id }}" data-barcode="{{ item.barcode|default:'' }}">{{ item.itemName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="add-quantity" class="form-label">الكمية</label>
+                    <input type="number" class="form-control" id="add-quantity" step="0.001" min="0.001" value="1" required>
+                </div>
+                <div class="mb-3">
+                    <label for="add-price" class="form-label">سعر الوحدة</label>
+                    <input type="number" class="form-control" id="add-price" step="0.01" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="add-notes" class="form-label">ملاحظات</label>
+                    <input type="text" class="form-control" id="add-notes">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" onclick="addNewItem()">إضافة الصنف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">تأكيد الحذف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="delete-detail-id">
+                <p>هل أنت متأكد من حذف الصنف: <strong id="delete-item-name"></strong>؟</p>
+                <p class="text-muted">لا يمكن التراجع عن هذا الإجراء.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" onclick="deleteItem()">نعم، احذف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const invoiceId = {{ invoice.id }};
+const csrfToken = '{{ csrf_token }}';
+let currentSubtotal = {{ subtotal }};
+let updateTimers = {};
+
+// Helper function to handle API response
+async function handleApiResponse(response) {
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('جلسة منتهية أو خطأ في الخادم');
+    }
+    
+    const data = await response.json();
+    
+    // Handle 401 Unauthorized - redirect to login
+    if (response.status === 401 && data.redirect) {
+        window.location.href = data.redirect;
+        throw new Error(data.error || 'جلسة منتهية');
+    }
+    
+    return data;
+}
+
+// Calculate total quantity from unit fields
+function calculateTotalQuantity(row) {
+    const mainPack = parseFloat(row.dataset.mainPack) || 0;
+    const subPack = parseFloat(row.dataset.subPack) || 0;
+    const unitCount = parseInt(row.dataset.unitCount) || 1;
+    
+    const mainQty = parseFloat(row.querySelector('.qty-main')?.value) || 0;
+    const subQty = parseFloat(row.querySelector('.qty-sub')?.value) || 0;
+    const smallQty = parseFloat(row.querySelector('.qty-small')?.value) || 0;
+    
+    // Total is in main units
+    // totalQty = mainQty + (subQty / mainUnitPack) + (smallQty / subUnitPack / mainUnitPack)
+    let totalQty = mainQty;
+    
+    if (unitCount >= 2 && mainPack > 0) {
+        totalQty += subQty / mainPack;
+        
+        if (unitCount >= 3 && subPack > 0) {
+            totalQty += smallQty / (subPack * mainPack);
+        }
+    }
+    
+    return totalQty;
+}
+
+// Update item when quantity fields change
+async function updateItemQuantity(detailId) {
+    const row = document.querySelector(`tr[data-detail-id="${detailId}"]`);
+    if (!row) return;
+    
+    const quantity = calculateTotalQuantity(row);
+    const price = parseFloat(row.querySelector('.item-price-input').value) || 0;
+    const notes = row.querySelector('.item-notes-input').value;
+    
+    // Validate - total quantity must be > 0
+    if (quantity <= 0) {
+        showToast('error', 'الكمية الإجمالية يجب أن تكون أكبر من صفر');
+        return;
+    }
+    
+    // Update line total immediately
+    const lineTotal = quantity * price;
+    row.querySelector('.item-total').textContent = lineTotal.toFixed(2);
+    row.querySelector('.total-quantity').value = quantity;
+    
+    // Recalculate subtotal and net total immediately
+    recalculateSubtotal();
+    recalculateNetTotal();
+    
+    // Show saving state
+    const inputs = row.querySelectorAll('.qty-main, .qty-sub, .qty-small');
+    inputs.forEach(inp => inp.classList.add('is-saving'));
+    
+    // Clear existing timer for this item
+    if (updateTimers[detailId]) {
+        clearTimeout(updateTimers[detailId]);
+    }
+    
+    // Debounce the save
+    updateTimers[detailId] = setTimeout(async () => {
+        try {
+            const response = await fetch(`/invoices/${invoiceId}/update-detail/${detailId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ quantity, price, notes })
+            });
+            
+            const data = await handleApiResponse(response);
+            
+            if (data.success) {
+                inputs.forEach(inp => {
+                    inp.classList.remove('is-saving');
+                    inp.classList.add('is-saved');
+                });
+                
+                updateDisplayTotals(data.invoice);
+                
+                setTimeout(() => {
+                    inputs.forEach(inp => inp.classList.remove('is-saved'));
+                }, 1000);
+            } else {
+                showToast('error', data.error || 'حدث خطأ');
+                inputs.forEach(inp => inp.classList.remove('is-saving'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('error', error.message || 'حدث خطأ في الاتصال');
+            inputs.forEach(inp => inp.classList.remove('is-saving'));
+        }
+    }, 500);
+}
+
+// Inline Update for price and notes
+async function updateItem(detailId) {
+    const row = document.querySelector(`tr[data-detail-id="${detailId}"]`);
+    if (!row) return;
+    
+    const quantity = parseFloat(row.querySelector('.total-quantity').value) || calculateTotalQuantity(row);
+    const priceInput = row.querySelector('.item-price-input');
+    const notesInput = row.querySelector('.item-notes-input');
+    
+    const price = parseFloat(priceInput.value);
+    const notes = notesInput.value;
+    
+    if (price < 0) {
+        priceInput.classList.add('is-invalid');
+        return;
+    }
+    priceInput.classList.remove('is-invalid');
+    
+    // Update line total immediately
+    const lineTotal = quantity * price;
+    row.querySelector('.item-total').textContent = lineTotal.toFixed(2);
+    
+    // Recalculate subtotal and net total immediately
+    recalculateSubtotal();
+    recalculateNetTotal();
+    
+    // Show saving state
+    priceInput.classList.add('is-saving');
+    notesInput.classList.add('is-saving');
+    
+    // Clear existing timer for this item
+    if (updateTimers[detailId]) {
+        clearTimeout(updateTimers[detailId]);
+    }
+    
+    // Debounce the save
+    updateTimers[detailId] = setTimeout(async () => {
+        try {
+            const response = await fetch(`/invoices/${invoiceId}/update-detail/${detailId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ quantity, price, notes })
+            });
+            
+            const data = await handleApiResponse(response);
+            
+            if (data.success) {
+                priceInput.classList.remove('is-saving');
+                notesInput.classList.remove('is-saving');
+                priceInput.classList.add('is-saved');
+                notesInput.classList.add('is-saved');
+                
+                updateDisplayTotals(data.invoice);
+                
+                setTimeout(() => {
+                    priceInput.classList.remove('is-saved');
+                    notesInput.classList.remove('is-saved');
+                }, 1000);
+            } else {
+                showToast('error', data.error || 'حدث خطأ');
+                priceInput.classList.remove('is-saving');
+                notesInput.classList.remove('is-saving');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('error', error.message || 'حدث خطأ في الاتصال');
+            priceInput.classList.remove('is-saving');
+            notesInput.classList.remove('is-saving');
+        }
+    }, 500);
+}
+
+// Add Item Modal
+function openAddItemModal() {
+    document.getElementById('add-item-select').value = '';
+    document.getElementById('add-quantity').value = '1';
+    document.getElementById('add-price').value = '';
+    document.getElementById('add-notes').value = '';
+    new bootstrap.Modal(document.getElementById('addItemModal')).show();
+}
+
+async function addNewItem() {
+    const itemId = document.getElementById('add-item-select').value;
+    const quantity = parseFloat(document.getElementById('add-quantity').value);
+    const price = parseFloat(document.getElementById('add-price').value);
+    const notes = document.getElementById('add-notes').value;
+    
+    if (!itemId) {
+        alert('يرجى اختيار صنف');
+        return;
+    }
+    
+    if (quantity <= 0) {
+        alert('الكمية يجب أن تكون أكبر من صفر');
+        return;
+    }
+    
+    if (isNaN(price) || price < 0) {
+        alert('يرجى إدخال سعر صحيح');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/invoices/${invoiceId}/add-detail/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ item_id: itemId, quantity, price, notes })
+        });
+        
+        const data = await handleApiResponse(response);
+        
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message || 'حدث خطأ في إضافة الصنف');
+    }
+}
+
+// Delete Item
+function confirmDeleteItem(detailId, itemName) {
+    document.getElementById('delete-detail-id').value = detailId;
+    document.getElementById('delete-item-name').textContent = itemName;
+    new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+}
+
+async function deleteItem() {
+    const detailId = document.getElementById('delete-detail-id').value;
+    
+    try {
+        const response = await fetch(`/invoices/${invoiceId}/delete-detail/${detailId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+        
+        const data = await handleApiResponse(response);
+        
+        if (data.success) {
+            const row = document.querySelector(`tr[data-detail-id="${detailId}"]`);
+            if (row) row.remove();
+            
+            updateDisplayTotals(data.invoice);
+            recalculateSubtotal();
+            recalculateNetTotal();
+            renumberRows();
+            
+            bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+            showToast('success', data.message);
+        } else {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message || 'حدث خطأ في حذف الصنف');
+    }
+}
+
+// Recalculate subtotal from all rows
+function recalculateSubtotal() {
+    let subtotal = 0;
+    document.querySelectorAll('#invoice-items-tbody tr').forEach(row => {
+        const total = parseFloat(row.querySelector('.item-total').textContent) || 0;
+        subtotal += total;
+    });
+    currentSubtotal = subtotal;
+    document.getElementById('display-subtotal').textContent = subtotal.toFixed(2);
+    document.getElementById('table-subtotal').textContent = subtotal.toFixed(2) + ' ج.م';
+    return subtotal;
+}
+
+// Recalculate net total based on discount input
+function recalculateNetTotal() {
+    const subtotal = currentSubtotal;
+    const discountAmount = parseFloat(document.getElementById('discount-amount-input').value) || 0;
+    
+    const netTotal = Math.max(0, subtotal - discountAmount);
+    
+    document.getElementById('display-netTotal').textContent = netTotal.toFixed(2);
+    document.getElementById('display-discount').textContent = discountAmount.toFixed(2);
+    document.getElementById('table-netTotal').textContent = netTotal.toFixed(2) + ' ج.م';
+    
+    // Update remaining
+    const totalPaid = {{ invoice.totalPaid }};
+    const remaining = netTotal - totalPaid;
+    const remainingEl = document.getElementById('display-remaining');
+    remainingEl.textContent = remaining.toFixed(2) + ' ج.م';
+    remainingEl.className = remaining > 0 ? 'fw-bold text-danger' : 'fw-bold text-success';
+    
+    // Validate discount
+    const discountAmountInput = document.getElementById('discount-amount-input');
+    
+    if (discountAmount > subtotal) {
+        discountAmountInput.classList.add('is-invalid');
+    } else {
+        discountAmountInput.classList.remove('is-invalid');
+    }
+    
+    return netTotal;
+}
+
+// Save Invoice (all changes including discount)
+async function saveInvoice() {
+    const saveBtn = document.getElementById('save-invoice-btn');
+    const saveStatus = document.getElementById('save-status');
+    
+    // Validate discount
+    const subtotal = currentSubtotal;
+    const discountAmount = parseFloat(document.getElementById('discount-amount-input').value) || 0;
+    
+    if (discountAmount < 0) {
+        alert('قيمة الخصم لا يمكن أن تكون سالبة');
+        return;
+    }
+    
+    if (discountAmount > subtotal) {
+        alert(`قيمة الخصم (${discountAmount.toFixed(2)}) لا يمكن أن تتجاوز الإجمالي الفرعي (${subtotal.toFixed(2)})`);
+        return;
+    }
+    
+    // Show saving state
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...';
+    saveStatus.textContent = '';
+    
+    try {
+        const response = await fetch(`/invoices/${invoiceId}/update-discount/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ discountAmount, discountPercentage: 0 })
+        });
+        
+        const data = await handleApiResponse(response);
+        
+        if (data.success) {
+            updateDisplayTotals(data.invoice);
+            
+            // Update last updated time from server response
+            if (data.invoice.updatedAt) {
+                let updatedByText = '';
+                if (data.invoice.updatedBy) {
+                    updatedByText = ' بواسطة ' + data.invoice.updatedBy;
+                }
+                document.getElementById('last-updated').textContent = 'آخر تحديث: ' + data.invoice.updatedAt + updatedByText;
+            }
+            
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i> تم الحفظ بنجاح';
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-success');
+            saveStatus.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i> تم حفظ جميع التغييرات';
+            
+            setTimeout(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i> حفظ التغييرات';
+                saveBtn.classList.remove('btn-success');
+                saveBtn.classList.add('btn-primary');
+            }, 2000);
+            
+            showToast('success', 'تم حفظ الفاتورة بنجاح');
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i> حفظ التغييرات';
+        saveStatus.innerHTML = '<i class="bi bi-exclamation-circle text-danger me-1"></i> فشل الحفظ: ' + error.message;
+        showToast('error', 'حدث خطأ في حفظ الفاتورة');
+    }
+}
+
+// Helper functions
+function updateDisplayTotals(invoice) {
+    currentSubtotal = invoice.subtotal;
+    
+    document.getElementById('display-subtotal').textContent = invoice.subtotal.toFixed(2);
+    document.getElementById('display-netTotal').textContent = invoice.netTotal.toFixed(2);
+    document.getElementById('display-discount').textContent = invoice.discountAmount.toFixed(2);
+    document.getElementById('table-subtotal').textContent = invoice.subtotal.toFixed(2) + ' ج.م';
+    document.getElementById('table-netTotal').textContent = invoice.netTotal.toFixed(2) + ' ج.م';
+    document.getElementById('discount-amount-input').value = invoice.discountAmount;
+    
+    const totalPaid = {{ invoice.totalPaid }};
+    const remaining = invoice.netTotal - totalPaid;
+    const remainingEl = document.getElementById('display-remaining');
+    remainingEl.textContent = remaining.toFixed(2) + ' ج.م';
+    remainingEl.className = remaining > 0 ? 'fw-bold text-danger' : 'fw-bold text-success';
+}
+
+function renumberRows() {
+    const rows = document.querySelectorAll('#invoice-items-tbody tr');
+    rows.forEach((row, index) => {
+        row.querySelector('td:first-child').textContent = index + 1;
+    });
+}
+
+function showToast(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const toast = document.createElement('div');
+    toast.className = `alert ${alertClass} position-fixed bottom-0 end-0 m-3`;
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-1"></i> ${message}`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
 {% endblock %}

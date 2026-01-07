@@ -283,15 +283,15 @@
                 <!-- Sales Invoices Section -->
                 <div id="sales-invoices-section" class="data-section" style="display: none;">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="sales-invoices-table">
                             <thead>
                                 <tr>
-                                    <th>رقم الفاتورة</th>
-                                    <th>العميل</th>
-                                    <th>المخزن</th>
-                                    <th>إجمالي الصافي</th>
-                                    <th>حالة الدفع</th>
-                                    <th>التاريخ</th>
+                                    <th class="sortable" data-sort="id">رقم الفاتورة <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="customer">العميل <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="store">المخزن <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="netTotal">إجمالي الصافي <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="paymentStatus">حالة الدفع <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="date">التاريخ <i class="bi bi-arrow-down-up ms-1"></i></th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -305,15 +305,15 @@
                 <!-- Return Sales Section -->
                 <div id="return-sales-section" class="data-section" style="display: none;">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="return-sales-table">
                             <thead>
                                 <tr>
-                                    <th>رقم المرتجع</th>
-                                    <th>العميل</th>
-                                    <th>المخزن</th>
-                                    <th>إجمالي الصافي</th>
-                                    <th>الفاتورة الأصلية</th>
-                                    <th>التاريخ</th>
+                                    <th class="sortable" data-sort="id">رقم المرتجع <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="customer">العميل <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="store">المخزن <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="netTotal">إجمالي الصافي <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="originalInvoice">الفاتورة الأصلية <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="date">التاريخ <i class="bi bi-arrow-down-up ms-1"></i></th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -327,15 +327,15 @@
                 <!-- Vouchers Section -->
                 <div id="vouchers-section" class="data-section" style="display: none;">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="vouchers-table">
                             <thead>
                                 <tr>
-                                    <th>رقم القسيمة</th>
-                                    <th>نوع القسيمة</th>
-                                    <th>العميل/المورد</th>
-                                    <th>المبلغ</th>
+                                    <th class="sortable" data-sort="voucherId">رقم القسيمة <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="type">نوع القسيمة <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="customerVendor">العميل/المورد <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="amount">المبلغ <i class="bi bi-arrow-down-up ms-1"></i></th>
                                     <th>ملاحظات</th>
-                                    <th>التاريخ</th>
+                                    <th class="sortable" data-sort="date">التاريخ <i class="bi bi-arrow-down-up ms-1"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="vouchers-table-body">
@@ -352,13 +352,13 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="visits-table">
                             <thead>
                                 <tr>
-                                    <th>رقم الزيارة</th>
-                                    <th>التاريخ</th>
-                                    <th>اسم العميل</th>
-                                    <th>نوع المعاملة</th>
+                                    <th class="sortable" data-sort="id">رقم الزيارة <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="date">التاريخ <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="customer">اسم العميل <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="transType">نوع المعاملة <i class="bi bi-arrow-down-up ms-1"></i></th>
                                     <th>الملاحظات</th>
                                     <th>الموقع</th>
                                 </tr>
@@ -382,16 +382,16 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="cash-table">
                             <thead>
                                 <tr>
-                                    <th>رقم القسيمة</th>
-                                    <th>النوع</th>
-                                    <th>العميل/المورد</th>
-                                    <th>المبلغ</th>
-                                    <th>الرصيد المتراكم</th>
+                                    <th class="sortable" data-sort="voucherId">رقم القسيمة <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="type">النوع <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="customerVendor">العميل/المورد <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="amount">المبلغ <i class="bi bi-arrow-down-up ms-1"></i></th>
+                                    <th class="sortable" data-sort="balance">الرصيد المتراكم <i class="bi bi-arrow-down-up ms-1"></i></th>
                                     <th>ملاحظات</th>
-                                    <th>التاريخ</th>
+                                    <th class="sortable" data-sort="date">التاريخ <i class="bi bi-arrow-down-up ms-1"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="cash-table-body">
@@ -573,6 +573,33 @@
         font-size: 0.875rem;
         font-weight: 500;
         margin-bottom: 0.25rem;
+    }
+
+    /* Sortable column styling */
+    th.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        transition: background-color 0.2s;
+    }
+
+    th.sortable:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    th.sortable i {
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+
+    th.sortable:hover i {
+        opacity: 0.6;
+    }
+
+    th.sortable.sort-asc i,
+    th.sortable.sort-desc i {
+        opacity: 1;
+        color: #0d6efd;
     }
 </style>
 
@@ -1324,6 +1351,127 @@
                 '&amp;layer=mapnik&amp;marker=' + latitude + '%2C' + longitude + '"></iframe>';
         }, 300);
     };
+
+    // Table sorting functionality
+    function initTableSorting(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th.sortable');
+        let currentSort = { column: null, direction: 'asc' };
+
+        headers.forEach(header => {
+            header.addEventListener('click', function() {
+                const sortKey = this.getAttribute('data-sort');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                // Determine sort direction
+                if (currentSort.column === sortKey) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = sortKey;
+                    currentSort.direction = 'asc';
+                }
+
+                // Remove sort classes from all headers and reset icons
+                headers.forEach(h => {
+                    h.classList.remove('sort-asc', 'sort-desc');
+                    const icon = h.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('bi-arrow-up', 'bi-arrow-down');
+                        icon.classList.add('bi-arrow-down-up');
+                    }
+                });
+
+                // Add sort class to current header and update icon
+                this.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                const currentIcon = this.querySelector('i');
+                if (currentIcon) {
+                    currentIcon.classList.remove('bi-arrow-down-up');
+                    currentIcon.classList.add(currentSort.direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down');
+                }
+
+                // Sort rows
+                rows.sort((a, b) => {
+                    let aValue = getCellValue(a, sortKey);
+                    let bValue = getCellValue(b, sortKey);
+
+                    // Handle numeric values
+                    if (!isNaN(aValue) && !isNaN(bValue)) {
+                        aValue = parseFloat(aValue);
+                        bValue = parseFloat(bValue);
+                    }
+
+                    // Handle date values
+                    if (sortKey === 'date') {
+                        aValue = new Date(aValue);
+                        bValue = new Date(bValue);
+                    }
+
+                    if (aValue < bValue) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (aValue > bValue) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                // Reorder DOM
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+
+        function getCellValue(row, sortKey) {
+            const cells = row.querySelectorAll('td');
+            let cellIndex = 0;
+
+            // Map sort keys to cell indices
+            const columnMap = {
+                'id': 0,
+                'customer': 1,
+                'customerVendor': 2,
+                'store': 2,
+                'netTotal': 3,
+                'amount': 3,
+                'paymentStatus': 4,
+                'balance': 4,
+                'originalInvoice': 4,
+                'date': 5,
+                'voucherId': 0,
+                'type': 1,
+                'transType': 3
+            };
+
+            cellIndex = columnMap[sortKey] || 0;
+            
+            if (cells[cellIndex]) {
+                let value = cells[cellIndex].textContent.trim();
+                // Remove currency symbols and commas
+                value = value.replace(/[ج.م,]/g, '').trim();
+                return value;
+            }
+            return '';
+        }
+    }
+
+    // Initialize sorting for all tables when they become visible
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const target = mutation.target;
+                if (target.style.display !== 'none' && target.classList.contains('data-section')) {
+                    // Initialize sorting for the visible table
+                    const table = target.querySelector('table');
+                    if (table && table.id) {
+                        initTableSorting(table.id);
+                    }
+                }
+            }
+        });
+    });
+
+    // Observe all data sections
+    document.querySelectorAll('.data-section').forEach(section => {
+        observer.observe(section, { attributes: true });
+    });
 });
 </script>
 {% endblock %}

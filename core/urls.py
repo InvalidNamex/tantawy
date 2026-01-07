@@ -13,6 +13,10 @@ urlpatterns = [
     # Invoice Management URLs (Template-based for frontend)
     path('invoices/', views.invoices_main_view, name='invoices_main'),
     path('invoices/<int:invoice_id>/', views.invoice_detail_view, name='invoice_detail'),
+    path('invoices/<int:invoice_id>/update-detail/<int:detail_id>/', views.invoice_update_detail, name='invoice_update_detail'),
+    path('invoices/<int:invoice_id>/delete-detail/<int:detail_id>/', views.invoice_delete_detail, name='invoice_delete_detail'),
+    path('invoices/<int:invoice_id>/add-detail/', views.invoice_add_detail, name='invoice_add_detail'),
+    path('invoices/<int:invoice_id>/update-discount/', views.invoice_update_discount, name='invoice_update_discount'),
     path('invoices/purchase/', views.invoices_purchase_view, name='invoices_purchase'),
     path('invoices/sales/', views.invoices_sales_view, name='invoices_sales'),
     path('invoices/return-purchase/', views.invoices_return_purchase_view, name='invoices_return_purchase'),

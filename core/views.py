@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.utils import timezone
+from django.views.decorators.http import require_http_methods
 from decimal import Decimal
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
@@ -21,12 +22,30 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 import logging
 import base64
+import json
 from functools import wraps
 
 # Initialize logger
 logger = logging.getLogger(__name__)
 from .models import *
 from .serializers import *
+
+
+def ajax_login_required(view_func):
+    """
+    Custom login_required decorator that returns JSON 401 for AJAX requests
+    instead of redirecting to login page
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'success': False,
+                'error': 'جلسة منتهية - يرجى تسجيل الدخول مرة أخرى',
+                'redirect': '/login/'
+            }, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 # Import agent transactions API from authentication
 from authentication.views import agent_transactions_filtered_api as agent_transactions_api
@@ -3025,10 +3044,25 @@ def invoice_detail_view(request, invoice_id):
             # Calculate quantity breakdown into main, sub, and small units
             quantity_breakdown = calculate_quantity_breakdown(detail.quantity, detail.item)
             
+            # Determine how many unit fields to show
+            item = detail.item
+            main_pack = float(item.mainUnitPack) if item.mainUnitPack else 0
+            sub_pack = float(item.subUnitPack) if item.subUnitPack else 0
+            
+            # Count how many unit levels this item has
+            unit_count = 1  # Always have at least main unit
+            if main_pack > 0 and item.subUnitName:
+                unit_count = 2  # Has sub unit
+                if sub_pack > 0 and item.smallUnitName:
+                    unit_count = 3  # Has small unit too
+            
             invoice_details_with_totals.append({
                 'detail': detail,
                 'total': detail_total,
-                'quantity_breakdown': quantity_breakdown
+                'quantity_breakdown': quantity_breakdown,
+                'unit_count': unit_count,
+                'main_pack': main_pack,
+                'sub_pack': sub_pack,
             })
         
         # Get related object names safely
@@ -3036,6 +3070,9 @@ def invoice_detail_view(request, invoice_id):
         store_name = invoice.storeID.storeName if invoice.storeID else 'غير محدد'
         agent_name = invoice.agentID.agentName if invoice.agentID else 'غير محدد'
         created_by_name = invoice.createdBy.username if invoice.createdBy else 'غير محدد'
+        
+        # Get all active items for adding new items
+        all_items = Item.objects.filter(isDeleted=False).order_by('itemName')
         
         context = {
             'invoice': invoice,
@@ -3050,6 +3087,7 @@ def invoice_detail_view(request, invoice_id):
             'remaining_amount': remaining_amount,
             'invoice_type_label': invoice_type_labels.get(invoice.invoiceType, 'غير محدد'),
             'payment_status': payment_status,
+            'all_items': all_items,
         }
         
         return render(request, 'core/invoices/detail.html', context)
@@ -6494,3 +6532,280 @@ def inventory_deduct_quantity_view(request):
             'success': False,
             'error': f'حدث خطأ: {str(e)}'
         }, status=500)
+
+
+# Invoice Editing API Endpoints
+
+@ajax_login_required
+@require_http_methods(["POST"])
+def invoice_update_detail(request, invoice_id, detail_id):
+    """
+    Update an invoice detail (item quantity, price)
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Get the invoice detail
+        detail = get_object_or_404(InvoiceDetail, id=detail_id, invoiceMasterID_id=invoice_id, isDeleted=False)
+        invoice = detail.invoiceMasterID
+        
+        # Update fields
+        if 'quantity' in data:
+            quantity = Decimal(str(data['quantity']))
+            if quantity <= 0:
+                return JsonResponse({'success': False, 'error': 'الكمية يجب أن تكون أكبر من صفر'}, status=400)
+            detail.quantity = quantity
+        
+        if 'price' in data:
+            price = Decimal(str(data['price']))
+            if price < 0:
+                return JsonResponse({'success': False, 'error': 'السعر لا يمكن أن يكون سالباً'}, status=400)
+            detail.price = price
+        
+        if 'notes' in data:
+            detail.notes = data['notes']
+        
+        detail.updatedBy = request.user
+        detail.save()
+        
+        # Recalculate invoice totals
+        recalculate_invoice_totals(invoice, request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تم تحديث الصنف بنجاح',
+            'detail': {
+                'id': detail.id,
+                'quantity': float(detail.quantity),
+                'price': float(detail.price),
+                'total': float(detail.quantity * detail.price)
+            },
+            'invoice': {
+                'subtotal': float(invoice.netTotal + (invoice.discountAmount or 0)),
+                'discountAmount': float(invoice.discountAmount or 0),
+                'netTotal': float(invoice.netTotal)
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'بيانات غير صحيحة'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating invoice detail: {str(e)}")
+        return JsonResponse({'success': False, 'error': f'حدث خطأ: {str(e)}'}, status=500)
+
+
+@ajax_login_required
+@require_http_methods(["POST"])
+def invoice_delete_detail(request, invoice_id, detail_id):
+    """
+    Delete an invoice detail (soft delete)
+    """
+    try:
+        detail = get_object_or_404(InvoiceDetail, id=detail_id, invoiceMasterID_id=invoice_id, isDeleted=False)
+        invoice = detail.invoiceMasterID
+        
+        # Check if this is the last item
+        remaining_items = InvoiceDetail.objects.filter(
+            invoiceMasterID=invoice, isDeleted=False
+        ).exclude(id=detail_id).count()
+        
+        if remaining_items == 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'لا يمكن حذف آخر صنف في الفاتورة'
+            }, status=400)
+        
+        # Soft delete
+        detail.isDeleted = True
+        detail.deletedBy = request.user
+        from django.utils import timezone
+        detail.deletedAt = timezone.now()
+        detail.save()
+        
+        # Recalculate invoice totals
+        recalculate_invoice_totals(invoice, request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تم حذف الصنف بنجاح',
+            'invoice': {
+                'subtotal': float(invoice.netTotal + (invoice.discountAmount or 0)),
+                'discountAmount': float(invoice.discountAmount or 0),
+                'netTotal': float(invoice.netTotal)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting invoice detail: {str(e)}")
+        return JsonResponse({'success': False, 'error': f'حدث خطأ: {str(e)}'}, status=500)
+
+
+@ajax_login_required
+@require_http_methods(["POST"])
+def invoice_add_detail(request, invoice_id):
+    """
+    Add a new item to an invoice
+    """
+    try:
+        data = json.loads(request.body)
+        
+        invoice = get_object_or_404(InvoiceMaster, id=invoice_id, isDeleted=False)
+        
+        # Validate required fields
+        item_id = data.get('item_id')
+        quantity = data.get('quantity')
+        price = data.get('price')
+        
+        if not item_id or not quantity or price is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'الصنف والكمية والسعر مطلوبين'
+            }, status=400)
+        
+        item = get_object_or_404(Item, id=item_id, isDeleted=False)
+        quantity = Decimal(str(quantity))
+        price = Decimal(str(price))
+        
+        if quantity <= 0:
+            return JsonResponse({'success': False, 'error': 'الكمية يجب أن تكون أكبر من صفر'}, status=400)
+        if price < 0:
+            return JsonResponse({'success': False, 'error': 'السعر لا يمكن أن يكون سالباً'}, status=400)
+        
+        # Create the detail
+        detail = InvoiceDetail.objects.create(
+            invoiceMasterID=invoice,
+            item=item,
+            quantity=quantity,
+            price=price,
+            notes=data.get('notes', ''),
+            storeID=invoice.storeID,
+            discountAmount=0,
+            discountPercentage=0,
+            taxAmount=0,
+            taxPercentage=0,
+            createdBy=request.user,
+            updatedBy=request.user
+        )
+        
+        # Recalculate invoice totals
+        recalculate_invoice_totals(invoice, request.user)
+        
+        # Calculate quantity breakdown for display
+        quantity_breakdown = calculate_quantity_breakdown(detail.quantity, item)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تم إضافة الصنف بنجاح',
+            'detail': {
+                'id': detail.id,
+                'item_id': item.id,
+                'item_name': item.itemName,
+                'barcode': item.barcode or 'غير محدد',
+                'quantity': float(detail.quantity),
+                'price': float(detail.price),
+                'total': float(detail.quantity * detail.price),
+                'quantity_breakdown': quantity_breakdown
+            },
+            'invoice': {
+                'subtotal': float(invoice.netTotal + (invoice.discountAmount or 0)),
+                'discountAmount': float(invoice.discountAmount or 0),
+                'netTotal': float(invoice.netTotal)
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'بيانات غير صحيحة'}, status=400)
+    except Exception as e:
+        logger.error(f"Error adding invoice detail: {str(e)}")
+        return JsonResponse({'success': False, 'error': f'حدث خطأ: {str(e)}'}, status=500)
+
+
+@ajax_login_required
+@require_http_methods(["POST"])
+def invoice_update_discount(request, invoice_id):
+    """
+    Update invoice discount with validation
+    """
+    try:
+        data = json.loads(request.body)
+        
+        invoice = get_object_or_404(InvoiceMaster, id=invoice_id, isDeleted=False)
+        
+        # Get current subtotal (sum of all items)
+        invoice_details = InvoiceDetail.objects.filter(invoiceMasterID=invoice, isDeleted=False)
+        subtotal = sum(d.quantity * d.price for d in invoice_details)
+        
+        discount_amount = Decimal(str(data.get('discountAmount', 0)))
+        discount_percentage = Decimal(str(data.get('discountPercentage', 0)))
+        
+        # Validation
+        if discount_amount < 0:
+            return JsonResponse({'success': False, 'error': 'قيمة الخصم لا يمكن أن تكون سالبة'}, status=400)
+        
+        if discount_percentage < 0 or discount_percentage > 100:
+            return JsonResponse({'success': False, 'error': 'نسبة الخصم يجب أن تكون بين 0 و 100'}, status=400)
+        
+        # Calculate total discount
+        percentage_discount = (subtotal * discount_percentage / 100)
+        total_discount = discount_amount + percentage_discount
+        
+        if total_discount > subtotal:
+            return JsonResponse({
+                'success': False,
+                'error': f'إجمالي الخصم ({float(total_discount):.2f}) لا يمكن أن يتجاوز إجمالي الفاتورة ({float(subtotal):.2f})'
+            }, status=400)
+        
+        # Update invoice
+        invoice.discountAmount = discount_amount
+        invoice.discountPercentage = discount_percentage
+        invoice.netTotal = subtotal - total_discount
+        invoice.updatedBy = request.user
+        invoice.save()
+        
+        # Refresh from DB to get the updated timestamp
+        invoice.refresh_from_db()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تم تحديث الخصم بنجاح',
+            'invoice': {
+                'subtotal': float(subtotal),
+                'discountAmount': float(discount_amount),
+                'discountPercentage': float(discount_percentage),
+                'totalDiscount': float(total_discount),
+                'netTotal': float(invoice.netTotal),
+                'updatedAt': invoice.updatedAt.strftime('%Y-%m-%d %H:%M') if invoice.updatedAt else None,
+                'updatedBy': invoice.updatedBy.get_full_name() or invoice.updatedBy.username if invoice.updatedBy else None
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'بيانات غير صحيحة'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating invoice discount: {str(e)}")
+        return JsonResponse({'success': False, 'error': f'حدث خطأ: {str(e)}'}, status=500)
+
+
+def recalculate_invoice_totals(invoice, user):
+    """
+    Helper function to recalculate invoice totals after item changes
+    """
+    invoice_details = InvoiceDetail.objects.filter(invoiceMasterID=invoice, isDeleted=False)
+    subtotal = sum(d.quantity * d.price for d in invoice_details)
+    
+    # Apply discount
+    discount_amount = invoice.discountAmount or Decimal('0')
+    discount_percentage = invoice.discountPercentage or Decimal('0')
+    percentage_discount = (subtotal * discount_percentage / 100)
+    total_discount = discount_amount + percentage_discount
+    
+    # Ensure discount doesn't exceed subtotal
+    if total_discount > subtotal:
+        total_discount = subtotal
+        invoice.discountAmount = subtotal
+        invoice.discountPercentage = Decimal('0')
+    
+    invoice.netTotal = subtotal - total_discount
+    invoice.updatedBy = user
+    invoice.save()
+
